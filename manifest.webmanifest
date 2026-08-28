@@ -1,0 +1,19 @@
+{
+  "name": "Le Livre Magique",
+  "short_name": "Livre Magique",
+  "description": "Des histoires dont l'enfant est le héros, racontées et lues à voix haute.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fdf6e8",
+  "theme_color": "#5b3fa8",
+  "categories": ["education", "entertainment", "kids"],
+  "icons": [
+    { "src": "./icons/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/icone.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

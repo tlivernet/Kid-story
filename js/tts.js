@@ -1,0 +1,173 @@
+// Lecture à voix haute (Web Speech API) : file de phrases, surlignage du mot lu,
+// et petits contournements pour iOS et Chrome.
+
+export class Conteur {
+  constructor() {
+    this.synth = window.speechSynthesis || null;
+    this.file = [];
+    this.enCours = false;
+    this.termine = true;
+    this.utterance = null;
+    this.voixChoisie = null;
+    this.vitesse = 0.95;
+    this.debloque = false;
+    this.rappels = {};
+    this.pompe = null;
+    if (this.synth) {
+      this.chargerVoix();
+      this.synth.addEventListener?.('voiceschanged', () => this.chargerVoix());
+    }
+  }
+
+  get disponible() {
+    return Boolean(this.synth) && typeof SpeechSynthesisUtterance !== 'undefined';
+  }
+
+  chargerVoix() {
+    if (!this.synth) return [];
+    this.voix = this.synth.getVoices().filter((v) => /^fr/i.test(v.lang));
+    if (!this.voixChoisie && this.voix.length) this.voixChoisie = this.meilleureVoix();
+    return this.voix;
+  }
+
+  meilleureVoix() {
+    const liste = this.voix || [];
+    // On préfère une voix française locale, féminine si on peut la reconnaître.
+    return (
+      liste.find((v) => v.localService && /(amelie|amélie|audrey|marie|julie|female|virginie)/i.test(v.name))
+      || liste.find((v) => v.localService)
+      || liste[0]
+      || null
+    );
+  }
+
+  configurer({ voix, vitesse }) {
+    if (vitesse) this.vitesse = vitesse;
+    if (voix !== undefined) {
+      const trouvee = (this.voix || []).find((v) => v.voiceURI === voix || v.name === voix);
+      this.voixChoisie = trouvee || this.meilleureVoix();
+    }
+  }
+
+  // iOS n'autorise la synthèse qu'après une interaction : on la « réveille » au premier geste.
+  debloquer() {
+    if (!this.disponible || this.debloque) return;
+    try {
+      const vide = new SpeechSynthesisUtterance(' ');
+      vide.volume = 0;
+      this.synth.speak(vide);
+      this.debloque = true;
+    } catch { /* sans importance */ }
+  }
+
+  lire(phrases, rappels = {}) {
+    this.stop();
+    this.rappels = rappels;
+    this.termine = false;
+    phrases.forEach((texte, index) => this.file.push({ texte, index }));
+    this.termine = true;
+    this._demarrer();
+  }
+
+  // Mode streaming : on enfile les phrases au fur et à mesure de leur arrivée.
+  ouvrir(rappels = {}) {
+    this.stop();
+    this.rappels = rappels;
+    this.termine = false;
+  }
+
+  enfiler(texte, index) {
+    this.file.push({ texte, index });
+    this._demarrer();
+  }
+
+  fermer() {
+    this.termine = true;
+    if (!this.enCours && !this.file.length) this.rappels.onFin?.();
+  }
+
+  _demarrer() {
+    if (!this.disponible || this.enCours) return;
+    const suivant = this.file.shift();
+    if (!suivant) {
+      if (this.termine) this.rappels.onFin?.();
+      return;
+    }
+    this.enCours = true;
+    const u = new SpeechSynthesisUtterance(suivant.texte);
+    u.lang = 'fr-FR';
+    if (this.voixChoisie) u.voice = this.voixChoisie;
+    u.rate = this.vitesse;
+    u.pitch = 1.05;
+    this.utterance = u;
+    this.rappels.onPhrase?.(suivant.index);
+
+    u.onboundary = (e) => {
+      if (e.name && e.name !== 'word') return;
+      this.rappels.onMot?.(suivant.index, e.charIndex ?? 0, e.charLength ?? 0);
+    };
+    u.onend = () => {
+      this.enCours = false;
+      this.utterance = null;
+      this._demarrer();
+    };
+    u.onerror = () => {
+      this.enCours = false;
+      this.utterance = null;
+      this._demarrer();
+    };
+
+    try {
+      this.synth.speak(u);
+      this._pomper();
+    } catch {
+      this.enCours = false;
+    }
+  }
+
+  // Chrome coupe la synthèse au bout d'une quinzaine de secondes : on la relance.
+  _pomper() {
+    clearInterval(this.pompe);
+    this.pompe = setInterval(() => {
+      if (!this.synth || !this.synth.speaking) { clearInterval(this.pompe); return; }
+      if (!this.synth.paused) { this.synth.pause(); this.synth.resume(); }
+    }, 9000);
+  }
+
+  pause() {
+    if (this.synth?.speaking && !this.synth.paused) this.synth.pause();
+  }
+
+  reprendre() {
+    if (this.synth?.paused) this.synth.resume();
+  }
+
+  get enPause() {
+    return Boolean(this.synth?.paused);
+  }
+
+  stop() {
+    clearInterval(this.pompe);
+    this.file = [];
+    this.enCours = false;
+    this.utterance = null;
+    try { this.synth?.cancel(); } catch { /* ignoré */ }
+  }
+
+  // Lecture d'un seul mot (l'enfant tape sur un mot pour l'entendre).
+  direMot(mot) {
+    if (!this.disponible || !mot) return;
+    try {
+      this.synth.cancel();
+      const u = new SpeechSynthesisUtterance(mot);
+      u.lang = 'fr-FR';
+      if (this.voixChoisie) u.voice = this.voixChoisie;
+      u.rate = Math.min(this.vitesse, 0.8);
+      this.enCours = false;
+      this.file = [];
+      this.synth.speak(u);
+    } catch { /* ignoré */ }
+  }
+}
+
+export const conteur = new Conteur();

@@ -1,0 +1,13 @@
+{
+  "name": "livre-magique",
+  "version": "1.0.0",
+  "description": "PWA d'histoires interactives pour enfants, racontées par Claude et lues à voix haute.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server -p 8080 -c-1",
+    "test": "node --test tests/",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "license": "MIT"
+}

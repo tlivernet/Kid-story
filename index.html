@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Le Livre Magique</title>
+<meta name="description" content="Un jeu d'histoires dont l'enfant est le héros, raconté et lu à voix haute.">
+<meta name="theme-color" content="#5b3fa8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Livre Magique">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/icone-180.png">
+<link rel="stylesheet" href="./css/app.css">
+</head>
+<body>
+
+<main id="app">
+
+  <!-- ACCUEIL -->
+  <section class="ecran actif" id="ecran-accueil">
+    <div class="accueil-fond" id="accueil-fond"></div>
+    <div class="accueil-contenu">
+      <h1 class="titre-app">Le Livre<br><span>Magique</span></h1>
+      <p class="sous-titre">Choisis ton histoire… et vis-la !</p>
+      <div class="pile">
+        <button class="btn btn-geant" id="btn-continuer" hidden>
+          <span class="btn-emoji">▶️</span><span class="btn-label">Continuer l’aventure</span>
+        </button>
+        <button class="btn btn-geant btn-primaire" id="btn-nouvelle">
+          <span class="btn-emoji">✨</span><span class="btn-label">Nouvelle aventure</span>
+        </button>
+        <button class="btn btn-geant" id="btn-carnet">
+          <span class="btn-emoji">📖</span><span class="btn-label">Mon carnet</span>
+        </button>
+      </div>
+      <div class="accueil-bas">
+        <button class="btn btn-discret" id="btn-reglages">⚙️ Réglages (parents)</button>
+        <button class="btn btn-discret" id="btn-installer" hidden>⬇️ Installer</button>
+      </div>
+      <p class="note-mode" id="note-mode"></p>
+    </div>
+  </section>
+
+  <!-- CHOIX DU THÈME -->
+  <section class="ecran" id="ecran-theme">
+    <header class="barre-simple">
+      <button class="btn-rond" data-retour="accueil" aria-label="Retour">🏠</button>
+      <h2>Quelle histoire aujourd’hui ?</h2>
+    </header>
+    <div class="grille-themes" id="grille-themes"></div>
+  </section>
+
+  <!-- HÉROS -->
+  <section class="ecran" id="ecran-heros">
+    <header class="barre-simple">
+      <button class="btn-rond" data-retour="theme" aria-label="Retour">↩️</button>
+      <h2>Qui est le héros ?</h2>
+    </header>
+    <div class="bloc-heros">
+      <label class="label-gros" for="champ-prenom">Ton prénom</label>
+      <input id="champ-prenom" class="champ-gros" type="text" maxlength="16" autocomplete="off" placeholder="Ex : Lina">
+      <p class="label-gros">Choisis ton avatar</p>
+      <div class="grille-avatars" id="grille-avatars"></div>
+      <div id="bloc-idee" hidden>
+        <label class="label-gros" for="champ-idee">Ton idée d’histoire</label>
+        <input id="champ-idee" class="champ-gros" type="text" maxlength="90" placeholder="Ex : un dragon qui a peur du noir">
+      </div>
+      <button class="btn btn-geant btn-primaire" id="btn-demarrer">
+        <span class="btn-emoji">🚀</span><span class="btn-label">C’est parti !</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- JEU -->
+  <section class="ecran" id="ecran-jeu">
+    <header class="barre-jeu">
+      <button class="btn-rond" id="btn-maison" aria-label="Accueil">🏠</button>
+      <div class="jauges">
+        <span class="coeurs" id="coeurs" aria-label="courage"></span>
+        <span class="etoiles" id="etoiles">⭐ 0</span>
+      </div>
+      <button class="btn-rond" id="btn-sac" aria-label="Sac de quête">🎒<span class="pastille" id="pastille-sac" hidden>0</span></button>
+      <button class="btn-rond" id="btn-son" aria-label="Lecture à voix haute">🔊</button>
+    </header>
+
+    <div class="scene" id="scene"></div>
+
+    <div class="zone-histoire">
+      <h2 class="titre-histoire" id="titre-histoire" hidden></h2>
+      <div class="texte-histoire" id="texte-histoire" aria-live="polite"></div>
+      <div class="chargement" id="chargement" hidden>
+        <div class="plume">🪶</div>
+        <p id="chargement-texte">La Plume Magique écrit ton histoire…</p>
+      </div>
+      <div class="erreur" id="erreur" hidden></div>
+    </div>
+
+    <div class="choix" id="choix"></div>
+
+    <footer class="barre-lecture">
+      <button class="btn-rond" id="btn-relire" aria-label="Relire">🔁</button>
+      <button class="btn-rond" id="btn-pause" aria-label="Pause">⏸️</button>
+      <span class="astuce">Touche un mot pour l’entendre 👆</span>
+    </footer>
+  </section>
+
+  <!-- FIN -->
+  <section class="ecran" id="ecran-fin">
+    <div class="fin-contenu">
+      <div class="fin-emoji">🏆</div>
+      <h2 id="fin-titre">Bravo !</h2>
+      <p id="fin-message"></p>
+      <p class="fin-score" id="fin-score"></p>
+      <button class="btn btn-geant btn-primaire" id="btn-rejouer"><span class="btn-emoji">✨</span><span class="btn-label">Une autre aventure</span></button>
+      <button class="btn btn-geant" id="btn-fin-carnet"><span class="btn-emoji">📖</span><span class="btn-label">Voir mon carnet</span></button>
+    </div>
+  </section>
+
+  <!-- CARNET -->
+  <section class="ecran" id="ecran-carnet">
+    <header class="barre-simple">
+      <button class="btn-rond" data-retour="accueil" aria-label="Retour">🏠</button>
+      <h2>Mon carnet d’aventures</h2>
+    </header>
+    <div class="carnet" id="carnet"></div>
+  </section>
+
+  <!-- RÉGLAGES -->
+  <section class="ecran" id="ecran-reglages">
+    <header class="barre-simple">
+      <button class="btn-rond" data-retour="accueil" aria-label="Retour">🏠</button>
+      <h2>Réglages</h2>
+    </header>
+
+    <div class="portail" id="portail">
+      <p class="label-gros">Espace des parents 🔒</p>
+      <p id="portail-question">Combien font 7 × 4 ?</p>
+      <input id="portail-reponse" class="champ-gros" type="number" inputmode="numeric">
+      <button class="btn btn-primaire" id="portail-valider">Entrer</button>
+    </div>
+
+    <div class="reglages" id="reglages" hidden>
+      <section class="carte">
+        <h3>Clé API Claude</h3>
+        <p class="aide">La clé reste sur cet appareil (stockage local du navigateur). Elle n’est jamais envoyée ailleurs qu’à l’API d’Anthropic.</p>
+        <input id="champ-cle" class="champ-gros" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
+        <div class="ligne-boutons">
+          <button class="btn" id="btn-voir-cle">👁️ Afficher</button>
+          <button class="btn btn-primaire" id="btn-tester-cle">Tester la clé</button>
+        </div>
+        <p class="aide"><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Créer une clé sur console.anthropic.com</a> — pense à fixer une limite de dépense mensuelle.</p>
+        <p class="statut" id="statut-cle"></p>
+      </section>
+
+      <section class="carte">
+        <h3>Histoire</h3>
+        <label class="ligne">Modèle
+          <select id="champ-modele"></select>
+        </label>
+        <label class="ligne">Longueur
+          <select id="champ-longueur">
+            <option value="8">Courte (8 chapitres)</option>
+            <option value="12">Moyenne (12 chapitres)</option>
+            <option value="16">Longue (16 chapitres)</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="carte">
+        <h3>Voix et lecture</h3>
+        <label class="ligne">Voix
+          <select id="champ-voix"></select>
+        </label>
+        <label class="ligne">Vitesse <span id="valeur-vitesse">0.95</span>
+          <input id="champ-vitesse" type="range" min="0.6" max="1.3" step="0.05">
+        </label>
+        <label class="ligne interrupteur">Lire automatiquement
+          <input id="champ-lecture-auto" type="checkbox">
+        </label>
+        <label class="ligne interrupteur">Surligner le mot lu
+          <input id="champ-mot-par-mot" type="checkbox">
+        </label>
+        <label class="ligne">Taille du texte
+          <select id="champ-taille">
+            <option value="0.9">Normale</option>
+            <option value="1">Grande</option>
+            <option value="1.15">Très grande</option>
+          </select>
+        </label>
+        <button class="btn" id="btn-essai-voix">🔊 Essayer la voix</button>
+      </section>
+
+      <section class="carte">
+        <h3>Données</h3>
+        <button class="btn" id="btn-effacer-partie">Effacer l’aventure en cours</button>
+        <button class="btn btn-danger" id="btn-effacer-tout">Tout effacer (clé comprise)</button>
+      </section>
+    </div>
+  </section>
+
+</main>
+
+<!-- SAC -->
+<div class="modale" id="modale-sac" hidden>
+  <div class="modale-boite">
+    <h2>🎒 Mon sac de quête</h2>
+    <div id="liste-sac"></div>
+    <button class="btn btn-primaire" id="btn-fermer-sac">Fermer</button>
+  </div>
+</div>
+
+<!-- DÉ -->
+<div class="overlay" id="overlay-de" hidden>
+  <div class="de-boite">
+    <p class="de-titre" id="de-titre">Épreuve !</p>
+    <div class="de" id="de"></div>
+    <p class="de-resultat" id="de-resultat"></p>
+    <button class="btn btn-geant btn-primaire" id="btn-lancer-de"><span class="btn-emoji">🎲</span><span class="btn-label">Lancer le dé</span></button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
