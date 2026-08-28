@@ -51,7 +51,13 @@ export const REGLAGES_DEFAUT = {
   voix: '',
   motParMot: true,
   tailleTexte: 1,
-  longueur: 12,           // nombre de chapitres visé avant la fin
-  portailParental: true,  // petite question de calcul avant les réglages
-  fallback: true,         // secours automatique côté serveur
+  longueur: 12,             // nombre de chapitres visé avant la fin
+  richesse: 'riche',        // 'simple' (4-5 phrases) ou 'riche' (6-8 phrases)
+  portailParental: true,    // petite question de calcul avant les réglages
+  fallback: true,           // secours automatique côté serveur
+  confirmerChoix: true,     // l'enfant écoute le choix puis confirme (il ne lit pas encore)
+  lireChoix: true,          // les choix sont lus à voix haute automatiquement
+  fournisseurVoix: 'navigateur', // 'navigateur' ou 'google'
+  cleGoogle: '',
+  voixGoogle: 'fr-FR-Wavenet-C',
 };

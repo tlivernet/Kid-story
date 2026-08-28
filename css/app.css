@@ -270,7 +270,26 @@ body {
 .carte-choix:nth-child(2) { animation-delay: 0.08s; }
 .carte-choix:nth-child(3) { animation-delay: 0.16s; }
 .carte-choix:active { transform: translateY(3px); }
-.carte-choix .emoji { font-size: 2rem; }
+.carte-choix .emoji { font-size: 2.1rem; }
+.carte-choix .numero {
+  font-size: 1.15rem; font-weight: 900; color: #fff;
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: var(--couleur-choix, var(--violet));
+}
+.carte-choix.choix-1 { --couleur-choix: #3f7fd6; }
+.carte-choix.choix-2 { --couleur-choix: #e8862f; }
+.carte-choix.choix-3 { --couleur-choix: #3fae6a; }
+.carte-choix { border-left: 10px solid var(--couleur-choix, var(--creme-fonce)); }
+.carte-choix .validation { font-size: 1.6rem; opacity: 0; transition: opacity 0.15s ease; }
+
+/* Le choix énoncé à voix haute s'allume, celui que l'enfant a touché attend sa confirmation. */
+.carte-choix.enonce { background: #fff6da; transform: scale(1.02); }
+.carte-choix.choisi {
+  border-color: var(--couleur-choix, var(--violet));
+  background: #fffaf0;
+  box-shadow: 0 0 0 4px var(--couleur-choix, var(--violet)) inset, var(--ombre);
+}
+.carte-choix.choisi .validation { opacity: 1; animation: flotte 1.6s ease-in-out infinite; }
 .carte-choix .libelle { flex: 1; }
 .carte-choix .badge { font-size: 0.8rem; font-weight: 800; background: var(--creme-fonce); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
 .carte-choix.epreuve { border-color: #f6d488; background: #fffaf0; }
@@ -396,5 +415,6 @@ body {
   .phrase.lue { background: #4a3a1f; }
   .mot.actif { background: var(--or); color: #2b2140; }
   .erreur { background: #4a2724; border-color: #7a3f39; color: #ffd9d5; }
-  .carte-choix.epreuve { background: #3a3050; border-color: #7a6a2f; }
+  .carte-choix.epreuve { background: #3a3050; }
+  .carte-choix.enonce, .carte-choix.choisi { background: #453a63; }
 }

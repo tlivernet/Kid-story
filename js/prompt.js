@@ -28,16 +28,32 @@ COHÉRENCE
 - Ne contredis jamais la mémoire. Un objet utilisé doit être retiré du sac.
 - Reprends toujours l'histoire exactement là où le choix de l'enfant l'a menée.
 
+RICHESSE (ce qui fait une belle histoire)
+- Chaque chapitre est une petite scène complète : le héros VEUT quelque chose, quelque chose l'EN EMPÊCHE, il RÉAGIT.
+- Un détail sensoriel par chapitre : une odeur, un bruit, une texture, une couleur, un goût. Un seul, bien choisi.
+- Les personnages ont une manie à eux qui revient : une façon de parler, un tic, un mot rigolo. Reprends-la.
+- Les personnages veulent aussi quelque chose pour eux : ils aident, se trompent, boudent, se réconcilient.
+- Varie le type de chapitre : rencontre, dialogue, découverte, poursuite douce, devinette, moment tendre, farce.
+- Termine chaque chapitre sur une petite accroche : une porte qui grince, une question posée, une ombre qui bouge.
+- Nomme les choses précisément : « le renard roux à la patte blanche », pas « l'animal ».
+
+GRAINES ET FLORAISONS (très important pour la cohérence)
+- Une GRAINE est un détail glissé maintenant qui servira plus tard : un objet oublié, une phrase bizarre, un bruit.
+- Plante une graine quand c'est naturel (champ promesse_plantee), et fais FLEURIR une graine déjà plantée
+  (champ promesse_payee) dès que l'occasion se présente. C'est ce qui donne l'impression d'une vraie histoire.
+- La liste des graines en attente t'est donnée dans l'état du jeu. N'en laisse aucune sans réponse à la fin.
+
 RYTHME
-- Chapitre 1 : présente le héros, le décor, un compagnon éventuel, et lance la quête en une phrase claire.
-- Ensuite : une petite péripétie par chapitre, qui fait avancer la quête.
+- Suis la CONSIGNE D'ÉTAPE fournie à chaque tour : elle indique où en est l'histoire.
 - Environ un chapitre sur trois propose une ÉPREUVE de dé (grimper, sauter, ruser, apprivoiser, chercher).
 - Offre un objet utile de temps en temps (six objets maximum dans le sac). Un objet doit servir plus tard.
-- Fais parler des personnages rencontrés : une question, une demande, une devinette facile.
-- Quand on approche du dernier chapitre annoncé, prépare le dénouement, puis termine par une fin heureuse.
+- Tiens à jour la liste des personnages rencontrés (nom, emoji, manie) : c'est ta troupe, réutilise-la.
 
 CHOIX
 - Toujours 2 ou 3 choix, très courts (2 à 6 mots), vraiment différents, tous tentants.
+- L'enfant NE SAIT PAS ENCORE LIRE : les choix sont lus à voix haute. Écris-les comme on les dit,
+  avec un verbe d'action au début, et rends-les faciles à distinguer à l'oreille (pas deux choix qui se ressemblent).
+- Varie leur nature : agir, parler à quelqu'un, observer, utiliser un objet, prendre un risque.
 - « objet_requis » : mets le nom exact d'un objet du sac seulement si le héros le possède déjà, sinon "".
 - « epreuve_nom » + « epreuve_difficulte » (2 à 5) pour un choix risqué : l'enfant lancera un dé à 6 faces.
   Difficulté 2 = facile, 5 = costaud. Sinon epreuve_nom vaut "" et epreuve_difficulte vaut 0.
@@ -52,7 +68,7 @@ const CHOIX_SCHEMA = {
   type: 'object',
   properties: {
     texte: { type: 'string', description: '2 à 6 mots, à la première personne du héros' },
-    emoji: { type: 'string', description: 'un seul emoji illustrant le choix' },
+    emoji: { type: 'string', description: 'un seul emoji ; il doit suffire à deviner le choix sans savoir lire' },
     objet_requis: { type: 'string', description: "nom exact d'un objet du sac, sinon chaîne vide" },
     epreuve_nom: { type: 'string', description: "nom court de l'épreuve de dé, sinon chaîne vide" },
     epreuve_difficulte: { type: 'integer', enum: [0, 2, 3, 4, 5] },
@@ -78,7 +94,7 @@ export const SCHEMA = {
   type: 'object',
   properties: {
     titre: { type: 'string', description: "titre de l'aventure au chapitre 1, sinon chaîne vide" },
-    texte: { type: 'array', items: { type: 'string' }, description: '4 à 6 phrases courtes' },
+    texte: { type: 'array', items: { type: 'string' }, description: 'phrases courtes, voir la consigne de longueur' },
     lieu: { type: 'string', enum: LIEUX },
     moment: { type: 'string', enum: MOMENTS },
     acteurs: { type: 'array', items: { type: 'string' }, description: '1 à 3 emojis' },
@@ -86,6 +102,22 @@ export const SCHEMA = {
     quete: { type: 'string', description: "objectif en cours, moins de 10 mots" },
     memoire: { type: 'string', description: '3 à 5 faits courts, 400 caractères maximum' },
     compagnon: { type: 'string', description: 'nom + emoji du compagnon actuel, sinon chaîne vide' },
+    personnages: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          nom: { type: 'string' },
+          emoji: { type: 'string' },
+          manie: { type: 'string', description: 'sa façon à lui, moins de 8 mots' },
+        },
+        required: ['nom', 'emoji', 'manie'],
+        additionalProperties: false,
+      },
+      description: 'la troupe rencontrée jusqu’ici, 4 maximum, réécrite à chaque chapitre',
+    },
+    promesse_plantee: { type: 'string', description: 'détail glissé qui servira plus tard, sinon chaîne vide' },
+    promesse_payee: { type: 'string', description: 'graine de la liste que ce chapitre fait fleurir, sinon chaîne vide' },
     sac_ajouter: { type: 'array', items: OBJET_SCHEMA },
     sac_retirer: { type: 'array', items: { type: 'string' } },
     coeurs_delta: { type: 'integer', enum: [-1, 0, 1] },
@@ -96,15 +128,40 @@ export const SCHEMA = {
   },
   required: [
     'titre', 'texte', 'lieu', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
-    'compagnon', 'sac_ajouter', 'sac_retirer', 'coeurs_delta', 'etoiles_delta', 'choix',
-    'fin_titre', 'fin_message',
+    'compagnon', 'personnages', 'promesse_plantee', 'promesse_payee', 'sac_ajouter', 'sac_retirer',
+    'coeurs_delta', 'etoiles_delta', 'choix', 'fin_titre', 'fin_message',
   ],
   additionalProperties: false,
 };
 
+// Arc narratif : à chaque chapitre correspond une étape, façon plan en trois actes.
+const ETAPES = [
+  ['Ouverture', 'Présente le héros, le lieu et la troupe. Lance la quête en une phrase claire. Plante une graine.'],
+  ['Premier pas', 'Le voyage commence pour de bon. Un premier petit obstacle, surmontable et rigolo.'],
+  ['Rencontre', 'Un personnage nouveau apparaît et parle. Il veut quelque chose pour lui aussi.'],
+  ['Complication', 'L’obstacle grandit ou l’aide promise manque. On doit ruser.'],
+  ['Découverte', 'Une révélation douce : un indice, un passage, un secret. Fais fleurir une graine.'],
+  ['Coup dur', 'Tout semble raté — mais sans peur ni tristesse : un contretemps drôle, un plan qui s’écroule.'],
+  ['Idée maligne', 'Le héros a une idée. Un objet du sac ou un ami devient la solution.'],
+  ['Dernier effort', 'La quête touche au but. Une dernière épreuve, la plus excitante.'],
+  ['Dénouement', 'La quête réussit. Fais fleurir les graines restantes.'],
+];
+
+export function etape(chapitre, longueur) {
+  if (chapitre === 0) return ETAPES[0];
+  if (chapitre + 1 >= longueur) return ETAPES[ETAPES.length - 1];
+  const position = Math.min(1, chapitre / Math.max(1, longueur - 2));
+  const index = Math.min(ETAPES.length - 2, Math.max(1, Math.round(position * (ETAPES.length - 2))));
+  return ETAPES[index];
+}
+
 // Bloc d'état relu par le modèle à chaque tour.
 export function blocEtat(etat) {
   const sac = etat.sac.length ? etat.sac.map((o) => `${o.emoji} ${o.nom} (${o.pouvoir})`).join(', ') : 'vide';
+  const troupe = etat.personnages?.length
+    ? etat.personnages.map((p) => `${p.emoji} ${p.nom} — ${p.manie}`).join(' ; ')
+    : 'personne pour l’instant';
+  const graines = etat.promesses?.length ? etat.promesses.map((g) => `« ${g} »`).join(' ; ') : 'aucune';
   return [
     'ÉTAT DU JEU',
     `Héros : ${etat.heros.prenom} ${etat.heros.avatar}`,
@@ -114,19 +171,30 @@ export function blocEtat(etat) {
     `Sac : ${sac}`,
     `Compagnon : ${etat.compagnon || 'aucun'}`,
     `Quête : ${etat.quete || 'à définir'}`,
+    `Troupe : ${troupe}`,
+    `Graines en attente : ${graines}`,
     `Lieu : ${etat.lieu || 'à choisir'}`,
     `Mémoire : ${etat.memoire || 'histoire toute neuve'}`,
   ].join('\n');
 }
 
+function consigneLongueur(etat) {
+  return etat.richesse === 'simple'
+    ? 'Longueur : 4 à 5 phrases très courtes.'
+    : 'Longueur : 6 à 8 phrases courtes (l’enfant écoute, il ne lit pas encore : offre-lui du détail et du dialogue).';
+}
+
 export function premierMessage(etat, idee) {
+  const [nom, consigne] = etape(0, etat.longueur);
   return [
     blocEtat(etat),
     '',
     'DÉBUT DE L’AVENTURE',
     `Thème choisi par l'enfant : ${etat.theme}.`,
     idee ? `Idée en plus : ${idee}.` : '',
-    `Écris le chapitre 1 : présente ${etat.heros.prenom}, plante le décor, lance une quête simple et donne 2 ou 3 choix.`,
+    `ÉTAPE « ${nom} » — ${consigne}`,
+    consigneLongueur(etat),
+    'Écris le chapitre 1, puis donne 2 ou 3 choix.',
   ].filter(Boolean).join('\n');
 }
 
@@ -150,6 +218,7 @@ export function messageSuivant(etat, action) {
   } else if (etat.chapitre + 2 >= etat.longueur) {
     lignes.push('L’aventure se termine bientôt : commence le dénouement.');
   }
-  lignes.push('Écris le chapitre suivant.');
+  const [nom, consigne] = etape(etat.chapitre, etat.longueur);
+  lignes.push('', `ÉTAPE « ${nom} » — ${consigne}`, consigneLongueur(etat), 'Écris le chapitre suivant.');
   return lignes.join('\n');
 }

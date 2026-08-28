@@ -5,7 +5,7 @@ import { reglages as storeReglages, partie, journal, heros as storeHeros } from 
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
 import { dessinerScene } from './scene.js';
-import { conteur } from './tts.js';
+import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
 import { nouvelEtat, appliquerChapitre, ajouterEchange, messagesPour } from './state.js';
 import { chapitreDemo } from './demo.js';
@@ -28,7 +28,7 @@ const animationsReduites = window.matchMedia('(prefers-reduced-motion: reduce)')
 // --- Utilitaires d'interface ------------------------------------------------
 
 function montrer(nom) {
-  if (nom !== 'jeu') conteur.stop();
+  if (nom !== 'jeu') narrateur.stop();
   document.querySelectorAll('.ecran').forEach((e) => e.classList.remove('actif'));
   $(`#ecran-${nom}`).classList.add('actif');
   $(`#ecran-${nom}`).scrollTop = 0;
@@ -49,7 +49,7 @@ function modeDemo() {
 
 function appliquerReglages() {
   document.documentElement.style.setProperty('--taille-texte', ui.reglages.tailleTexte);
-  conteur.configurer({ voix: ui.reglages.voix, vitesse: ui.reglages.vitesse });
+  narrateur.configurer(ui.reglages);
 }
 
 // --- Accueil ----------------------------------------------------------------
@@ -121,10 +121,11 @@ function demarrer() {
     theme: theme.nom,
     themeId: theme.id === 'idee' ? THEMES[Math.floor(Math.random() * THEMES.length)].id : theme.id,
     longueur: Number(ui.reglages.longueur) || 12,
+    richesse: ui.reglages.richesse,
     idee,
   });
   ui.demo = false;
-  conteur.debloquer();
+  narrateur.debloquer();
   montrer('jeu');
   majJauges();
   $('#titre-histoire').hidden = true;
@@ -137,7 +138,7 @@ function reprendre() {
   if (!sauvegarde) return;
   ui.etat = sauvegarde;
   ui.demo = false;
-  conteur.debloquer();
+  narrateur.debloquer();
   montrer('jeu');
   majJauges();
   if (sauvegarde.dernier) rendreChapitre(sauvegarde.dernier, false);
@@ -158,7 +159,7 @@ function elementPhrase(texte, index) {
       });
       mot.addEventListener('click', (e) => {
         e.stopPropagation();
-        conteur.direMot(morceau.mot || morceau.brut);
+        narrateur.direMot(morceau.mot || morceau.brut);
         vibrer(8);
       });
       phrase.appendChild(mot);
@@ -196,8 +197,30 @@ const rappelsLecture = {
   onFin: () => {
     document.querySelectorAll('.phrase').forEach((p) => p.classList.remove('lue'));
     document.querySelectorAll('.mot.actif').forEach((m) => m.classList.remove('actif'));
+    lireLesChoix();
+  },
+  onErreur: (message) => {
+    if (ui.voixSignalee) return;
+    ui.voixSignalee = true;
+    toast(`Voix Google indisponible : ${message}`);
   },
 };
+
+// L'enfant ne lit pas encore : les choix lui sont énoncés, un par un, carte allumée.
+function lireLesChoix() {
+  if (!ui.lecture || !ui.reglages.lireChoix) return;
+  const cartes = document.querySelectorAll('#choix .carte-choix');
+  if (!cartes.length || ui.etat?.termine) return;
+  const phrases = ['Que fais-tu ?'];
+  const numeros = ['Un', 'Deux', 'Trois'];
+  cartes.forEach((carte, i) => phrases.push(`${numeros[i] || i + 1} : ${carte.dataset.texte}.`));
+  narrateur.lire(phrases, {
+    onPhrase: (index) => {
+      cartes.forEach((c, i) => c.classList.toggle('enonce', i === index - 1));
+    },
+    onFin: () => cartes.forEach((c) => c.classList.remove('enonce')),
+  });
+}
 
 function rendreChapitre(chapitre, anime = true) {
   const zone = $('#texte-histoire');
@@ -215,7 +238,7 @@ function rendreChapitre(chapitre, anime = true) {
   rendreChoix(chapitre);
   majJauges();
   if (anime && ui.lecture) {
-    conteur.lire(chapitre.texte || [], rappelsLecture);
+    narrateur.lire(chapitre.texte || [], rappelsLecture);
   }
 }
 
@@ -246,15 +269,18 @@ function rendreChoix(chapitre) {
   for (const choix of chapitre.choix || []) {
     const possede = !choix.objet_requis
       || ui.etat.sac.some((o) => o.nom.toLowerCase() === String(choix.objet_requis).toLowerCase());
-    const classes = ['carte-choix'];
+    const rang = zone.children.length;
+    const classes = ['carte-choix', `choix-${rang + 1}`];
     if (choix.epreuve_difficulte) classes.push('epreuve');
     if (!possede) classes.push('bloque');
-    const bouton = el('button', { class: classes.join(' ') }, [
+    const bouton = el('button', { class: classes.join(' '), 'data-texte': choix.texte }, [
+      el('span', { class: 'numero', text: String(rang + 1) }),
       el('span', { class: 'emoji', text: choix.emoji || '👉' }),
       el('span', { class: 'libelle', text: choix.texte }),
     ]);
     if (choix.objet_requis) bouton.appendChild(el('span', { class: 'badge', text: `🎒 ${choix.objet_requis}` }));
     else if (choix.epreuve_difficulte) bouton.appendChild(el('span', { class: 'badge', text: '🎲' }));
+    bouton.appendChild(el('span', { class: 'validation', text: '✅' }));
     bouton.addEventListener('click', () => choisir(choix, possede, bouton));
     zone.appendChild(bouton);
   }
@@ -262,17 +288,25 @@ function rendreChoix(chapitre) {
 
 async function choisir(choix, possede, bouton) {
   if (ui.enCours) return;
-  conteur.debloquer();
+  narrateur.debloquer();
+  if (possede && ui.reglages.confirmerChoix && !bouton.classList.contains('choisi')) {
+    // Premier appui : on lit le choix et on l'allume. Deuxième appui : on y va.
+    document.querySelectorAll('#choix .carte-choix').forEach((c) => c.classList.remove('choisi'));
+    bouton.classList.add('choisi');
+    vibrer(10);
+    if (ui.lecture) narrateur.direMot(choix.texte);
+    return;
+  }
   if (!possede) {
     bouton.classList.add('secoue');
     setTimeout(() => bouton.classList.remove('secoue'), 450);
     const message = `Il te faut ${choix.objet_requis} dans ton sac.`;
     toast(message);
-    if (ui.lecture) conteur.direMot(message);
+    if (ui.lecture) narrateur.direMot(message);
     return;
   }
   vibrer(18);
-  conteur.stop();
+  narrateur.stop();
 
   const action = { resume: `Il a choisi : « ${choix.texte} »`, epreuve: null };
   if (choix.objet_requis) action.resume += ` en utilisant ${choix.objet_requis}.`;
@@ -304,7 +338,7 @@ function faireEpreuve(choix) {
       const detail = `${resultat.de}${bonus ? ` + ${bonus}` : ''} contre ${resultat.difficulte}`;
       resultatEl.textContent = resultat.reussi ? `Réussi ! ${detail}` : `Presque ! ${detail}`;
       resultatEl.classList.add(resultat.reussi ? 'gagne' : 'rate');
-      if (ui.lecture) conteur.direMot(resultat.reussi ? 'Bravo, tu as réussi !' : 'Presque ! Ce n’est pas grave.');
+      if (ui.lecture) narrateur.direMot(resultat.reussi ? 'Bravo, tu as réussi !' : 'Presque ! Ce n’est pas grave.');
       vibrer(resultat.reussi ? 40 : 12);
       await attendre(animationsReduites ? 700 : 1600);
       overlay.hidden = true;
@@ -329,12 +363,12 @@ async function demanderChapitre(action) {
     : 'La Plume Magique écrit ton histoire…';
 
   const message = etat.chapitre === 0 ? premierMessage(etat, etat.idee) : messageSuivant(etat, action);
-  if (ui.lecture) conteur.ouvrir(rappelsLecture);
+  if (ui.lecture) narrateur.ouvrir(rappelsLecture);
 
   const surPhrase = (phrase, index) => {
     $('#chargement').hidden = true;
     ajouterPhrase(phrase, index);
-    if (ui.lecture) conteur.enfiler(phrase, index);
+    if (ui.lecture) narrateur.enfiler(phrase, index);
   };
 
   let chapitre;
@@ -370,7 +404,7 @@ async function demanderChapitre(action) {
       });
     }
   } catch (erreur) {
-    conteur.stop();
+    narrateur.stop();
     if (erreur.name !== 'AbortError') afficherErreur(erreur, action);
     ui.enCours = false;
     $('#chargement').hidden = true;
@@ -379,7 +413,7 @@ async function demanderChapitre(action) {
     ui.requete = null;
   }
 
-  if (ui.lecture) conteur.fermer();
+  if (ui.lecture) narrateur.fermer();
   $('#chargement').hidden = true;
   ui.enCours = false;
 
@@ -423,7 +457,7 @@ function afficherErreur(erreur, action) {
 
 function montrerFin() {
   const etat = ui.etat;
-  conteur.stop();
+  narrateur.stop();
   if (!journal.charger().some((a) => a.id === etat.id)) {
     journal.ajouter({
       id: etat.id, titre: etat.titre, theme: etat.theme, etoiles: etat.etoiles,
@@ -434,7 +468,7 @@ function montrerFin() {
   $('#fin-message').textContent = etat.finMessage || '';
   $('#fin-score').textContent = `⭐ ${etat.etoiles} étoiles · 📖 ${etat.chapitre} chapitres`;
   montrer('fin');
-  if (ui.lecture) conteur.lire([etat.finTitre || 'Bravo !', etat.finMessage || ''].filter(Boolean), {});
+  if (ui.lecture) narrateur.lire([etat.finTitre || 'Bravo !', etat.finMessage || ''].filter(Boolean), {});
 }
 
 function ouvrirSac() {
@@ -449,7 +483,7 @@ function ouvrirSac() {
       el('span', { class: 'emoji', text: objet.emoji }),
       el('span', {}, [el('b', { text: objet.nom }), el('small', { text: objet.pouvoir })]),
     ]);
-    carte.addEventListener('click', () => conteur.direMot(`${objet.nom}. ${objet.pouvoir}`));
+    carte.addEventListener('click', () => narrateur.direMot(`${objet.nom}. ${objet.pouvoir}`));
     liste.appendChild(carte);
   }
   $('#modale-sac').hidden = false;
@@ -462,7 +496,7 @@ function carteChapitre(aventure, chapitre) {
     el('h3', { text: `Chapitre ${chapitre.n}` }),
     el('p', { text: chapitre.texte.join(' ') }),
   ]);
-  contenu.addEventListener('click', () => { conteur.debloquer(); conteur.lire(chapitre.texte, {}); });
+  contenu.addEventListener('click', () => { narrateur.debloquer(); narrateur.lire(chapitre.texte, {}); });
   carte.appendChild(contenu);
   return carte;
 }
@@ -507,6 +541,12 @@ function construireReglages() {
   for (const m of MODELES) modele.appendChild(el('option', { value: m.id, text: m.nom }));
   modele.value = ui.reglages.modele;
   $('#champ-longueur').value = String(ui.reglages.longueur);
+  $('#champ-richesse').value = ui.reglages.richesse;
+  $('#champ-lire-choix').checked = ui.reglages.lireChoix;
+  $('#champ-confirmer').checked = ui.reglages.confirmerChoix;
+  $('#champ-fournisseur').value = ui.reglages.fournisseurVoix;
+  $('#champ-cle-google').value = ui.reglages.cleGoogle;
+  majBlocsVoix();
   $('#champ-cle').value = ui.reglages.cle;
   $('#champ-vitesse').value = ui.reglages.vitesse;
   $('#valeur-vitesse').textContent = ui.reglages.vitesse;
@@ -516,10 +556,45 @@ function construireReglages() {
   construireVoix();
 }
 
+function majBlocsVoix() {
+  const google = ui.reglages.fournisseurVoix === 'google';
+  $('#bloc-google').hidden = !google;
+  $('#bloc-navigateur').hidden = google;
+  const select = $('#champ-voix-google');
+  if (google && !select.options.length && ui.reglages.voixGoogle) {
+    select.appendChild(el('option', { value: ui.reglages.voixGoogle, text: ui.reglages.voixGoogle }));
+    select.value = ui.reglages.voixGoogle;
+  }
+}
+
+async function chargerVoixGoogle() {
+  const statut = $('#statut-google');
+  const cle = $('#champ-cle-google').value.trim();
+  enregistrerReglage('cleGoogle', cle);
+  statut.textContent = 'Chargement…';
+  statut.className = 'statut';
+  try {
+    const voix = await narrateur.listerVoixGoogle(cle);
+    const select = $('#champ-voix-google');
+    vider(select);
+    for (const v of voix) {
+      const genre = v.genre === 'FEMALE' ? 'femme' : v.genre === 'MALE' ? 'homme' : 'neutre';
+      select.appendChild(el('option', { value: v.nom, text: `${v.nom} (${genre})` }));
+    }
+    select.value = voix.some((v) => v.nom === ui.reglages.voixGoogle) ? ui.reglages.voixGoogle : voix[0]?.nom || '';
+    enregistrerReglage('voixGoogle', select.value);
+    statut.textContent = `✅ ${voix.length} voix françaises disponibles. Essaie-les avec le bouton plus bas.`;
+    statut.className = 'statut ok';
+  } catch (erreur) {
+    statut.textContent = `❌ ${erreur.message}`;
+    statut.className = 'statut ko';
+  }
+}
+
 function construireVoix() {
   const select = $('#champ-voix');
   vider(select);
-  const voix = conteur.chargerVoix();
+  const voix = narrateur.chargerVoix();
   if (!voix.length) {
     select.appendChild(el('option', { value: '', text: 'Voix par défaut de l’appareil' }));
     return;
@@ -561,7 +636,7 @@ function brancher() {
     });
   });
 
-  $('#btn-nouvelle').addEventListener('click', () => { conteur.debloquer(); montrer('theme'); });
+  $('#btn-nouvelle').addEventListener('click', () => { narrateur.debloquer(); montrer('theme'); });
   $('#btn-continuer').addEventListener('click', reprendre);
   $('#btn-carnet').addEventListener('click', ouvrirCarnet);
   $('#btn-reglages').addEventListener('click', ouvrirReglages);
@@ -570,7 +645,7 @@ function brancher() {
 
   $('#btn-maison').addEventListener('click', () => {
     if (ui.requete) ui.requete.abort();
-    conteur.stop();
+    narrateur.stop();
     majAccueil();
     montrer('accueil');
   });
@@ -582,8 +657,8 @@ function brancher() {
     ui.lecture = !ui.lecture;
     $('#btn-son').textContent = ui.lecture ? '🔊' : '🔇';
     $('#btn-son').classList.toggle('muet', !ui.lecture);
-    if (!ui.lecture) conteur.stop();
-    else conteur.debloquer();
+    if (!ui.lecture) narrateur.stop();
+    else narrateur.debloquer();
   });
 
   $('#btn-relire').addEventListener('click', () => {
@@ -592,13 +667,13 @@ function brancher() {
     ui.lecture = true;
     $('#btn-son').textContent = '🔊';
     $('#btn-son').classList.remove('muet');
-    conteur.debloquer();
-    conteur.lire(chapitre.texte || [], rappelsLecture);
+    narrateur.debloquer();
+    narrateur.lire(chapitre.texte || [], rappelsLecture);
   });
 
   $('#btn-pause').addEventListener('click', () => {
-    if (conteur.enPause) { conteur.reprendre(); $('#btn-pause').textContent = '⏸️'; }
-    else { conteur.pause(); $('#btn-pause').textContent = '▶️'; }
+    if (narrateur.enPause) { narrateur.reprendre(); $('#btn-pause').textContent = '⏸️'; }
+    else { narrateur.pause(); $('#btn-pause').textContent = '▶️'; }
   });
 
   $('#btn-rejouer').addEventListener('click', () => { partie.effacer(); majAccueil(); montrer('theme'); });
@@ -635,6 +710,21 @@ function brancher() {
     }
   });
   $('#champ-modele').addEventListener('change', (e) => enregistrerReglage('modele', e.target.value));
+  $('#champ-richesse').addEventListener('change', (e) => enregistrerReglage('richesse', e.target.value));
+  $('#champ-lire-choix').addEventListener('change', (e) => enregistrerReglage('lireChoix', e.target.checked));
+  $('#champ-confirmer').addEventListener('change', (e) => enregistrerReglage('confirmerChoix', e.target.checked));
+  $('#champ-fournisseur').addEventListener('change', (e) => {
+    enregistrerReglage('fournisseurVoix', e.target.value);
+    ui.voixSignalee = false;
+    majBlocsVoix();
+  });
+  $('#champ-cle-google').addEventListener('change', (e) => { enregistrerReglage('cleGoogle', e.target.value.trim()); ui.voixSignalee = false; });
+  $('#btn-voir-cle-google').addEventListener('click', () => {
+    const champ = $('#champ-cle-google');
+    champ.type = champ.type === 'password' ? 'text' : 'password';
+  });
+  $('#btn-charger-voix-google').addEventListener('click', chargerVoixGoogle);
+  $('#champ-voix-google').addEventListener('change', (e) => enregistrerReglage('voixGoogle', e.target.value));
   $('#champ-longueur').addEventListener('change', (e) => enregistrerReglage('longueur', Number(e.target.value)));
   $('#champ-voix').addEventListener('change', (e) => enregistrerReglage('voix', e.target.value));
   $('#champ-vitesse').addEventListener('input', (e) => {
@@ -645,8 +735,12 @@ function brancher() {
   $('#champ-mot-par-mot').addEventListener('change', (e) => enregistrerReglage('motParMot', e.target.checked));
   $('#champ-taille').addEventListener('change', (e) => enregistrerReglage('tailleTexte', Number(e.target.value)));
   $('#btn-essai-voix').addEventListener('click', () => {
-    conteur.debloquer();
-    conteur.lire(['Bonjour ! Je vais te raconter une histoire magique.'], {});
+    ui.voixSignalee = false;
+    narrateur.debloquer();
+    narrateur.lire(
+      ['Bonjour ! Je vais te raconter une histoire magique.', 'Écoute bien, et choisis la suite.'],
+      { onErreur: (m) => toast(`Voix Google indisponible : ${m}`) },
+    );
   });
   $('#btn-effacer-partie').addEventListener('click', () => {
     partie.effacer();
@@ -680,7 +774,7 @@ function brancher() {
     $('#btn-installer').hidden = true;
   });
 
-  document.addEventListener('visibilitychange', () => { if (document.hidden) conteur.pause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) narrateur.pause(); });
   window.speechSynthesis?.addEventListener?.('voiceschanged', construireVoix);
 }
 
