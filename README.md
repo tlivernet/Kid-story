@@ -45,11 +45,21 @@ Le secours automatique côté serveur (`fallbacks`) est activé pour éviter qu'
 
 ### 1. Publier sur GitHub Pages
 
-Le dépôt est déjà prêt : `Réglages → Pages → Source : GitHub Actions`.
-À chaque push sur `main`, le workflow `.github/workflows/pages.yml` lance les tests puis publie le site.
-L'application sera disponible sur `https://<utilisateur>.github.io/Kid-story/`.
+`Réglages → Pages → Source : Deploy from a branch`, en choisissant la branche du projet et le dossier `/ (root)`.
+GitHub reconstruit le site à chaque push ; l'application est servie sur
+`https://<utilisateur>.github.io/Kid-story/`.
 
 > Tout est en chemins relatifs (`./`), donc le sous-dossier `/Kid-story/` ne pose aucun problème.
+> Le fichier `.nojekyll` évite que GitHub n'essaie de traiter le site avec Jekyll.
+
+Le workflow `.github/workflows/tests.yml` lance les tests à chaque push — il ne publie rien, la publication
+étant assurée par Pages lui-même.
+
+**Après une mise à jour, l'application affiche encore l'ancienne version ?** Le service worker sert d'abord ce
+qu'il a en cache. Depuis la version 1.1.0 il interroge le réseau en premier et la nouvelle version s'installe
+au rechargement suivant (ou au retour à l'accueil, pour ne pas couper une histoire en cours). En cas de doute :
+fermer complètement l'onglet ou l'application installée, puis la rouvrir. Le numéro de version est affiché en
+bas de l'écran des réglages.
 
 ### 2. Créer une clé API
 

@@ -1,5 +1,5 @@
 // Service worker : rend l'application utilisable hors ligne (mode démo).
-const CACHE = 'livre-magique-v2';
+const CACHE = 'livre-magique-v3';
 
 const FICHIERS = [
   './',
@@ -40,23 +40,36 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Réseau d'abord (avec repli sur le cache) : une nouvelle version publiée est
+// visible dès le rechargement suivant, et l'application marche toujours hors ligne.
+const DELAI_RESEAU = 3500;
+
+async function depuisReseau(requete) {
+  const controleur = new AbortController();
+  const minuteur = setTimeout(() => controleur.abort(), DELAI_RESEAU);
+  try {
+    const reponse = await fetch(requete, { signal: controleur.signal });
+    if (reponse.ok) {
+      const copie = reponse.clone();
+      caches.open(CACHE).then((cache) => cache.put(requete, copie));
+    }
+    return reponse;
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const requete = event.request;
-  // L'API Claude et toute requête externe passent directement par le réseau.
+  // L'API Claude, la synthèse vocale et toute requête externe passent directement par le réseau.
   if (requete.method !== 'GET' || new URL(requete.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(requete).then((enCache) => {
-      const reseau = fetch(requete)
-        .then((reponse) => {
-          if (reponse.ok) {
-            const copie = reponse.clone();
-            caches.open(CACHE).then((cache) => cache.put(requete, copie));
-          }
-          return reponse;
-        })
-        .catch(() => enCache || caches.match('./index.html'));
-      return enCache || reseau;
+    depuisReseau(requete).catch(async () => {
+      const enCache = await caches.match(requete);
+      if (enCache) return enCache;
+      if (requete.mode === 'navigate') return caches.match('./index.html');
+      throw new Error('Ressource indisponible hors ligne');
     }),
   );
 });

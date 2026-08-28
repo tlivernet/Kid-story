@@ -1,5 +1,5 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
-import { THEMES, AVATARS, MODELES } from './config.js';
+import { APP, THEMES, AVATARS, MODELES } from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre } from './util.js';
 import { reglages as storeReglages, partie, journal, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
@@ -548,6 +548,7 @@ function construireReglages() {
   $('#champ-cle-google').value = ui.reglages.cleGoogle;
   majBlocsVoix();
   $('#champ-cle').value = ui.reglages.cle;
+  $('#version-app').textContent = `Le Livre Magique ${APP.version}`;
   $('#champ-vitesse').value = ui.reglages.vitesse;
   $('#valeur-vitesse').textContent = ui.reglages.vitesse;
   $('#champ-lecture-auto').checked = ui.reglages.lectureAuto;
@@ -633,6 +634,7 @@ function brancher() {
       const cible = bouton.dataset.retour;
       if (cible === 'accueil') majAccueil();
       montrer(cible);
+      if (cible === 'accueil') appliquerMaj();
     });
   });
 
@@ -648,6 +650,7 @@ function brancher() {
     narrateur.stop();
     majAccueil();
     montrer('accueil');
+    appliquerMaj();
   });
   $('#btn-sac').addEventListener('click', ouvrirSac);
   $('#btn-fermer-sac').addEventListener('click', () => { $('#modale-sac').hidden = true; });
@@ -792,11 +795,35 @@ function init() {
   brancher();
   majAccueil();
 
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => { /* hors ligne indisponible */ });
-    });
+  surveillerMisesAJour();
+}
+
+// Une nouvelle version publiée est appliquée dès qu'on revient à l'accueil,
+// pour ne jamais couper une histoire en cours.
+function surveillerMisesAJour() {
+  if (!('serviceWorker' in navigator)) return;
+  let dejaControle = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!dejaControle) { dejaControle = true; return; }
+    ui.majEnAttente = true;
+    appliquerMaj();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then((enregistrement) => enregistrement.update())
+      .catch(() => { /* hors ligne indisponible */ });
+  });
+}
+
+export function appliquerMaj() {
+  if (!ui.majEnAttente || ui.rechargement) return;
+  const accueil = $('#ecran-accueil').classList.contains('actif');
+  if (!accueil && ui.etat && !ui.etat.termine) {
+    toast('Nouvelle version prête : elle s’installera en revenant à l’accueil.');
+    return;
   }
+  ui.rechargement = true;
+  window.location.reload();
 }
 
 init();
