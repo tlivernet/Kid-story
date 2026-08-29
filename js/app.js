@@ -221,7 +221,7 @@ const rappelsLecture = {
   onErreur: (message) => {
     if (ui.voixSignalee) return;
     ui.voixSignalee = true;
-    toast(`Voix Google indisponible : ${message}`);
+    toast(`Voix Google indisponible (${message}) — je continue avec la voix de l’appareil.`);
   },
 };
 
@@ -676,6 +676,7 @@ function construireReglages() {
   $('#champ-fournisseur').value = ui.reglages.fournisseurVoix;
   $('#champ-cle-google').value = ui.reglages.cleGoogle;
   majBlocsVoix();
+  noterVoixGoogle();
   $('#champ-cle').value = ui.reglages.cle;
   $('#version-app').textContent = `Le Livre Magique ${APP.version}`;
   $('#champ-vitesse').value = ui.reglages.vitesse;
@@ -684,6 +685,18 @@ function construireReglages() {
   $('#champ-mot-par-mot').checked = ui.reglages.motParMot;
   $('#champ-taille').value = String(ui.reglages.tailleTexte);
   construireVoix();
+}
+
+// Certaines familles de voix (Chirp 3 HD, Journey) ignorent le réglage de vitesse.
+function noterVoixGoogle() {
+  const note = $('#note-voix-google');
+  if (!note) return;
+  const voix = ui.reglages.voixGoogle;
+  const reglable = narrateur.voixReglable(voix);
+  note.textContent = reglable
+    ? ''
+    : 'Cette voix est très naturelle mais ne permet pas de régler la vitesse.';
+  note.hidden = reglable;
 }
 
 function majBlocsVoix() {
@@ -713,6 +726,7 @@ async function chargerVoixGoogle() {
     }
     select.value = voix.some((v) => v.nom === ui.reglages.voixGoogle) ? ui.reglages.voixGoogle : voix[0]?.nom || '';
     enregistrerReglage('voixGoogle', select.value);
+    noterVoixGoogle();
     statut.textContent = `✅ ${voix.length} voix françaises disponibles. Essaie-les avec le bouton plus bas.`;
     statut.className = 'statut ok';
   } catch (erreur) {
@@ -870,7 +884,11 @@ function brancher() {
     champ.type = champ.type === 'password' ? 'text' : 'password';
   });
   $('#btn-charger-voix-google').addEventListener('click', chargerVoixGoogle);
-  $('#champ-voix-google').addEventListener('change', (e) => enregistrerReglage('voixGoogle', e.target.value));
+  $('#champ-voix-google').addEventListener('change', (e) => {
+    enregistrerReglage('voixGoogle', e.target.value);
+    ui.voixSignalee = false;
+    noterVoixGoogle();
+  });
   $('#champ-longueur').addEventListener('change', (e) => enregistrerReglage('longueur', Number(e.target.value)));
   $('#champ-voix').addEventListener('change', (e) => enregistrerReglage('voix', e.target.value));
   $('#champ-vitesse').addEventListener('input', (e) => {

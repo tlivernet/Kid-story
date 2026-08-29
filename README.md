@@ -103,6 +103,11 @@ Les voix intégrées aux navigateurs sont souvent robotiques, surtout sur tablet
    choisir une voix française (les voix `Wavenet`, `Neural2` et `Chirp3-HD` sont les plus naturelles),
    puis `🔊 Essayer la voix`.
 
+> Les familles récentes (`Chirp3-HD`, `Journey`) sont les plus belles mais refusent le SSML, le réglage de
+> vitesse et la hauteur : l'application adapte sa requête à la voix choisie, et si une famille inconnue
+> rejette ces champs, elle rejoue la demande sans eux et s'en souvient. Le curseur de vitesse reste sans
+> effet sur ces voix — l'écran de réglages le signale.
+
 Coût : une aventure de 12 chapitres représente environ 3 000 caractères. Le palier gratuit mensuel de Google
 couvre largement un usage familial (1 million de caractères par mois pour les voix WaveNet, 4 millions pour les
 voix Standard). Si l'API tombe en panne ou si le quota est épuisé, l'application **repasse toute seule** sur la

@@ -3,7 +3,7 @@
 
 export class Conteur {
   constructor() {
-    this.synth = window.speechSynthesis || null;
+    this.synth = typeof speechSynthesis !== 'undefined' ? speechSynthesis : null;
     this.file = [];
     this.enCours = false;
     this.termine = true;

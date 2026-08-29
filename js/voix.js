@@ -8,12 +8,22 @@ const SILENCE = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2L
 
 // --- Fournisseur Google -----------------------------------------------------
 
+// Les familles récentes (Chirp 3 HD, Journey…) refusent le SSML, le débit et la
+// hauteur : leur envoyer ces champs fait échouer la requête.
+const VOIX_SANS_OPTIONS = /chirp|journey|instant/i;
+
 class VoixGoogle {
   constructor() {
     this.cache = new Map();
     this.cle = '';
     this.voix = 'fr-FR-Wavenet-C';
     this.vitesse = 1;
+    this.simples = new Set(); // voix qui ont refusé les options, retenues pour la suite
+  }
+
+  // Cette voix accepte-t-elle SSML et réglage du débit ?
+  accepteOptions(voix = this.voix) {
+    return !VOIX_SANS_OPTIONS.test(voix) && !this.simples.has(voix);
   }
 
   configurer({ cle, voix, vitesse }) {
@@ -26,34 +36,53 @@ class VoixGoogle {
     return `${this.voix}|${this.vitesse}|${texte}`;
   }
 
+  corpsRequete(texte, avecOptions) {
+    const voice = { languageCode: this.voix.slice(0, 5) || 'fr-FR', name: this.voix };
+    if (!avecOptions) {
+      return { input: { text: texte }, voice, audioConfig: { audioEncoding: 'MP3' } };
+    }
+    // Un court silence de tête évite que le premier mot soit rogné.
+    const ssml = `<speak><break time="250ms"/>${texte
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')}</speak>`;
+    return {
+      input: { ssml },
+      voice,
+      audioConfig: { audioEncoding: 'MP3', speakingRate: this.vitesse, pitch: 1 },
+    };
+  }
+
+  async demander(texte, avecOptions) {
+    const reponse = await fetch(`${URL_GOOGLE}/text:synthesize`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': this.cle },
+      body: JSON.stringify(this.corpsRequete(texte, avecOptions)),
+    });
+    if (!reponse.ok) {
+      const detail = await reponse.json().catch(() => null);
+      const erreur = new Error(detail?.error?.message || `Erreur ${reponse.status} de la voix Google`);
+      erreur.statut = reponse.status;
+      throw erreur;
+    }
+    const { audioContent } = await reponse.json();
+    const octets = Uint8Array.from(atob(audioContent), (c) => c.charCodeAt(0));
+    return URL.createObjectURL(new Blob([octets], { type: 'audio/mpeg' }));
+  }
+
   // Renvoie (et met en cache) l'URL d'un extrait audio.
   synthetiser(texte) {
     const clef = this.clef(texte);
     if (this.cache.has(clef)) return this.cache.get(clef);
 
-    const ssml = `<speak><break time="250ms"/>${texte
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')}</speak>`;
-    const corps = {
-      input: { ssml },
-      voice: { languageCode: this.voix.slice(0, 5) || 'fr-FR', name: this.voix },
-      audioConfig: { audioEncoding: 'MP3', speakingRate: this.vitesse },
-    };
-    // Les voix Chirp 3 HD refusent le réglage de hauteur.
-    if (!/chirp/i.test(this.voix)) corps.audioConfig.pitch = 1;
-
-    const promesse = fetch(`${URL_GOOGLE}/text:synthesize`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': this.cle },
-      body: JSON.stringify(corps),
-    }).then(async (reponse) => {
-      if (!reponse.ok) {
-        const detail = await reponse.json().catch(() => null);
-        throw new Error(detail?.error?.message || `Erreur ${reponse.status} de la voix Google`);
+    const voix = this.voix;
+    const avecOptions = this.accepteOptions(voix);
+    const promesse = this.demander(texte, avecOptions).catch((erreur) => {
+      // Certaines voix refusent SSML et réglage du débit : on retient et on réessaie sobrement.
+      if (erreur.statut === 400 && avecOptions) {
+        this.simples.add(voix);
+        return this.demander(texte, false);
       }
-      const { audioContent } = await reponse.json();
-      const octets = Uint8Array.from(atob(audioContent), (c) => c.charCodeAt(0));
-      return URL.createObjectURL(new Blob([octets], { type: 'audio/mpeg' }));
+      throw erreur;
     });
 
     this.cache.set(clef, promesse);
@@ -112,6 +141,11 @@ export class Narrateur {
 
   listerVoixGoogle(cle) {
     return this.google.listerVoix(cle);
+  }
+
+  // Cette voix Google accepte-t-elle le réglage de vitesse ?
+  voixReglable(voix) {
+    return this.google.accepteOptions(voix);
   }
 
   // Un premier geste de l'enfant débloque la parole ET l'audio (obligatoire sur iOS).
