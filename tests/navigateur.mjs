@@ -34,6 +34,18 @@ await page.goto(ADRESSE);
 await page.click('#btn-nouvelle');
 await page.click('.grille-themes .carte-theme >> nth=0');
 await page.fill('#champ-prenom', 'Lina');
+
+// Avatars : groupés, avec une rangée de teintes qui s'applique aux personnes.
+const groupes = await page.$$eval('#grille-avatars .titre-groupe', (n) => n.map((t) => t.textContent));
+verifier(groupes.length >= 3, `les avatars sont groupés (${groupes.join(' / ')})`);
+await page.click('#grille-avatars .avatar[data-base="🧑‍🚒"]');
+await page.click('#rangee-teintes .teinte >> nth=3');
+const apercu = await page.textContent('#apercu-heros');
+verifier(apercu === '🧑🏽‍🚒', `la teinte s’applique à l’avatar (${apercu})`);
+await page.click('#grille-avatars .avatar[data-base="🦊"]');
+verifier(await page.isHidden('#bloc-teintes'), 'pas de teinte proposée pour un animal');
+await page.click('#grille-avatars .avatar[data-base="🧒"]');
+
 await page.click('#btn-demarrer');
 await page.waitForSelector('#choix .carte-choix:not([hidden])', { timeout: 15000 });
 verifier((await page.$$('.phrase')).length >= 3, 'le chapitre s’affiche phrase par phrase');

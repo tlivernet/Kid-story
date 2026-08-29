@@ -49,3 +49,41 @@ test('les mots proposés viennent du chapitre quand c’est possible', async () 
   assert.ok(mots.includes('ballon'));
   assert.ok(!mots.includes('un'), 'les mots trop courts sont écartés');
 });
+
+test('les avatars couvrent la vraie vie autant que la légende', async () => {
+  const { GROUPES_AVATARS, AVATARS } = await import('../js/config.js');
+  const titres = GROUPES_AVATARS.map((g) => g.titre);
+  assert.ok(titres.some((t) => /vraie vie/.test(t)), 'un groupe de métiers');
+  assert.ok(titres.some((t) => /C.est moi/.test(t)), 'un groupe « c’est moi »');
+  const metiers = GROUPES_AVATARS.find((g) => g.realiste).avatars;
+  assert.ok(metiers.length >= 12, `seulement ${metiers.length} métiers`);
+  for (const { emoji, nom } of metiers) assert.ok(emoji && nom, 'chaque avatar est nommé');
+  assert.equal(new Set(AVATARS).size, AVATARS.length, 'aucun doublon');
+});
+
+test('la teinte de peau s’applique aux personnes, jamais aux animaux', async () => {
+  const { teinter, teintable, TEINTES } = await import('../js/config.js');
+  const doree = TEINTES.find((t) => t.nom === 'dorée').modificateur;
+  assert.equal(teinter('🧑‍🚒', doree), '🧑🏽‍🚒');
+  assert.equal(teinter('👮', doree), '👮🏽');
+  assert.equal(teinter('🦊', doree), '🦊', 'un renard n’a pas de teinte');
+  assert.equal(teintable('🦖'), false);
+  assert.equal(teinter('🧒', ''), '🧒', 'sans teinte, rien ne change');
+});
+
+test('changer de teinte ne cumule pas les modificateurs', async () => {
+  const { teinter, TEINTES } = await import('../js/config.js');
+  const claire = TEINTES[1].modificateur;
+  const foncee = TEINTES[5].modificateur;
+  const premier = teinter('🧑‍🍳', claire);
+  const second = teinter(premier, foncee);
+  assert.equal(second, teinter('🧑‍🍳', foncee));
+  assert.equal([...second].filter((c) => /[\u{1F3FB}-\u{1F3FF}]/u.test(c)).length, 1);
+});
+
+test('le sélecteur de présentation ne survit pas à la teinte', async () => {
+  const { teinter, TEINTES } = await import('../js/config.js');
+  const teinté = teinter('🕵️', TEINTES[4].modificateur);
+  assert.ok(!teinté.includes('️'), 'séquence invalide sinon');
+  assert.equal([...teinté].length, 2);
+});

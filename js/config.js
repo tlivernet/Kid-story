@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.9.0',
+  version: '1.10.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -53,8 +53,73 @@ export const LIEUX = [
 
 export const MOMENTS = ['jour', 'soir', 'nuit'];
 
-// Avatars proposés au héros.
-export const AVATARS = ['🦸', '🦸‍♀️', '🧑‍🚀', '🧚', '🧙‍♀️', '🐻', '🦊', '🐱', '🐼', '🦉', '🐰', '🦖'];
+// Avatars proposés au héros, groupés : un enfant qui joue les pompiers ne se
+// reconnaît pas dans une fée.
+export const GROUPES_AVATARS = [
+  {
+    titre: '🧒 C’est moi',
+    avatars: [
+      { emoji: '🧒', nom: 'un enfant' }, { emoji: '👦', nom: 'un garçon' }, { emoji: '👧', nom: 'une fille' },
+      { emoji: '🧑', nom: 'quelqu’un' }, { emoji: '👶', nom: 'un tout-petit' },
+    ],
+  },
+  {
+    titre: '🌍 Métiers de la vraie vie',
+    realiste: true,
+    avatars: [
+      { emoji: '🧑‍🚒', nom: 'pompier' }, { emoji: '👮', nom: 'policier' }, { emoji: '🧑‍⚕️', nom: 'vétérinaire' },
+      { emoji: '🧑‍🍳', nom: 'boulanger' }, { emoji: '🧑‍🌾', nom: 'fermier' }, { emoji: '🧑‍🔧', nom: 'mécanicien' },
+      { emoji: '🧑‍🏫', nom: 'maître d’école' }, { emoji: '🕵️', nom: 'détective' }, { emoji: '🧑‍🚀', nom: 'astronaute' },
+      { emoji: '🧑‍🎨', nom: 'artiste' }, { emoji: '🚴', nom: 'cycliste' }, { emoji: '🏊', nom: 'nageur' },
+      { emoji: '⛑️', nom: 'secouriste' }, { emoji: '🧑‍✈️', nom: 'pilote' },
+    ],
+  },
+  {
+    titre: '✨ Héros de légende',
+    avatars: [
+      { emoji: '🦸', nom: 'super-héros' }, { emoji: '🦸‍♀️', nom: 'super-héroïne' }, { emoji: '🧙', nom: 'magicien' },
+      { emoji: '🧙‍♀️', nom: 'magicienne' }, { emoji: '🧚', nom: 'fée' }, { emoji: '🧜‍♀️', nom: 'sirène' },
+      { emoji: '🥷', nom: 'ninja' }, { emoji: '🧝', nom: 'elfe' }, { emoji: '🤖', nom: 'robot' },
+      { emoji: '🏴‍☠️', nom: 'pirate' },
+    ],
+  },
+  {
+    titre: '🐾 Animaux',
+    avatars: [
+      { emoji: '🐻', nom: 'ours' }, { emoji: '🦊', nom: 'renard' }, { emoji: '🐱', nom: 'chat' },
+      { emoji: '🐶', nom: 'chien' }, { emoji: '🐼', nom: 'panda' }, { emoji: '🦉', nom: 'hibou' },
+      { emoji: '🐰', nom: 'lapin' }, { emoji: '🦖', nom: 'dinosaure' }, { emoji: '🐧', nom: 'manchot' },
+      { emoji: '🐯', nom: 'tigre' },
+    ],
+  },
+];
+
+export const AVATARS = GROUPES_AVATARS.flatMap((g) => g.avatars.map((a) => a.emoji));
+
+// Teintes de peau : un enfant doit pouvoir se reconnaître dans son héros.
+export const TEINTES = [
+  { nom: 'par défaut', modificateur: '' },
+  { nom: 'claire', modificateur: '\u{1F3FB}' },
+  { nom: 'claire dorée', modificateur: '\u{1F3FC}' },
+  { nom: 'dorée', modificateur: '\u{1F3FD}' },
+  { nom: 'brune', modificateur: '\u{1F3FE}' },
+  { nom: 'foncée', modificateur: '\u{1F3FF}' },
+];
+
+// Les emojis « personne » acceptent une teinte ; les animaux et objets non.
+const BASES_TEINTABLES = /^(\u{1F9D1}|\u{1F466}|\u{1F467}|\u{1F9D2}|\u{1F476}|\u{1F46E}|\u{1F9B8}|\u{1F9B9}|\u{1F9D9}|\u{1F9DA}|\u{1F9DC}|\u{1F9DD}|\u{1F977}|\u{1F6B4}|\u{1F3CA}|\u{1F575})/u;
+
+export function teinter(avatar, modificateur) {
+  if (!modificateur || !BASES_TEINTABLES.test(avatar)) return avatar;
+  const sansTeinte = avatar.replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '');
+  const points = [...sansTeinte];
+  // Le modificateur se place juste après la base ; il remplace le sélecteur de
+  // présentation emoji, qui deviendrait invalide derrière lui.
+  const reste = points.slice(1).filter((c, i) => !(i === 0 && c === '\uFE0F'));
+  return [points[0], modificateur, ...reste].join('');
+}
+
+export const teintable = (avatar) => BASES_TEINTABLES.test(avatar);
 
 // Cartes d'inspiration : tirées au sort au début de chaque aventure pour que
 // deux parties sur le même thème ne se ressemblent pas.

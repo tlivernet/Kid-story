@@ -82,6 +82,13 @@ pour qu'il l'amène au bon moment. Sans cela, le même thème produit systémati
 paramètres d'échantillonnage (`temperature`) n'existent plus sur les modèles récents, la variété doit donc
 venir du prompt.
 
+### Un héros auquel on ressemble
+Les avatars sont groupés — **C'est moi** (enfant, garçon, fille…), **Métiers de la vraie vie** (pompier,
+policier, vétérinaire, boulanger, fermier, mécanicien, maître d'école, détective, astronaute, pilote…),
+**Héros de légende** et **Animaux**. Quand le thème choisi est ancré dans le quotidien, les métiers passent
+devant. Une rangée de **couleurs de peau** s'applique à tous les avatars « personne » (et disparaît pour un
+renard ou un dinosaure) ; le choix est mémorisé d'une aventure à l'autre.
+
 ### Trois épreuves qui font lire (niveau CP)
 Elles se nourrissent du **texte du chapitre que l'enfant vient d'entendre**, pas d'un corpus étranger :
 

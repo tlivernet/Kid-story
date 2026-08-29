@@ -1,5 +1,8 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
-import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS, INSPIRATIONS_REELLES, familleVoix } from './config.js';
+import {
+  APP, THEMES, MODELES, INSPIRATIONS, INSPIRATIONS_REELLES, familleVoix,
+  GROUPES_AVATARS, TEINTES, teinter, teintable,
+} from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre, piocher } from './util.js';
 import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
@@ -17,7 +20,9 @@ const ui = {
   reglages: storeReglages.charger(),
   etat: null,
   theme: null,
-  avatar: storeHeros.charger().avatar || '🦸',
+  avatar: storeHeros.charger().avatar || '🧒',
+  avatarBase: storeHeros.charger().avatarBase || '🧒',
+  teinte: storeHeros.charger().teinte || '',
   lecture: true,
   demo: false,
   enCours: false,
@@ -176,6 +181,7 @@ function construireThemes() {
       if (theme.id === 'surprise-reel') choisi = piocher(THEMES.filter((t) => t.realiste));
       ui.theme = choisi;
       $('#bloc-idee').hidden = theme.id !== 'idee';
+      construireAvatars();
       montrer('heros');
       $('#champ-prenom').focus();
     });
@@ -186,15 +192,60 @@ function construireThemes() {
 function construireAvatars() {
   const grille = $('#grille-avatars');
   vider(grille);
-  for (const emoji of AVATARS) {
-    const bouton = el('button', { class: `avatar${emoji === ui.avatar ? ' choisi' : ''}`, text: emoji });
+  // Les métiers passent devant quand l'histoire est ancrée dans le réel.
+  const realiste = Boolean(ui.theme?.realiste);
+  const groupes = [...GROUPES_AVATARS].sort((a, b) => {
+    const rang = (g) => (g.titre.startsWith('🧒') ? 0 : g.realiste ? (realiste ? 1 : 2) : g.titre.startsWith('✨') ? (realiste ? 2 : 1) : 3);
+    return rang(a) - rang(b);
+  });
+
+  for (const groupe of groupes) {
+    grille.appendChild(el('h3', { class: 'titre-groupe', text: groupe.titre }));
+    for (const avatar of groupe.avatars) {
+      const bouton = el('button', {
+        class: 'avatar', text: teinter(avatar.emoji, ui.teinte), title: avatar.nom, 'data-base': avatar.emoji,
+      });
+      bouton.addEventListener('click', () => {
+        ui.avatarBase = avatar.emoji;
+        ui.avatar = teinter(avatar.emoji, ui.teinte);
+        majAvatars();
+        vibrer();
+      });
+      grille.appendChild(bouton);
+    }
+  }
+  construireTeintes();
+  majAvatars();
+}
+
+// Une rangée de teintes de peau : l'enfant doit pouvoir se reconnaître.
+function construireTeintes() {
+  const rangee = $('#rangee-teintes');
+  vider(rangee);
+  for (const teinte of TEINTES) {
+    const bouton = el('button', {
+      class: 'teinte', text: teinter('🧒', teinte.modificateur), title: `Peau ${teinte.nom}`,
+      'data-teinte': teinte.modificateur,
+    });
     bouton.addEventListener('click', () => {
-      ui.avatar = emoji;
-      grille.querySelectorAll('.avatar').forEach((a) => a.classList.toggle('choisi', a.textContent === emoji));
+      ui.teinte = teinte.modificateur;
+      ui.avatar = teinter(ui.avatarBase, ui.teinte);
+      construireAvatars();
       vibrer();
     });
-    grille.appendChild(bouton);
+    rangee.appendChild(bouton);
   }
+}
+
+function majAvatars() {
+  document.querySelectorAll('#grille-avatars .avatar').forEach((bouton) => {
+    bouton.classList.toggle('choisi', bouton.dataset.base === ui.avatarBase);
+  });
+  document.querySelectorAll('#rangee-teintes .teinte').forEach((bouton) => {
+    bouton.classList.toggle('choisi', (bouton.dataset.teinte || '') === (ui.teinte || ''));
+  });
+  $('#bloc-teintes').hidden = !teintable(ui.avatarBase);
+  $('#apercu-heros').textContent = ui.avatar;
 }
 
 // --- Démarrage d'une aventure ----------------------------------------------
@@ -227,7 +278,7 @@ function demarrer() {
   const prenom = $('#champ-prenom').value.trim() || 'Héros';
   const idee = $('#champ-idee').value.trim();
   const heros = { prenom, avatar: ui.avatar };
-  storeHeros.enregistrer(heros);
+  storeHeros.enregistrer({ ...heros, avatarBase: ui.avatarBase, teinte: ui.teinte });
 
   const theme = ui.theme && ui.theme.id !== 'idee' ? ui.theme : { id: 'idee', nom: idee || 'une histoire surprise' };
   const realiste = Boolean(theme.realiste);
