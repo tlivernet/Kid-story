@@ -1,0 +1,131 @@
+<script src="./support.js"></script>
+<!-- Direction B « Théâtre de papier » — même écran de lecture, langage graphique
+     découpé/collé : aplats saturés, contours francs, ombres portées nettes. -->
+<style>
+  * { box-sizing: border-box; }
+  .tp {
+    --fond: #fff3e2; --papier: #ffffff; --trait: #2b2438;
+    --rouge: #ef5b5b; --jaune: #ffb703; --vert: #2a9d8f; --bleu: #3d5a80; --prune: #6a4c93;
+    width: 390px; height: 844px; overflow: hidden;
+    display: flex; flex-direction: column;
+    background: var(--fond); color: var(--trait);
+    font-family: ui-rounded, "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .tp-barre { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
+  .tp-icone {
+    width: 46px; height: 46px; flex: none; border-radius: 14px; background: var(--papier);
+    border: 3px solid var(--trait); display: grid; place-items: center; box-shadow: 4px 4px 0 var(--trait);
+  }
+  .tp-jauges {
+    flex: 1; min-width: 0; height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 12px;
+    background: var(--jaune); border: 3px solid var(--trait); border-radius: 14px; box-shadow: 4px 4px 0 var(--trait);
+    font-weight: 900;
+  }
+  .tp-coeurs { display: flex; gap: 3px; }
+  .tp-etoiles { display: flex; align-items: center; gap: 5px; font-size: 1.05rem; }
+
+  .tp-scene {
+    flex: none; margin: 4px 14px 0; height: 150px; border: 3px solid var(--trait); border-radius: 8px;
+    overflow: hidden; box-shadow: 6px 6px 0 var(--trait);
+  }
+  .tp-scene svg { display: block; width: 100%; height: 100%; }
+
+  .tp-bandeau {
+    flex: none; align-self: center; margin: -14px 0 0; position: relative; z-index: 2;
+    background: var(--rouge); color: #fff; border: 3px solid var(--trait); border-radius: 8px;
+    box-shadow: 4px 4px 0 var(--trait); padding: 5px 16px;
+    font-size: 0.9rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .tp-texte {
+    flex: 1; min-height: 0; overflow: hidden; margin: 16px 14px 0; padding: 14px 16px;
+    background: var(--papier); border: 3px solid var(--trait); border-radius: 8px; box-shadow: 6px 6px 0 var(--trait);
+    font-size: 1.34rem; line-height: 1.8;
+  }
+  .tp-phrase { display: block; margin-bottom: 4px; }
+  .tp-phrase.dite { text-decoration: underline 4px var(--jaune); text-underline-offset: 6px; }
+  .tp-mot { background: var(--jaune); border: 2px solid var(--trait); border-radius: 6px; padding: 0 4px; }
+
+  .tp-choix { flex: none; display: flex; flex-direction: column; gap: 11px; padding: 16px 14px 8px; }
+  .tp-carte {
+    position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px;
+    background: var(--papier); border: 3px solid var(--trait); border-radius: 8px;
+    box-shadow: 5px 5px 0 var(--trait); padding: 9px 12px 12px;
+  }
+  .tp-carte .num {
+    width: 34px; height: 34px; flex: none; border-radius: 8px; background: var(--c); color: #fff;
+    border: 3px solid var(--trait); display: grid; place-items: center; font-weight: 900;
+  }
+  .tp-carte .emo { font-size: 1.9rem; }
+  .tp-carte .lib { flex: 1; font-size: 1.1rem; font-weight: 800; line-height: 1.25; }
+  .tp-carte.active { background: #fff8e4; box-shadow: 5px 5px 0 var(--c); }
+  .tp-jauge { position: absolute; left: 0; bottom: 0; height: 8px; background: var(--c); }
+
+  .tp-lecture {
+    flex: none; display: flex; align-items: center; gap: 12px; padding: 12px 14px 16px;
+    background: var(--trait);
+  }
+  .tp-petit { width: 46px; height: 46px; flex: none; border-radius: 12px; background: var(--fond); border: 3px solid var(--fond); display: grid; place-items: center; }
+  .tp-gros { width: 62px; height: 62px; flex: none; border-radius: 16px; background: var(--jaune); border: 3px solid var(--fond); display: grid; place-items: center; }
+  .tp-astuce { font-size: 0.82rem; font-weight: 800; color: #f0e6d6; line-height: 1.35; }
+</style>
+
+<div class="tp">
+  <header class="tp-barre">
+    <div class="tp-icone">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2438" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5h4v5"/></svg>
+    </div>
+    <div class="tp-jauges">
+      <span class="tp-coeurs">
+        <svg width="21" height="21" viewBox="0 0 24 24"><path d="M12 21S3.5 15.3 3.5 9.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.5 2.6C20.5 15.3 12 21 12 21z" fill="#ef5b5b" stroke="#2b2438" stroke-width="1.6"/></svg>
+        <svg width="21" height="21" viewBox="0 0 24 24"><path d="M12 21S3.5 15.3 3.5 9.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.5 2.6C20.5 15.3 12 21 12 21z" fill="#ef5b5b" stroke="#2b2438" stroke-width="1.6"/></svg>
+        <svg width="21" height="21" viewBox="0 0 24 24"><path d="M12 21S3.5 15.3 3.5 9.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.5 2.6C20.5 15.3 12 21 12 21z" fill="#fff" stroke="#2b2438" stroke-width="1.6"/></svg>
+      </span>
+      <span class="tp-etoiles">
+        <svg width="19" height="19" viewBox="0 0 24 24"><path d="M12 3l2.7 5.7 6.3.8-4.6 4.3 1.2 6.2L12 17l-5.6 3 1.2-6.2L3 9.5l6.3-.8z" fill="#fff" stroke="#2b2438" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        3
+      </span>
+    </div>
+    <div class="tp-icone">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#2b2438"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>
+    </div>
+  </header>
+
+  <div class="tp-scene">
+    <svg viewBox="0 0 356 184" preserveAspectRatio="xMidYMid slice">
+      <rect width="356" height="184" fill="#8ecae6"/>
+      <circle cx="296" cy="40" r="26" fill="#ffb703" stroke="#2b2438" stroke-width="3"/>
+      <path d="M0 116q60-26 118-4t120-8 118 10v70H0z" fill="#2a9d8f" stroke="#2b2438" stroke-width="3"/>
+      <path d="M0 150q90-16 176 6t180-10v38H0z" fill="#1f7a70" stroke="#2b2438" stroke-width="3"/>
+      <rect x="92" y="108" width="172" height="12" fill="#e29578" stroke="#2b2438" stroke-width="3"/>
+      <rect x="108" y="120" width="10" height="30" fill="#c07a5e" stroke="#2b2438" stroke-width="3"/>
+      <rect x="240" y="120" width="10" height="30" fill="#c07a5e" stroke="#2b2438" stroke-width="3"/>
+      <text x="124" y="104" font-size="40">🧒</text>
+      <text x="210" y="102" font-size="34">🦩</text>
+    </svg>
+  </div>
+  <span class="tp-bandeau">Chapitre 4 · Le vieux pont</span>
+
+  <div class="tp-texte">
+    <span class="tp-phrase">Le vieux pont grince sous tes pieds.</span>
+    <span class="tp-phrase dite">En dessous, la <span class="tp-mot">rivière</span> chante.</span>
+    <span class="tp-phrase">Un héron te regarde.</span>
+  </div>
+
+  <div class="tp-choix">
+    <div class="tp-carte active" style="--c:#3d5a80">
+      <span class="num">1</span><span class="emo">🐦</span><span class="lib">Parler doucement au héron.</span>
+      <span class="tp-jauge" style="width:58%"></span>
+    </div>
+    <div class="tp-carte" style="--c:#ef5b5b"><span class="num">2</span><span class="emo">🏃</span><span class="lib">Traverser le pont en courant.</span></div>
+    <div class="tp-carte" style="--c:#2a9d8f"><span class="num">3</span><span class="emo">🐟</span><span class="lib">Chercher un poisson pour lui.</span></div>
+  </div>
+
+  <footer class="tp-lecture">
+    <div class="tp-petit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b2438" stroke-width="2.4" stroke-linecap="round"><path d="M4 12a8 8 0 1 1 2.6 5.9"/><path d="M4 6.5V12h5.5"/></svg></div>
+    <div class="tp-gros"><svg width="26" height="26" viewBox="0 0 24 24" fill="#2b2438"><rect x="6" y="4" width="4.4" height="16" rx="1.4"/><rect x="13.6" y="4" width="4.4" height="16" rx="1.4"/></svg></div>
+    <div class="tp-petit"><svg width="22" height="22" viewBox="0 0 24 24" fill="#2b2438"><path d="M5 5l9 7-9 7z"/><rect x="16.5" y="5" width="3" height="14" rx="1"/></svg></div>
+    <span class="tp-astuce">Touche un mot<br>pour l’entendre 👆</span>
+  </footer>
+</div>

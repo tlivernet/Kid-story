@@ -1,0 +1,185 @@
+{
+  "artboards": [
+    {
+      "file": "Actuel.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Aujourd’hui — écran de jeu"
+    },
+    {
+      "file": "Reperes.dc.html",
+      "x": 520,
+      "y": 0,
+      "w": 860,
+      "h": 1120,
+      "title": "Repères de la refonte"
+    },
+    {
+      "file": "Accueil.dc.html",
+      "x": 0,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "A · Accueil"
+    },
+    {
+      "file": "Themes.dc.html",
+      "x": 490,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "A · Choix du thème"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 980,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "A · Lecture (écran clé)"
+    },
+    {
+      "file": "Epreuve.dc.html",
+      "x": 1470,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "A · Épreuve de lecture"
+    },
+    {
+      "file": "DirectionB.dc.html",
+      "x": 0,
+      "y": 2840,
+      "w": 390,
+      "h": 844,
+      "title": "B · Théâtre de papier"
+    },
+    {
+      "file": "DirectionC.dc.html",
+      "x": 490,
+      "y": 2840,
+      "w": 390,
+      "h": 844,
+      "title": "C · Veillée"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "titre",
+      "kind": "title1",
+      "x": 0,
+      "y": -300,
+      "w": 900,
+      "text": "Le Livre Magique — refonte du design"
+    },
+    {
+      "id": "intro",
+      "x": 0,
+      "y": -210,
+      "w": 900,
+      "color": "purple",
+      "text": "Tout part des valeurs réelles de css/app.css : crème #fdf6e8, encre #2f2545, violet #5b3fa8, or #ffc94d, rayon 22 px, ombre 0 10px 24px rgba(47,37,69,.16). Rien n’est arrondi « au propre » : ce qui change est signalé.\n\nMaquettes statiques (pas de prototype cliquable), au format téléphone 390 × 844 — la tablette reprend la même grille en plus large."
+    },
+    {
+      "id": "r0",
+      "kind": "title1",
+      "x": 0,
+      "y": -70,
+      "w": 700,
+      "text": "1 · Le point de départ"
+    },
+    {
+      "id": "n-actuel",
+      "x": 0,
+      "y": 890,
+      "w": 390,
+      "color": "orange",
+      "text": "Ce que dit l’écran actuel, à la mesure :\n\n• 8 boutons ronds identiques de 54 px, tous en emoji, sans hiérarchie — celui que l’enfant cherche (Pause) ne se distingue pas des 7 autres.\n• Le bandeau haut prend 74 px et ne laisse que ~110 px aux cœurs et aux étoiles, qui sont eux aussi des emoji.\n• L’illustration est une bande à fond perdu #cfe9ff coupée net : elle ne ressemble pas à l’image d’un livre.\n• Le texte court sur 44 caractères : beaucoup de retours à la ligne à suivre pour un lecteur de CP.\n• La phrase en cours est lavée en #fff3cf sur toute sa surface, ce qui affaiblit le repère du mot surligné."
+    },
+    {
+      "id": "n-reperes",
+      "x": 520,
+      "y": 1170,
+      "w": 860,
+      "color": "teal",
+      "text": "Les repères servent à écrire le CSS : chaque valeur y est celle à recopier. Les dix ratios de contraste sont calculés (WCAG 2.1) sur ces couleurs exactes — le plus faible est à 5,1 pour un minimum AA de 4,5.\n\nÀ noter : la famille de police reste celle de l’app (ui-rounded, Trebuchet MS…). Pour la lecture, la bonne suite serait d’embarquer Andika en local — une police dessinée pour les enfants qui apprennent à lire, avec un a et un g à une boucle. Une police distante ne s’affichera pas ici (les maquettes sont isolées du réseau)."
+    },
+    {
+      "id": "r1",
+      "kind": "title1",
+      "x": 0,
+      "y": 1420,
+      "w": 900,
+      "text": "2 · Direction A « Grand livre » — la proposition principale"
+    },
+    {
+      "id": "n-accueil",
+      "x": 0,
+      "y": 2380,
+      "w": 390,
+      "color": "green",
+      "text": "Accueil : les trois boutons géants deviennent des lignes qui disent où l’on va — « Le vieux pont · chapitre 4 », « 7 aventures terminées ». Reprendre son histoire n’est plus un bouton qui apparaît sans contexte.\n\nUn seul bouton violet, celui qui lance une nouvelle aventure."
+    },
+    {
+      "id": "n-themes",
+      "x": 490,
+      "y": 2380,
+      "w": 390,
+      "color": "green",
+      "text": "Thèmes : les deux familles de js/config.js (14 imaginaires, 13 réalistes) prennent un titre de groupe lisible au lieu d’une simple ligne de texte, et chaque carte reçoit un fond teinté propre à son monde — on retrouve « Pompiers » du coin de l’œil, sans lire.\n\nHauteur de carte fixe : la grille ne saute plus quand un nom passe sur deux lignes."
+    },
+    {
+      "id": "n-main",
+      "x": 980,
+      "y": 2380,
+      "w": 390,
+      "color": "purple",
+      "text": "Lecture — l’écran qui compte :\n\n• Bandeau à 3 éléments au lieu de 6 : maison, jauges, et un « ⋯ » qui ouvre sac, résumé et voix. Les cœurs et les étoiles sont dessinés (SVG), plus des emoji : même taille sur tous les appareils.\n• L’illustration devient une planche encadrée de blanc, arrondie à 26 px — l’image d’un album, pas un bandeau.\n• Texte à 22 px sur 30 caractères de large ; la phrase en cours est marquée par un filet or à gauche et un voile très clair (#fff6e0), et c’est le mot lu qui garde l’or franc.\n• Barre de lecture : Pause en 64 px violet, Relire et Passer en 48 px neutres. Un seul bouton attire la main.\n• Jauge de validation portée à 10 px, sur toute la largeur de la carte."
+    },
+    {
+      "id": "n-epreuve",
+      "x": 1470,
+      "y": 2380,
+      "w": 390,
+      "color": "red",
+      "text": "Épreuve de lecture : c’est ici qu’était le défaut de contraste signalé en usage réel.\n\nLe mot à lire est désormais toujours de l’encre #2f2545 sur un fond clair — 12,1 sur le mot touché (#efe9ff), 7,0 sur la bonne réponse (#e3f4ea). Plus aucun texte de couleur sur fond de couleur.\n\nLes cœurs restants et l’enjeu (« gagner une étoile ») sont affichés pendant l’épreuve, pas seulement après."
+    },
+    {
+      "id": "r2",
+      "kind": "title1",
+      "x": 0,
+      "y": 2760,
+      "w": 900,
+      "text": "3 · Deux autres pistes, sur le même écran"
+    },
+    {
+      "id": "n-b",
+      "x": 0,
+      "y": 3720,
+      "w": 390,
+      "color": "orange",
+      "text": "B « Théâtre de papier » : aplats saturés, contours francs de 3 px, ombres portées nettes — un décor découpé-collé plutôt qu’un livre.\n\nPour : très lisible, très gai, un enfant de 6 ans adore. Aucune ombre floue à calculer.\nContre : plus bruyant sur une longue lecture, et la charte s’éloigne de l’identité crème/violet actuelle — c’est une autre application, pas une retouche."
+    },
+    {
+      "id": "n-c",
+      "x": 490,
+      "y": 3720,
+      "w": 390,
+      "color": "blue",
+      "text": "C « Veillée » : la version du soir. Fond indigo, halo de lanterne, contrastes élevés (16,0 pour le texte, 11,0 pour le mot lu).\n\nPour : parfaite pour l’histoire du coucher, moins de lumière dans la chambre, et elle règle le mode sombre pour de bon.\nContre : ne peut pas être la seule direction — en journée elle est triste. Le bon usage est de la garder comme thème « Soir » commutable, bâti sur les mêmes jetons que A."
+    },
+    {
+      "id": "suite",
+      "x": 980,
+      "y": 3720,
+      "w": 390,
+      "color": "gray",
+      "text": "Si la direction A convient, la mise en œuvre tient en quatre temps :\n\n1. Les jetons (couleurs, rayons, ombres) et l’échelle typo dans :root.\n2. Le bandeau à 3 éléments + les icônes SVG, qui remplacent .btn-rond en 54 px partout.\n3. La planche encadrée, la largeur de ligne à 30ch, le nouveau traitement de .phrase.lue.\n4. Les états d’épreuve, où le contraste est mesuré et non plus estimé.\n\nLes tests de tests/contraste.test.mjs peuvent reprendre les couples de la planche « Repères »."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

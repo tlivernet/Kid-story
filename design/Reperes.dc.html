@@ -1,0 +1,145 @@
+<script src="./support.js"></script>
+<!-- Repères de la refonte : jetons, contrastes mesurés, échelle typo, tailles de contrôles.
+     Les ratios sont calculés (WCAG 2.1) sur les couleurs exactes ci-dessous. -->
+<style>
+  * { box-sizing: border-box; }
+  .rp {
+    --papier: #fdf6e8; --papier-fonce: #f4e6cd; --carte: #ffffff;
+    --encre: #2f2545; --encre-doux: #5c5175; --violet: #5b3fa8; --violet-clair: #7b5ed6;
+    --or: #ffc94d; --rose: #ff6f91; --vert: #3fae6a; --rouge: #e0574f;
+    width: 860px; height: 1120px; overflow: hidden; padding: 26px 28px;
+    background: var(--papier); color: var(--encre);
+    font-family: ui-rounded, "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .rp h1 { margin: 0; font-size: 1.5rem; }
+  .rp h1 small { display: block; font-size: 0.82rem; font-weight: 700; color: var(--encre-doux); letter-spacing: 0.04em; margin-top: 3px; }
+  .rp h2 {
+    margin: 0 0 9px; font-size: 0.76rem; font-weight: 900; letter-spacing: 0.13em;
+    text-transform: uppercase; color: var(--violet);
+  }
+  .rp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .rp-bloc { background: var(--carte); border: 2px solid var(--papier-fonce); border-radius: 18px; padding: 14px 16px; }
+
+  .rp-nuancier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+  .rp-nuance .pave { height: 44px; border-radius: 12px; border: 2px solid rgba(47,37,69,.12); }
+  .rp-nuance b { display: block; margin-top: 5px; font-size: 0.78rem; }
+  .rp-nuance span { font-size: 0.72rem; color: var(--encre-doux); font-variant-numeric: tabular-nums; }
+
+  .rp-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .rp-table td { padding: 4px 0; border-bottom: 1px solid #f0e6d2; }
+  .rp-table td:last-child { text-align: right; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .rp-ok { color: #1e6b3f; }
+  .rp-ech { display: flex; align-items: baseline; gap: 10px; padding: 4px 0; border-bottom: 1px solid #f0e6d2; }
+  .rp-ech .val { flex: none; width: 132px; font-size: 0.74rem; color: var(--encre-doux); font-variant-numeric: tabular-nums; }
+
+  .rp-ctrl { display: flex; align-items: flex-end; gap: 16px; }
+  .rp-ctrl figure { margin: 0; text-align: center; }
+  .rp-ctrl figcaption { margin-top: 6px; font-size: 0.72rem; color: var(--encre-doux); font-weight: 700; }
+  .cercle { border-radius: 50%; display: grid; place-items: center; }
+  .c64 { width: 64px; height: 64px; background: var(--violet); border: 3px solid var(--violet-clair); }
+  .c48 { width: 48px; height: 48px; background: var(--carte); border: 2px solid var(--papier-fonce); }
+  .c44 { width: 44px; height: 44px; background: var(--carte); border: 2px solid var(--papier-fonce); }
+  .c54 { width: 54px; height: 54px; background: var(--carte); border: 3px solid var(--papier-fonce); opacity: .5; }
+
+  .rp-rayons { display: flex; align-items: flex-end; gap: 14px; }
+  .rp-rayons div { width: 78px; height: 68px; background: #efe9ff; border: 2px solid var(--violet-clair); display: grid; place-items: end center; font-size: 0.7rem; font-weight: 800; padding-bottom: 4px; color: var(--violet); }
+  .rp-note { font-size: 0.78rem; color: var(--encre-doux); margin: 8px 0 0; }
+</style>
+
+<div class="rp">
+  <h1>Repères de la refonte
+    <small>Valeurs reprises de css/app.css · les ajouts sont signalés « nouveau »</small>
+  </h1>
+
+  <div class="rp-bloc">
+    <h2>Couleurs</h2>
+    <div class="rp-nuancier">
+      <div class="rp-nuance"><div class="pave" style="background:#fdf6e8"></div><b>Papier</b><span>#fdf6e8</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#f4e6cd"></div><b>Papier foncé</b><span>#f4e6cd</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#ffffff"></div><b>Carte</b><span>#ffffff</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#2f2545"></div><b>Encre</b><span>#2f2545</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#5c5175"></div><b>Encre douce</b><span>#5c5175</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#5b3fa8"></div><b>Violet</b><span>#5b3fa8</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#ffc94d"></div><b>Or (mot lu)</b><span>#ffc94d</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#fff6e0"></div><b>Or voilé · nouveau</b><span>#fff6e0</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#e0574f"></div><b>Cœur</b><span>#e0574f</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#3f7fd6"></div><b>Choix 1</b><span>#3f7fd6</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#e8862f"></div><b>Choix 2</b><span>#e8862f</span></div>
+      <div class="rp-nuance"><div class="pave" style="background:#3fae6a"></div><b>Choix 3</b><span>#3fae6a</span></div>
+    </div>
+  </div>
+
+  <div class="rp-cols">
+    <div class="rp-bloc">
+      <h2>Contrastes mesurés</h2>
+      <table class="rp-table">
+        <tr><td>Texte sur papier</td><td class="rp-ok">13,3</td></tr>
+        <tr><td>Violet sur papier</td><td class="rp-ok">7,2</td></tr>
+        <tr><td>Mot lu — encre sur or</td><td class="rp-ok">9,3</td></tr>
+        <tr><td>Phrase en cours</td><td class="rp-ok">13,3</td></tr>
+        <tr><td>Bouton violet — blanc</td><td class="rp-ok">7,7</td></tr>
+        <tr><td>Astuce sur barre crème</td><td class="rp-ok">5,1</td></tr>
+        <tr><td>Épreuve — mot choisi</td><td class="rp-ok">12,1</td></tr>
+        <tr><td>Épreuve — bonne réponse</td><td class="rp-ok">7,0</td></tr>
+        <tr><td>Veillée — texte sur nuit</td><td class="rp-ok">16,0</td></tr>
+        <tr><td>Veillée — mot lu</td><td class="rp-ok">11,0</td></tr>
+      </table>
+      <p class="rp-note">Minimum WCAG AA : 4,5. Aucun couple ne descend sous 5,1 — y compris le mot à lire des jeux de lecture, qui posait problème.</p>
+    </div>
+
+    <div class="rp-bloc">
+      <h2>Échelle typographique</h2>
+      <div class="rp-ech"><span class="val">50 / 47 · 900</span><span style="font-size:2.2rem;font-weight:900;line-height:1;color:#5b3fa8">Le Livre</span></div>
+      <div class="rp-ech"><span class="val">22 / 41 · 400 · 30ch</span><span style="font-size:1.38rem">Texte de l’histoire</span></div>
+      <div class="rp-ech"><span class="val">18 / 22 · 700</span><span style="font-size:1.12rem;font-weight:700">Libellé d’un choix</span></div>
+      <div class="rp-ech"><span class="val">17 / 26 · 400</span><span style="font-size:1.06rem">Texte courant</span></div>
+      <div class="rp-ech"><span class="val">14 / 19 · 900 · maj.</span><span style="font-size:0.86rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:#5b3fa8">Chapitre 4</span></div>
+      <div class="rp-ech"><span class="val">13 / 18 · 700</span><span style="font-size:0.82rem;font-weight:700;color:#5c5175">Astuce, aide</span></div>
+      <p class="rp-note">Ligne de lecture ramenée de 44 à <b>30 caractères</b> : moins de retours à la ligne à suivre du doigt pour un enfant de CP.</p>
+    </div>
+  </div>
+
+  <div class="rp-cols">
+    <div class="rp-bloc">
+      <h2>Contrôles</h2>
+      <div class="rp-ctrl">
+        <figure>
+          <div class="cercle c64"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="4" width="4.4" height="16" rx="2"/><rect x="13.6" y="4" width="4.4" height="16" rx="2"/></svg></div>
+          <figcaption>64 px<br>action principale</figcaption>
+        </figure>
+        <figure>
+          <div class="cercle c48"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b3fa8" stroke-width="2.2" stroke-linecap="round"><path d="M4 12a8 8 0 1 1 2.6 5.9"/><path d="M4 6.5V12h5.5"/></svg></div>
+          <figcaption>48 px<br>secondaire</figcaption>
+        </figure>
+        <figure>
+          <div class="cercle c44"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b3fa8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 3l9 8"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5h4v5"/></svg></div>
+          <figcaption>44 px<br>bandeau</figcaption>
+        </figure>
+        <figure>
+          <div class="cercle c54">54</div>
+          <figcaption>54 px<br>taille actuelle, partout</figcaption>
+        </figure>
+      </div>
+      <p class="rp-note">Aujourd’hui : huit boutons ronds de 54 px, tous identiques. Ici trois tailles, et le bouton que l’enfant cherche — Pause — est le seul gros et le seul violet.</p>
+    </div>
+
+    <div class="rp-bloc">
+      <h2>Rayons et ombres</h2>
+      <div class="rp-rayons">
+        <div style="border-radius:10px">10</div>
+        <div style="border-radius:18px">18</div>
+        <div style="border-radius:22px">22</div>
+        <div style="border-radius:26px">26</div>
+        <div style="border-radius:34px">34</div>
+      </div>
+      <p class="rp-note">
+        Ombre douce <b>0 10px 24px rgba(47,37,69,.16)</b> pour les cartes ·
+        <b>0 14px 30px rgba(47,37,69,.20)</b> pour la planche illustrée ·
+        <b>0 8px 18px rgba(91,63,168,.38)</b> pour le bouton violet.
+      </p>
+      <p class="rp-note">Gouttière d’écran 16 px, écart entre cartes 10-12 px, hauteur de la jauge de validation portée de 8 à <b>10 px</b>.</p>
+    </div>
+  </div>
+</div>

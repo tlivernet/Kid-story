@@ -1,0 +1,132 @@
+<script src="./support.js"></script>
+<!-- Direction A « Grand livre » — accueil. -->
+<style>
+  * { box-sizing: border-box; }
+  .ac {
+    --papier: #fdf6e8; --papier-fonce: #f4e6cd; --carte: #ffffff;
+    --encre: #2f2545; --encre-doux: #5c5175;
+    --violet: #5b3fa8; --violet-clair: #7b5ed6; --rose: #ff6f91; --or: #ffc94d;
+    --rayon: 22px; --ombre: 0 10px 24px rgba(47, 37, 69, 0.16);
+    position: relative; width: 390px; height: 844px; overflow: hidden;
+    background: var(--papier); color: var(--encre);
+    font-family: ui-rounded, "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .ac-fond { position: absolute; inset: 0; }
+  .ac-fond svg { display: block; width: 100%; height: 100%; }
+
+  .ac-contenu {
+    position: relative; z-index: 1; height: 100%;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 20px 18px;
+  }
+  .ac-voile {
+    width: 100%; padding: 24px 16px 20px; border-radius: 34px;
+    background: rgba(253, 246, 232, 0.9);
+    box-shadow: 0 18px 46px rgba(47, 37, 69, 0.22);
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .ac-marque { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+  .ac-filet { width: 30px; height: 3px; border-radius: 2px; background: var(--or); }
+  .ac-surtitre { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.11em; white-space: nowrap; text-transform: uppercase; color: var(--encre-doux); }
+
+  .ac-titre {
+    margin: 0; text-align: center; font-size: 2.85rem; line-height: 0.94; color: var(--violet);
+    text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(91, 63, 168, 0.16);
+  }
+  .ac-titre span { color: var(--rose); }
+  .ac-sous { margin: 0 0 6px; font-size: 1.05rem; font-weight: 700; color: var(--encre-doux); text-align: center; }
+
+  .ac-btn {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    background: var(--carte); border: 3px solid var(--papier-fonce); border-radius: var(--rayon);
+    padding: 12px 14px; box-shadow: var(--ombre); text-align: left;
+  }
+  .ac-btn .plaque {
+    width: 44px; height: 44px; flex: none; border-radius: 14px; display: grid; place-items: center;
+    background: var(--voile); font-size: 1.7rem;
+  }
+  .ac-btn .txt { flex: 1; }
+  .ac-btn b { display: block; font-size: 1.01rem; font-weight: 800; }
+  .ac-btn small { font-size: 0.83rem; font-weight: 600; color: var(--encre-doux); }
+  .ac-btn.primaire { background: var(--violet); border-color: var(--violet-clair); color: #fff; box-shadow: 0 12px 26px rgba(91, 63, 168, 0.36); }
+  .ac-btn.primaire small { color: #e4dcff; }
+  .ac-btn .fleche { flex: none; opacity: .75; }
+
+  .ac-bas { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+  .ac-discret {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.84rem; font-weight: 700; color: var(--encre-doux); white-space: nowrap;
+    padding: 7px 11px; border-radius: 999px; border: 2px solid rgba(92, 81, 117, 0.18);
+  }
+  .ac-note { margin: 10px 0 0; font-size: 0.85rem; color: var(--encre-doux); text-align: center; }
+</style>
+
+<div class="ac">
+  <div class="ac-fond">
+    <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="ciel-h" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f6ecd6"/><stop offset="0.55" stop-color="#fdf6e8"/><stop offset="1" stop-color="#f2e3c6"/>
+        </linearGradient>
+      </defs>
+      <rect width="390" height="844" fill="url(#ciel-h)"/>
+      <g opacity=".5">
+        <circle cx="58" cy="96" r="5" fill="#ffc94d"/>
+        <circle cx="330" cy="150" r="4" fill="#ff6f91"/>
+        <circle cx="292" cy="70" r="6" fill="#7b5ed6"/>
+        <circle cx="96" cy="742" r="5" fill="#7b5ed6"/>
+        <circle cx="316" cy="700" r="4" fill="#ffc94d"/>
+      </g>
+      <g opacity=".22" fill="none" stroke="#5b3fa8" stroke-width="3" stroke-linecap="round">
+        <path d="M-10 200q80-46 160 0t170-16"/>
+        <path d="M-10 660q90 40 180 0t180 14"/>
+      </g>
+      <g opacity=".55">
+        <path d="M20 782h96v46H20z" fill="#7b5ed6"/><path d="M124 770h74v58h-74z" fill="#ff6f91"/>
+        <path d="M206 786h62v42h-62z" fill="#3fae6a"/><path d="M276 762h96v66h-96z" fill="#ffc94d"/>
+        <path d="M0 828h390v16H0z" fill="#e2cfa8"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="ac-contenu">
+    <div class="ac-voile">
+      <div class="ac-marque">
+        <span class="ac-filet"></span><span class="ac-surtitre">Une histoire par jour</span><span class="ac-filet"></span>
+      </div>
+      <h1 class="ac-titre">Le Livre<br><span>Magique</span></h1>
+      <p class="ac-sous">Choisis ton histoire… et vis-la !</p>
+
+      <div class="ac-btn primaire">
+        <span class="plaque" style="--voile: rgba(255,255,255,.18)">✨</span>
+        <span class="txt"><b>Nouvelle aventure</b><small>24 mondes à explorer</small></span>
+        <svg class="fleche" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <div class="ac-btn">
+        <span class="plaque" style="--voile:#e4eefb">▶️</span>
+        <span class="txt"><b>Continuer l’aventure</b><small>Le vieux pont · chapitre 4</small></span>
+        <svg class="fleche" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5c5175" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <div class="ac-btn">
+        <span class="plaque" style="--voile:#efe9ff">📖</span>
+        <span class="txt"><b>Mon carnet</b><small>7 aventures terminées</small></span>
+        <svg class="fleche" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5c5175" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </div>
+
+      <div class="ac-bas">
+        <span class="ac-discret">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5c5175" stroke-width="2.2"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.6v3M12 18.4v3M2.6 12h3M18.4 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>
+          Réglages (parents)
+        </span>
+        <span class="ac-discret">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5c5175" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M7.5 10L12 14.5 16.5 10"/><path d="M4.5 19h15"/></svg>
+          Installer
+        </span>
+      </div>
+      <p class="ac-note">Mode démo — aucune clé enregistrée</p>
+    </div>
+  </div>
+</div>

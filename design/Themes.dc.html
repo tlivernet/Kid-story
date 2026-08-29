@@ -1,0 +1,76 @@
+<script src="./support.js"></script>
+<!-- Direction A « Grand livre » — choix du thème (les 24 thèmes de js/config.js, groupés). -->
+<style>
+  * { box-sizing: border-box; }
+  .th {
+    --papier: #fdf6e8; --papier-fonce: #f4e6cd; --carte: #ffffff;
+    --encre: #2f2545; --encre-doux: #5c5175; --violet: #5b3fa8; --or: #ffc94d;
+    --rayon: 22px; --ombre: 0 10px 24px rgba(47, 37, 69, 0.16);
+    width: 390px; height: 844px; overflow: hidden;
+    display: flex; flex-direction: column;
+    background: var(--papier); color: var(--encre);
+    font-family: ui-rounded, "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .th-barre { flex: none; display: flex; align-items: center; gap: 12px; padding: 14px 16px 6px; }
+  .th-rond {
+    width: 44px; height: 44px; flex: none; border-radius: 50%; background: var(--carte);
+    border: 2px solid var(--papier-fonce); display: grid; place-items: center;
+    box-shadow: 0 4px 12px rgba(47, 37, 69, 0.10);
+  }
+  .th-barre h2 { margin: 0; font-size: 1.32rem; line-height: 1.15; }
+  .th-barre p { margin: 1px 0 0; font-size: 0.85rem; font-weight: 700; color: var(--encre-doux); }
+
+  .th-corps { flex: 1; min-height: 0; overflow: hidden; padding: 6px 16px 16px; }
+  .th-groupe { display: flex; align-items: center; gap: 9px; margin: 12px 0 10px; }
+  .th-groupe .pastille { width: 28px; height: 28px; border-radius: 10px; display: grid; place-items: center; font-size: 0.95rem; background: var(--voile); }
+  .th-groupe b { font-size: 1rem; font-weight: 900; letter-spacing: 0.02em; }
+  .th-groupe .trait { flex: 1; height: 2px; border-radius: 1px; background: var(--papier-fonce); }
+
+  .th-grille { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .th-carte {
+    background: var(--carte); border: 3px solid var(--papier-fonce); border-radius: var(--rayon);
+    box-shadow: var(--ombre); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .th-carte .haut { height: 62px; display: grid; place-items: center; font-size: 2.3rem; background: var(--voile); }
+  .th-carte .nom { padding: 8px 10px 10px; text-align: center; font-size: 1.02rem; font-weight: 800; line-height: 1.2; }
+  .th-carte.choisi { border-color: var(--violet); box-shadow: 0 0 0 3px var(--violet) inset, var(--ombre); }
+</style>
+
+<div class="th">
+  <header class="th-barre">
+    <div class="th-rond">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b3fa8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 11 12 3l9 8"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5h4v5"/>
+      </svg>
+    </div>
+    <div>
+      <h2>Quelle histoire aujourd’hui ?</h2>
+      <p>24 mondes · touche celui qui te plaît</p>
+    </div>
+  </header>
+
+  <div class="th-corps">
+    <div class="th-groupe" style="--voile:#efe9ff">
+      <span class="pastille">✨</span><b>Mondes imaginaires</b><span class="trait"></span>
+    </div>
+    <div class="th-grille">
+      <div class="th-carte" style="--voile:#e8f1fb"><div class="haut">🏴‍☠️</div><div class="nom">Pirates</div></div>
+      <div class="th-carte" style="--voile:#ffeef1"><div class="haut">🐉</div><div class="nom">Dragons</div></div>
+      <div class="th-carte" style="--voile:#eeeaff"><div class="haut">🚀</div><div class="nom">Espace</div></div>
+      <div class="th-carte" style="--voile:#e6f5ea"><div class="haut">🦕</div><div class="nom">Dinosaures</div></div>
+      <div class="th-carte" style="--voile:#fdf0dd"><div class="haut">🧜‍♀️</div><div class="nom">Sirènes</div></div>
+      <div class="th-carte" style="--voile:#efe9ff"><div class="haut">🧙</div><div class="nom">Sorciers</div></div>
+    </div>
+
+    <div class="th-groupe" style="--voile:#e6f5ea">
+      <span class="pastille">🌍</span><b>La vraie vie</b><span class="trait"></span>
+    </div>
+    <div class="th-grille">
+      <div class="th-carte choisi" style="--voile:#fdeae7"><div class="haut">🚒</div><div class="nom">Pompiers</div></div>
+      <div class="th-carte" style="--voile:#e8f1fb"><div class="haut">🚓</div><div class="nom">Police</div></div>
+      <div class="th-carte" style="--voile:#fdf0dd"><div class="haut">🥖</div><div class="nom">La boulangerie</div></div>
+      <div class="th-carte" style="--voile:#e6f5ea"><div class="haut">🐕‍🦺</div><div class="nom">Vétérinaire</div></div>
+    </div>
+  </div>
+</div>
