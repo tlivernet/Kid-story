@@ -50,7 +50,7 @@ export const journal = {
 // Mémoire longue, indépendante du carnet : le carnet n'enregistre qu'une
 // aventure terminée, or la plupart s'arrêtent en cours de route. Sans cela,
 // les objets et les débuts déjà vus revenaient sans arrêt.
-const SOUVENIRS_VIDES = { objets: [], debuts: [] };
+const SOUVENIRS_VIDES = { objets: [], debuts: [], compagnons: [], twists: [] };
 
 export const souvenirs = {
   charger() {
@@ -67,11 +67,18 @@ export const souvenirs = {
     ecrire('souvenirs', memoire);
     return memoire.objets;
   },
-  ajouterDebut(debut) {
-    if (!debut) return;
+  // Toute la carte d'inspiration est retenue : sinon le même compagnon et le
+  // même objet insolite revenaient d'une aventure à l'autre.
+  ajouterInspiration(inspiration) {
+    if (!inspiration) return;
     const memoire = this.charger();
-    if (!memoire.debuts.includes(debut)) memoire.debuts.push(debut);
-    memoire.debuts = memoire.debuts.slice(-8);
+    for (const [champ, limite] of [['debuts', 8], ['compagnons', 8], ['twists', 8]]) {
+      const valeur = inspiration[champ.slice(0, -1)];
+      if (valeur && !memoire[champ].includes(valeur)) memoire[champ].push(valeur);
+      memoire[champ] = memoire[champ].slice(-limite);
+    }
+    if (inspiration.objet && !memoire.objets.includes(inspiration.objet)) memoire.objets.push(inspiration.objet);
+    memoire.objets = memoire.objets.slice(-40);
     ecrire('souvenirs', memoire);
   },
   effacer: () => localStorage.removeItem(PREFIXE + 'souvenirs'),

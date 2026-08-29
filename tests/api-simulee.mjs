@@ -16,13 +16,13 @@ const verifier = (condition, message) => {
 };
 
 // `defaut` décrit ce que renvoie la fausse API au 2e appel.
-async function scenario(defaut) {
+async function scenario(defaut, panne = null) {
   const navigateur = await chromium.launch();
   const page = await navigateur.newPage({ viewport: { width: 420, height: 860 } });
   const erreursJs = [];
   page.on('pageerror', (e) => erreursJs.push(e.message));
 
-  await page.addInitScript((panne) => {
+  await page.addInitScript(({ panne: defautChapitre, incident }) => {
     localStorage.setItem('livre-magique:reglages', JSON.stringify({
       cle: 'sk-ant-faux', modele: 'claude-opus-5', lectureAuto: false, epreuves: 'de',
     }));
@@ -38,7 +38,11 @@ async function scenario(defaut) {
     });
     window.fetch = async () => {
       window.__appels += 1;
-      const corps = window.__appels === 2 ? { ...plein(2), ...panne } : plein(window.__appels);
+      if (incident && window.__appels === 2) {
+        if (incident === 'reseau') throw new TypeError('Failed to fetch');
+        return new Response(JSON.stringify({ error: { message: 'overloaded' } }), { status: 529 });
+      }
+      const corps = window.__appels === 2 ? { ...plein(2), ...defautChapitre } : plein(window.__appels);
       const json = JSON.stringify(corps);
       const evenements = [
         'event: message_start\ndata: {"type":"message_start"}\n\n',
@@ -50,7 +54,7 @@ async function scenario(defaut) {
         start(flot) { evenements.forEach((e) => flot.enqueue(encodeur.encode(e))); flot.close(); },
       }), { status: 200 });
     };
-  }, defaut);
+  }, { panne: defaut, incident: panne });
 
   await page.goto(ADRESSE);
   await page.click('#btn-nouvelle');
@@ -92,6 +96,17 @@ const sansChoix = await scenario({ choix: [] });
 verifier(sansChoix.appels === 3, `un chapitre sans choix est relancé (${sansChoix.appels} appels)`);
 verifier(sansChoix.choix.length > 0, 'des choix sont de nouveau proposés');
 
-const toutesErreurs = [...vide.erreursJs, ...finTot.erreursJs, ...sansChoix.erreursJs];
+// 4. Coupure réseau puis service saturé : relance automatique, sans écran vide.
+const reseau = await scenario({}, 'reseau');
+verifier(reseau.appels === 3, `une coupure réseau est retentée toute seule (${reseau.appels} appels)`);
+verifier(reseau.phrases >= 2, 'le chapitre finit par s’afficher après la relance');
+verifier(reseau.choix.length > 0, 'des choix sont proposés après la relance');
+
+const sature = await scenario({}, 'serveur');
+verifier(sature.appels === 3, `un service saturé est retenté tout seul (${sature.appels} appels)`);
+verifier(sature.phrases >= 2, 'le chapitre s’affiche après la relance');
+
+const toutesErreurs = [...vide.erreursJs, ...finTot.erreursJs, ...sansChoix.erreursJs,
+  ...reseau.erreursJs, ...sature.erreursJs];
 verifier(toutesErreurs.length === 0, `aucune erreur JavaScript${toutesErreurs.length ? ` (${toutesErreurs.join(' | ')})` : ''}`);
 process.exit(echecs.length ? 1 : 0);

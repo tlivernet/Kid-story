@@ -60,11 +60,37 @@ test('la mémoire longue plafonne pour ne pas gonfler indéfiniment', () => {
   assert.equal(souvenirs.charger().objets.length, 40);
 });
 
-test('un début d’histoire déjà joué n’est pas retiré au tirage suivant', () => {
+test('toute la carte d’inspiration est retenue, pas seulement le début', () => {
   memoire.clear();
-  const premier = INSPIRATIONS.debuts[0];
-  souvenirs.ajouterDebut(premier);
-  const restants = INSPIRATIONS.debuts.filter((d) => !souvenirs.charger().debuts.includes(d));
-  assert.equal(restants.length, INSPIRATIONS.debuts.length - 1);
-  assert.ok(!restants.includes(premier));
+  const carte = {
+    debut: INSPIRATIONS.debuts[0],
+    compagnon: INSPIRATIONS.compagnons[0],
+    objet: INSPIRATIONS.objets[3], // « un bout de ficelle qui se noue tout seul »
+    twist: INSPIRATIONS.twists[0],
+    ton: INSPIRATIONS.tons[0],
+  };
+  souvenirs.ajouterInspiration(carte);
+  const vus = souvenirs.charger();
+  assert.ok(vus.debuts.includes(carte.debut));
+  assert.ok(vus.compagnons.includes(carte.compagnon), 'le compagnon aussi');
+  assert.ok(vus.twists.includes(carte.twist), 'le retournement aussi');
+  assert.ok(vus.objets.includes(carte.objet), 'l’objet insolite compte comme un objet déjà offert');
+});
+
+test('un objet déjà vu écarte aussi sa variante reformulée', () => {
+  // Le modèle rebaptise volontiers « la ficelle qui se noue toute seule »
+  // en « ficelle vivante » : le filtrage doit quand même l'attraper.
+  const evites = ['ficelle qui se noue toute seule'];
+  for (let i = 0; i < 40; i += 1) {
+    const texte = coffre(etatAvec(evites)).split('\n')[0];
+    assert.ok(!/ficelle/.test(texte), 'la ficelle ne doit plus sortir du coffre');
+  }
+});
+
+test('les listes d’inspiration sont assez fournies', () => {
+  const { debuts, compagnons, objets, twists, tons } = INSPIRATIONS;
+  for (const [nom, liste] of Object.entries({ debuts, compagnons, objets, twists, tons })) {
+    assert.ok(liste.length >= 8, `${nom} : seulement ${liste.length} entrées`);
+    assert.equal(new Set(liste).size, liste.length, `${nom} contient un doublon`);
+  }
 });

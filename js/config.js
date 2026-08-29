@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.4.3',
+  version: '1.5.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -69,6 +69,14 @@ export const INSPIRATIONS = {
     'un ballon qui parle et qui a peur des épines',
     'une petite tortue pressée, toujours en retard',
     'un chat qui prétend connaître le chemin et se trompe',
+    'un hérisson qui répète la fin de chaque phrase',
+    'une marionnette de chaussette qui donne des conseils douteux',
+    'un escargot messager très fier de sa vitesse',
+    'une chauve-souris qui dort à l’envers en plein jour',
+    'un épouvantail qui a peur des corbeaux',
+    'un caneton qui prend le héros pour sa maman',
+    'une pie voleuse qui rend toujours ce qu’elle prend',
+    'un vieux robot de jardin qui compte les fleurs',
   ],
   objets: [
     'une boussole qui indique ce qu’on a perdu',
@@ -77,6 +85,16 @@ export const INSPIRATIONS = {
     'un bout de ficelle qui se noue tout seul',
     'une loupe qui montre les choses cachées',
     'un morceau de miroir qui répond aux questions par oui ou non',
+    'une clochette qui sonne quand quelqu’un ment',
+    'un gant qui attrape ce qui est trop loin',
+    'une craie qui dessine des portes utilisables',
+    'un dé qui tombe toujours sur le même chiffre',
+    'une plume qui montre d’où vient le vent',
+    'un bocal qui garde les bruits pour les réécouter',
+    'une écharpe qui change de couleur selon le danger',
+    'un panier qui pèse toujours le même poids',
+    'une graine qui pousse en une nuit',
+    'une paire de lunettes qui montre les traces effacées',
   ],
   twists: [
     'le personnage effrayant a surtout très peur du noir',
@@ -85,8 +103,17 @@ export const INSPIRATIONS = {
     'celui qui semblait embêtant essayait en fait d’aider',
     'ce que le héros cherche le cherchait aussi',
     'le raccourci est plus long, mais bien plus intéressant',
+    'le voleur rendait service sans le dire à personne',
+    'la porte s’ouvre en poussant, pas en tirant, depuis toujours',
+    'le trésor est une chose sans valeur à laquelle quelqu’un tient beaucoup',
+    'le gardien attendait juste qu’on lui pose une question',
+    'les deux camps cherchaient la même chose sans le savoir',
+    'la solution était dans le sac depuis le premier chapitre',
   ],
-  tons: ['malicieux et vif', 'mystérieux et doux', 'joyeux et bavard', 'calme et rêveur'],
+  tons: [
+    'malicieux et vif', 'mystérieux et doux', 'joyeux et bavard', 'calme et rêveur',
+    'aventureux et pressé', 'tendre et rigolo', 'curieux et bricoleur', 'espiègle et taquin',
+  ],
 };
 
 // Coffre à trésors : on en tire quelques-uns à chaque tour pour que le modèle

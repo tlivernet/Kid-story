@@ -1,4 +1,4 @@
-// Le surlignage vit dans le DOM : il se teste dans un vrai navigateur.
+// Surlignage et lecture audio : deux mécanismes qui vivent dans le navigateur.
 //   npx http-server -p 8123 -c-1 &   puis   node tests/surlignage.mjs
 const ADRESSE = process.env.ADRESSE || 'http://127.0.0.1:8123/index.html';
 
@@ -74,6 +74,21 @@ verifier(vue.motsActifs.join() === 'saute', `un seul mot allumé à la fois (${v
 await page.evaluate(() => window.__s.effacerTout());
 vue = await etat();
 verifier(vue.motsActifs.length === 0 && vue.phrasesLues.length === 0, 'tout s’éteint à la fin de la lecture');
+
+// --- Le déverrouillage audio ne doit pas couper la lecture en cours ---------
+// C'est ce qui coupait la voix en pleine phrase : chaque appui rejouait le
+// silence de déverrouillage sur l'élément qui servait à raconter l'histoire.
+const audio = await page.evaluate(async () => {
+  const { narrateur } = await import('./js/voix.js');
+  narrateur.debloquer();                       // premier geste de l'enfant
+  const extrait = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+  narrateur.audio.src = extrait;               // une phrase en cours de lecture
+  const avant = narrateur.audio.src;
+  narrateur.debloquer();                       // l'enfant touche un mot
+  narrateur.debloquer();                       // et un choix
+  return { avant, apres: narrateur.audio.src };
+});
+verifier(audio.avant === audio.apres, 'un nouvel appui ne remplace pas l’extrait en cours de lecture');
 
 verifier(erreursJs.length === 0, `aucune erreur JavaScript${erreursJs.length ? ` (${erreursJs.join(' | ')})` : ''}`);
 await navigateur.close();

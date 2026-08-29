@@ -47,6 +47,11 @@ chaque tour **huit trésors tirés au sort** dans une réserve de 80 (une bousso
 caillou tiède qui chauffe près du danger, une pelote qui montre le chemin du retour…) et la liste des objets
 **déjà offerts précédemment**, à ne pas reprendre.
 
+L'exclusion se fait **par ressemblance, pas par nom exact** : le modèle rebaptise volontiers « la ficelle
+qui se noue toute seule » en « ficelle vivante », et le filtre l'attrape quand même. La carte d'inspiration
+tirée au début (situation, compagnon, objet insolite, retournement) est retenue de la même façon, sinon le
+même compagnon et le même objet revenaient d'une aventure à l'autre — près de 300 000 cartes possibles.
+
 Cette mémoire est écrite **dès qu'un objet est offert**, pas à la fin de l'aventure : la plupart des parties
 d'un enfant de six ans s'arrêtent en cours de route, et une mémoire alimentée seulement par les aventures
 terminées serait restée vide. Il en va de même pour les situations de départ, retenues dès le premier chapitre.
@@ -98,8 +103,9 @@ Et surtout : une aventure marquée « terminée » **reste ouvrable** depuis l'a
 enterrer définitivement une histoire en cours.
 
 ### Quand quelque chose se passe mal
-- Une requête qui reste **muette plus de 30 secondes** est abandonnée et l'erreur est affichée, au lieu de
-  laisser tourner l'animation d'écriture indéfiniment.
+- Une requête qui reste **muette plus de 12 secondes** est abandonnée, puis **relancée automatiquement**
+  (jusqu'à deux fois) : coupure réseau, service saturé, réponse tronquée. L'enfant voit « la Plume reprend
+  son souffle… » au lieu d'un écran vide, et la carte d'erreur n'apparaît qu'en dernier recours.
 - Toute erreur JavaScript imprévue affiche une carte « Un pépin a interrompu l'histoire » avec
   *Réessayer*, *Continuer en mode démo* et *Accueil* — plus jamais d'écran vide sans explication.
 - Les huit derniers incidents sont listés en bas de l'écran des réglages (utile pour rapporter un problème).

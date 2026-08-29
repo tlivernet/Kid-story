@@ -1,5 +1,6 @@
 // État d'une aventure + application d'un chapitre reçu.
 import { REGLAGES_DEFAUT } from './config.js';
+import { memeIdee } from './util.js';
 
 export function nouvelEtat({
   heros, theme, themeId, longueur = REGLAGES_DEFAUT.longueur, idee = '',
@@ -68,20 +69,7 @@ export function normaliserEtat(etat) {
 const MAX_SAC = 6;
 const MAX_GRAINES = 4;
 
-const motsCles = (texte) => new Set(
-  String(texte).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .split(/[^a-z0-9]+/).filter((m) => m.length > 3),
-);
 
-// Deux formulations parlent-elles de la même graine ?
-function memeGraine(a, b) {
-  const motsA = motsCles(a);
-  const motsB = motsCles(b);
-  if (!motsA.size || !motsB.size) return false;
-  let communs = 0;
-  for (const mot of motsA) if (motsB.has(mot)) communs += 1;
-  return communs / Math.min(motsA.size, motsB.size) >= 0.5;
-}
 
 export function appliquerChapitre(etat, chapitre) {
   // Ceinture et bretelles : une partie reprise d'une ancienne version peut
@@ -115,9 +103,9 @@ export function appliquerChapitre(etat, chapitre) {
       .map((p) => ({ nom: p.nom, emoji: p.emoji || '🙂', manie: p.manie || '' }));
   }
   if (chapitre.promesse_payee) {
-    etat.promesses = etat.promesses.filter((g) => !memeGraine(g, chapitre.promesse_payee));
+    etat.promesses = etat.promesses.filter((g) => !memeIdee(g, chapitre.promesse_payee));
   }
-  if (chapitre.promesse_plantee && !etat.promesses.some((g) => memeGraine(g, chapitre.promesse_plantee))) {
+  if (chapitre.promesse_plantee && !etat.promesses.some((g) => memeIdee(g, chapitre.promesse_plantee))) {
     etat.promesses.push(chapitre.promesse_plantee);
   }
   if (etat.promesses.length > MAX_GRAINES) etat.promesses = etat.promesses.slice(-MAX_GRAINES);

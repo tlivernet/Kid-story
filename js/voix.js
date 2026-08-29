@@ -145,16 +145,21 @@ export class Narrateur {
   }
 
   // Un premier geste de l'enfant débloque la parole ET l'audio (obligatoire sur iOS).
+  // Le déverrouillage utilise son propre élément : autrefois il réutilisait celui
+  // de la narration et coupait l'histoire en plein milieu à chaque appui.
   debloquer() {
     conteur.debloquer();
     if (!this.audio) {
       this.audio = new Audio();
       this.audio.preload = 'auto';
     }
-    if (!this.audioDebloque) {
-      this.audio.src = SILENCE;
-      this.audio.play().then(() => { this.audioDebloque = true; }).catch(() => {});
-    }
+    if (this.audioDebloque) return;
+    this.audioDebloque = true; // une seule tentative, réussie ou non
+    try {
+      const amorce = new Audio(SILENCE);
+      amorce.volume = 0;
+      amorce.play().catch(() => { /* le premier vrai extrait fera l'affaire */ });
+    } catch { /* sans importance */ }
   }
 
   // --- File de phrases ------------------------------------------------------

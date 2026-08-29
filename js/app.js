@@ -187,13 +187,17 @@ function construireAvatars() {
 // Deux aventures sur le même thème ne doivent pas se ressembler : on tire une
 // carte d'inspiration, en évitant les débuts déjà vus récemment.
 function tirerInspiration() {
-  const vus = souvenirs.charger().debuts;
-  const debuts = INSPIRATIONS.debuts.filter((d) => !vus.includes(d));
+  const vus = souvenirs.charger();
+  // Chaque élément est tiré parmi ceux qu'on n'a pas vus récemment.
+  const neuf = (liste, dejaVus) => {
+    const restants = liste.filter((valeur) => !dejaVus.includes(valeur));
+    return piocher(restants.length ? restants : liste);
+  };
   return {
-    debut: piocher(debuts.length ? debuts : INSPIRATIONS.debuts),
-    compagnon: piocher(INSPIRATIONS.compagnons),
-    objet: piocher(INSPIRATIONS.objets),
-    twist: piocher(INSPIRATIONS.twists),
+    debut: neuf(INSPIRATIONS.debuts, vus.debuts),
+    compagnon: neuf(INSPIRATIONS.compagnons, vus.compagnons),
+    objet: neuf(INSPIRATIONS.objets, vus.objets),
+    twist: neuf(INSPIRATIONS.twists, vus.twists),
     ton: piocher(INSPIRATIONS.tons),
   };
 }
@@ -220,7 +224,7 @@ function demarrer() {
     objetsEvites: objetsDejaVus(),
     idee,
   });
-  souvenirs.ajouterDebut(ui.etat.inspiration?.debut);
+  souvenirs.ajouterInspiration(ui.etat.inspiration);
   ui.demo = false;
   narrateur.debloquer();
   montrer('jeu');
@@ -604,14 +608,27 @@ function choisirActionCombat(adversaire) {
     const zone = $('#epreuve-zone');
     vider(zone);
     zone.appendChild(el('p', { class: 'jeu-consigne', text: 'Comment fais-tu ?' }));
-    if (ui.lecture) narrateur.direMot('Comment fais-tu ?');
-    for (const action of ACTIONS_COMBAT) {
-      const bouton = el('button', { class: 'carte-choix' }, [
+    const cartes = [];
+    ACTIONS_COMBAT.forEach((action, rang) => {
+      const bouton = el('button', { class: `carte-choix choix-${rang + 1}` }, [
+        el('span', { class: 'numero', text: String(rang + 1) }),
         el('span', { class: 'emoji', text: action.emoji }),
         el('span', { class: 'libelle', text: action.texte }),
       ]);
       bouton.addEventListener('click', () => { narrateur.stop(); resoudre(action); });
       zone.appendChild(bouton);
+      cartes.push(bouton);
+    });
+    // L'enfant ne lit pas : on lui énonce les trois façons de s'en sortir.
+    if (ui.lecture) {
+      const numeros = ['Un', 'Deux', 'Trois'];
+      narrateur.lire(
+        ['Comment fais-tu ?', ...ACTIONS_COMBAT.map((a, i) => `${numeros[i]} : ${a.texte}.`)],
+        {
+          onPhrase: (index) => cartes.forEach((c, i) => c.classList.toggle('enonce', i === index - 1)),
+          onFin: () => cartes.forEach((c) => c.classList.remove('enonce')),
+        },
+      );
     }
   });
 }
@@ -740,13 +757,22 @@ async function demanderChapitre(action) {
     }
   } catch (erreur) {
     narrateur.stop();
-    if (erreur.name !== 'AbortError') {
-      noterErreur('histoire', `${erreur.message} ${erreur.aide || ''}`.trim());
-      afficherErreur(erreur, action);
-    }
     ui.enCours = false;
     clearTimeout(ui.minuteurAttente);
+    if (erreur.name === 'AbortError') { $('#chargement').hidden = true; return; }
+    noterErreur('histoire', `${erreur.message} ${erreur.aide || ''}`.trim());
+    // Réseau, délai, service occupé : on retente tout seul, deux fois, sans
+    // laisser l'enfant devant un écran vide.
+    const recuperable = ['reseau', 'delai', 'serveur', 'limite', 'tronque', 'json', 'flux'].includes(erreur.code);
+    const essais = (action?.essais || 0) + 1;
+    if (recuperable && essais <= 2) {
+      $('#chargement-texte').textContent = 'La Plume reprend son souffle…';
+      await attendre(700);
+      demanderChapitre({ ...(action || {}), essais });
+      return;
+    }
     $('#chargement').hidden = true;
+    afficherErreur(erreur, { ...(action || {}), essais: 0 });
     return;
   } finally {
     ui.requete = null;

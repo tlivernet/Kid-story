@@ -4,7 +4,9 @@
 const URL_API = 'https://api.anthropic.com/v1/messages';
 const VERSION_API = '2023-06-01';
 const BETA_FALLBACK = 'server-side-fallback-2026-07-01';
-const SILENCE_MAX = 30000; // au-delà, on considère que la réponse ne viendra pas
+// Un flux en bonne santé envoie du texte en continu : douze secondes de
+// silence complet suffisent à conclure que la réponse ne viendra pas.
+const SILENCE_MAX = 12000;
 
 // Minuterie relancée à chaque signe de vie du flux.
 function minuterie(delai, surExpiration) {

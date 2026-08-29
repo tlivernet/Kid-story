@@ -1,6 +1,6 @@
 // Instructions et schéma JSON envoyés à Claude.
 import { LIEUX, MOMENTS, TRESORS } from './config.js';
-import { piocher } from './util.js';
+import { piocher, memeIdee } from './util.js';
 
 export const SYSTEME = `Tu es « la Plume Magique », conteuse d'histoires interactives, à la manière des livres dont on est le héros.
 Ton public : UN SEUL enfant de 6 ans, en France, qui apprend à lire. Il écoute l'histoire et la voit écrite en même temps.
@@ -69,8 +69,9 @@ TOUS LES CHEMINS NE SE VALENT PAS
 - Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
 
 OBJETS (arrête de proposer toujours les mêmes)
-- Un COFFRE À TRÉSORS t'est proposé à chaque tour : pioche dedans, ou invente dans le même esprit.
-- Ne redonne jamais un objet listé comme « déjà vu ». Un objet doit être précis et un peu farfelu.
+- Un COFFRE À TRÉSORS t'est proposé à chaque tour : choisis dedans, c'est obligatoire. Tu peux adapter
+  le nom à ton histoire, mais pas offrir un objet d'une autre nature.
+- Ne redonne jamais un objet listé comme « déjà vu », ni sa variante à peine reformulée.
 
 RENCONTRES COSTAUDES
 - Environ une fois par aventure, un personnage barre vraiment la route : remplis adversaire_nom,
@@ -197,8 +198,8 @@ export function etape(chapitre, longueur) {
 
 // Quelques trésors tirés au sort, pour renouveler les objets proposés.
 export function coffre(etat, combien = 8) {
-  const evites = new Set((etat.objetsEvites || []).map((n) => n.toLowerCase()));
-  const dispo = TRESORS.filter((t) => !evites.has(t.nom.toLowerCase()));
+  const evites = etat.objetsEvites || [];
+  const dispo = TRESORS.filter((t) => !evites.some((vu) => memeIdee(vu, t.nom)));
   const tires = [];
   const source = dispo.length >= combien ? dispo : TRESORS;
   while (tires.length < combien && tires.length < source.length) {

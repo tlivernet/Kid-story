@@ -62,6 +62,23 @@ export function decouperMots(phrase) {
   }));
 }
 
+// Deux formulations parlent-elles de la même chose ? Sert à ne pas reproposer
+// « la ficelle qui se noue toute seule » quand le modèle l'a appelée
+// « ficelle vivante ».
+const motsCles = (texte) => new Set(
+  String(texte).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/).filter((mot) => mot.length > 3),
+);
+
+export function memeIdee(a, b) {
+  const motsA = motsCles(a);
+  const motsB = motsCles(b);
+  if (!motsA.size || !motsB.size) return false;
+  let communs = 0;
+  for (const mot of motsA) if (motsB.has(mot)) communs += 1;
+  return communs / Math.min(motsA.size, motsB.size) >= 0.5;
+}
+
 // Texte préparé pour la synthèse vocale. L'affichage, lui, garde la version
 // d'origine : ces retouches ne servent qu'à l'oreille.
 export function texteParle(texte) {
