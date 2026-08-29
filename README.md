@@ -19,6 +19,7 @@ et s'installe sur le téléphone ou la tablette comme une vraie application.
 | Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji**. Un appui sélectionne la tuile, la fait relire, puis **une jauge se remplit en trois secondes** avant que l'aventure continue : toucher une autre tuile change d'avis, retoucher la même part tout de suite. Les choix n'apparaissent qu'**après la lecture du chapitre** (bouton ⏭️ pour les afficher tout de suite). |
 | Épreuves | Un **dé** qui annonce ce qu'il faut vraiment obtenir, bonus du compagnon déjà déduit (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou quatre **mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus, tape vite. Leur difficulté suit celle que le modèle a fixée pour l'épreuve. Réglable : dé seul, mini-jeux seuls, ou mélange. |
 | Écran qui reste allumé | Un verrou d'écran (Wake Lock) est pris pendant l'aventure et repris au retour en avant-plan : la tablette ne s'éteint plus au milieu d'un chapitre. |
+| Carnet | Chaque chapitre y garde **le choix qui y a mené**, pour relire l'aventure et voir les embranchements. |
 | Résumé | Un bouton 📜 rappelle à tout moment où en est l'histoire : chapitre, mission, compagnons, sac, ce qui s'est passé — lu à voix haute, sans appel à l'API. |
 | Richesse du récit | Arc en neuf étapes (ouverture → rencontre → complication → coup dur → idée maligne → dénouement), **graines narratives** plantées puis payées, troupe de personnages avec leurs manies, un détail sensoriel par chapitre. |
 | Illustrations | Claude ne génère pas d'images. L'application **dessine elle-même** la scène en SVG (28 décors, jour/soir/nuit) à partir du lieu renvoyé par le modèle, avec les personnages en emojis animés. C'est instantané, joli et ça marche hors ligne. |
@@ -40,6 +41,16 @@ suit sans peine des chapitres plus fournis.
 Deux règles de style comptent autant que le reste : la **première phrase de chaque chapitre dit ce que le choix
 de l'enfant vient de produire** (on ne peut pas relire en arrière quand on écoute), et le texte enchaîne ses
 phrases avec des mots de liaison au lieu de les hacher — c'est plus facile à suivre, et moins bébé.
+
+### L'application mesure ce que le modèle écrit
+Sur une histoire complète de 12 chapitres, la mesure était sans appel : **70 % des phrases dépassaient
+14 mots** (16,6 en moyenne, jusqu'à 26) et les chapitres comptaient 8 à 10 phrases au lieu des 6 à 8
+demandées. Une consigne de style seule ne suffit pas : le modèle dérive.
+
+L'application mesure donc chaque chapitre reçu (`js/qualite.js`) et, si les phrases s'allongent, joint au
+tour suivant une correction chiffrée : « tes phrases faisaient 20 mots en moyenne, 7 sur 8 dépassaient
+14 mots ; coupe-les en deux ». Même chose si le chapitre compte trop de phrases. C'est une boucle de
+rappel, pas une consigne figée.
 
 ### Des objets rares, pas un gadget par chapitre
 Un objet ne peut apparaître qu'**un chapitre sur trois** (ou si le sac est vide) : c'est l'application qui
@@ -251,6 +262,7 @@ js/prompt.js          consignes de narration et schéma JSON du chapitre
 js/scene.js           moteur d'illustration SVG (décors, météo, personnages)
 js/tts.js             voix du navigateur, contournements iOS/Chrome
 js/surlignage.js      phrase et mot surlignés pendant la lecture
+js/qualite.js         mesure des chapitres reçus et consigne de rattrapage
 js/voix.js            narrateur unifié : navigateur ou Google Cloud, avec repli automatique
 js/state.js           état de l'aventure, sac, mémoire, historique
 js/minijeux.js        épreuves jouables sans savoir lire (mémoire, attrape, intrus)

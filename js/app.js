@@ -6,6 +6,7 @@ import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
 import { dessinerScene } from './scene.js';
 import { marquerPhrase, marquerMot, effacerTout } from './surlignage.js';
+import { mesurerTexte, consigneStyle } from './qualite.js';
 import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
 import { typeEpreuve, jouer, NOMS_JEUX } from './minijeux.js';
@@ -744,7 +745,10 @@ async function demanderChapitre(action) {
     if (ui.enCours) $('#chargement-texte').textContent = 'C’est un peu long… la Plume réfléchit encore.';
   }, 20000);
 
-  const message = etat.chapitre === 0 ? premierMessage(etat, etat.idee) : messageSuivant(etat, action);
+  const consignes = { ...(action || {}), style: ui.consigneStyle };
+  const message = etat.chapitre === 0
+    ? premierMessage(etat, etat.idee)
+    : messageSuivant(etat, consignes);
   ui.lectureDemarree = false;
   ui.phraseCourante = 0;
   ui.phrasesCourantes = [];
@@ -832,7 +836,12 @@ async function demanderChapitre(action) {
     return;
   }
 
+  // On mesure ce qui vient d'arriver : si les phrases dérivent, le tour suivant
+  // le rappellera au modèle avec des chiffres.
+  ui.consigneStyle = consigneStyle(mesurerTexte(chapitre.texte), etat.richesse);
+
   const bilan = appliquerChapitre(etat, chapitre);
+  if (action?.resume) etat.chapitres[etat.chapitres.length - 1].choixFait = action.resume;
   ajouterEchange(etat, message, (chapitre.texte || []).join(' '));
   partie.enregistrer(etat);
 
@@ -1013,6 +1022,9 @@ function carteChapitre(aventure, chapitre) {
     el('h3', { text: `Chapitre ${chapitre.n}` }),
     el('p', { text: chapitre.texte.join(' ') }),
   ]);
+  if (chapitre.choixFait) {
+    contenu.appendChild(el('p', { class: 'choix-fait', text: `👉 ${chapitre.choixFait}` }));
+  }
   contenu.addEventListener('click', () => { narrateur.debloquer(); narrateur.lire(chapitre.texte, {}); });
   carte.appendChild(contenu);
   return carte;

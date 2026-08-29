@@ -348,6 +348,7 @@ body {
 .carte-carnet .contenu { padding: 12px 14px; }
 .carte-carnet h3 { margin: 0 0 6px; font-size: 1rem; color: var(--violet); }
 .carte-carnet p { margin: 0; font-size: 1.05rem; }
+.carte-carnet .choix-fait { margin-top: 8px; font-size: 0.95rem; font-weight: 700; color: var(--violet); }
 
 /* --- Réglages -------------------------------------------------------------- */
 

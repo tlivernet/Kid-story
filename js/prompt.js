@@ -261,14 +261,14 @@ export function blocEtat(etat) {
     `Graines en attente : ${graines}`,
     `Lieu : ${etat.lieu || 'à choisir'}`,
     `Mémoire : ${etat.memoire || 'histoire toute neuve'}`,
-    etat.inspiration ? `Retournement prévu (à amener au bon moment) : ${etat.inspiration.twist}` : '',
+    etat.inspiration ? `Retournement prévu : ${etat.inspiration.twist}. Il ne se révèle qu'UNE SEULE fois, au bon moment ; une fois révélé, note-le dans la mémoire et n'y reviens plus.` : '',
   ].filter(Boolean).join('\n');
 }
 
 function consigneLongueur(etat) {
   return etat.richesse === 'simple'
-    ? 'Longueur : 4 à 5 phrases.'
-    : 'Longueur : 6 à 8 phrases (l’enfant écoute : offre-lui du détail, du dialogue, un vrai décor).';
+    ? 'Longueur : 4 à 5 phrases de 8 à 12 mots chacune.'
+    : 'Longueur : 6 à 8 phrases de 8 à 12 mots chacune, jamais plus de 14 mots par phrase.';
 }
 
 export function premierMessage(etat, idee) {
@@ -343,6 +343,7 @@ export function messageSuivant(etat, action) {
     consigneLongueur(etat),
     'Écris le chapitre suivant.',
   );
+  if (action?.style) lignes.push('', `À CORRIGER : ${action.style}`);
   if (action?.correction) lignes.push('', `ATTENTION : ${action.correction}`);
   return lignes.join('\n');
 }
