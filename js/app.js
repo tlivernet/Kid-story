@@ -9,7 +9,7 @@ import { marquerPhrase, marquerMot, effacerTout } from './surlignage.js';
 import { mesurerTexte, consigneStyle } from './qualite.js';
 import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
-import { typeEpreuve, jouer, NOMS_JEUX, JEUX_ACTION, JEUX_MALINS } from './minijeux.js';
+import { typeEpreuve, jouer, NOMS_JEUX, JEUX_ACTION, JEUX_MALINS, JEUX_LECTURE } from './minijeux.js';
 import { nouvelEtat, appliquerChapitre, ajouterEchange, messagesPour, perdreCoeur, secourir } from './state.js';
 import { chapitreDemo } from './demo.js';
 
@@ -633,6 +633,8 @@ async function epreuveJeu(choix, jeu, dansCombat = false) {
   const resultat = await jouer(jeu, $('#epreuve-zone'), {
     difficulte: difficulteEffective(choix.epreuve_difficulte),
     narrer: (texte) => annoncer(texte),
+    // Les jeux de lecture travaillent sur le texte que l'enfant vient d'entendre.
+    texte: (ui.phrasesCourantes || []).filter(Boolean),
   });
   await conclureEpreuve(
     resultat.reussi,
@@ -713,6 +715,7 @@ async function lancerCombat() {
     if (action.type === 'de') {
       resultat = await epreuveDe(faux, true);
     } else {
+      // En plein combat, on reste sur l'action et la ruse : pas de lecture.
       const jeu = action.type === 'adresse' ? piocher(JEUX_ACTION) : piocher(JEUX_MALINS);
       resultat = await epreuveJeu(faux, jeu, true);
     }
@@ -747,7 +750,7 @@ async function lancerCombat() {
 }
 
 function faireEpreuve(choix) {
-  const type = typeEpreuve(ui.reglages.epreuves);
+  const type = typeEpreuve(ui.reglages.epreuves, ui.reglages.jeuxLecture);
   narrateur.stop();
   return type === 'de' ? epreuveDe(choix) : epreuveJeu(choix, type);
 }
@@ -1102,6 +1105,7 @@ function construireReglages() {
   $('#champ-lire-choix').checked = ui.reglages.lireChoix;
   $('#champ-confirmer').checked = ui.reglages.confirmerChoix;
   $('#champ-epreuves').value = ui.reglages.epreuves;
+  $('#champ-jeux-lecture').checked = ui.reglages.jeuxLecture;
   $('#champ-douceur').value = ui.reglages.douceur;
   $('#champ-fournisseur').value = ui.reglages.fournisseurVoix;
   $('#champ-cle-google').value = ui.reglages.cleGoogle;
@@ -1328,6 +1332,7 @@ function brancher() {
   $('#champ-lire-choix').addEventListener('change', (e) => enregistrerReglage('lireChoix', e.target.checked));
   $('#champ-confirmer').addEventListener('change', (e) => enregistrerReglage('confirmerChoix', e.target.checked));
   $('#champ-epreuves').addEventListener('change', (e) => enregistrerReglage('epreuves', e.target.value));
+  $('#champ-jeux-lecture').addEventListener('change', (e) => enregistrerReglage('jeuxLecture', e.target.checked));
   $('#champ-douceur').addEventListener('change', (e) => enregistrerReglage('douceur', e.target.value));
   $('#champ-fournisseur').addEventListener('change', (e) => {
     enregistrerReglage('fournisseurVoix', e.target.value);

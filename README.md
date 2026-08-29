@@ -17,7 +17,7 @@ et s'installe sur le téléphone ou la tablette comme une vraie application.
 | Cohérence | Le modèle tient un carnet de mémoire (3 à 5 faits) réécrit à chaque chapitre, et reçoit l'état du jeu complet (sac, quête, compagnon, cœurs) à chaque tour. L'historique envoyé reste court : c'est rapide et peu coûteux. |
 | Lecture à voix haute | Deux voix au choix : celle du navigateur (gratuite, hors ligne) ou **Google Cloud Text-to-Speech** (bien plus jolie). Phrase en cours surlignée, mot en cours surligné, et **l'enfant peut toucher n'importe quel mot pour l'entendre**. |
 | Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji**. Un appui sélectionne la tuile, la fait relire, puis **une jauge se remplit en trois secondes** avant que l'aventure continue : toucher une autre tuile change d'avis, retoucher la même part tout de suite. Les choix n'apparaissent qu'**après la lecture du chapitre** (bouton ⏭️ pour les afficher tout de suite). |
-| Épreuves | Un **dé** qui annonce ce qu'il faut vraiment obtenir, bonus du compagnon déjà déduit (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou **sept mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus, tape vite, tir à la corde, attrape sans te faire piquer, compte juste. Leur difficulté suit celle que le modèle a fixée pour l'épreuve. Réglable : dé seul, mini-jeux seuls, ou mélange. |
+| Épreuves | Un **dé** qui annonce ce qu'il faut vraiment obtenir, bonus du compagnon déjà déduit (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou **dix mini-jeux** : sept jouables sans savoir lire (mémoire, attrape les amis, trouve l'intrus, tape vite, tir à la corde, attrape sans te faire piquer, compte juste) et **trois qui travaillent la lecture** (voir plus bas). Leur difficulté suit celle que le modèle a fixée pour l'épreuve. Réglable : dé seul, mini-jeux seuls, ou mélange. |
 | Écran qui reste allumé | Un verrou d'écran (Wake Lock) est pris pendant l'aventure et repris au retour en avant-plan : la tablette ne s'éteint plus au milieu d'un chapitre. |
 | Carnet | Chaque chapitre y garde **le choix qui y a mené**, pour relire l'aventure et voir les embranchements. |
 | Résumé | Un bouton 📜 rappelle à tout moment où en est l'histoire : chapitre, mission, compagnons, sac, ce qui s'est passé — lu à voix haute, sans appel à l'API. |
@@ -82,10 +82,24 @@ pour qu'il l'amène au bon moment. Sans cela, le même thème produit systémati
 paramètres d'échantillonnage (`temperature`) n'existent plus sur les modèles récents, la variété doit donc
 venir du prompt.
 
+### Trois épreuves qui font lire (niveau CP)
+Elles se nourrissent du **texte du chapitre que l'enfant vient d'entendre**, pas d'un corpus étranger :
+
+- **Touche le bon mot** — la voix dit un mot du chapitre, trois mots écrits sont proposés. Les leurres
+  partagent la même initiale ou la même longueur, pour que ce soit vraiment de la lecture et pas du
+  repérage de forme.
+- **Le mot qui manque** — une phrase du chapitre avec un trou, trois mots au choix. La phrase est relue à
+  la demande, avec un « hum » à la place du trou.
+- **Lis et trouve** — une consigne écrite (« Touche le mot : parapluie ») et des images. Celle-là **n'est
+  pas lue** : c'est à l'enfant de déchiffrer, avec un bouton d'aide s'il bloque.
+
+Elles s'activent ou se coupent d'un interrupteur dans les réglages, et ne sortent jamais pendant un combat,
+où l'on reste sur l'action et la ruse.
+
 ### Deux mondes : féerique ou quotidien
 La grille des thèmes est coupée en deux. **Mondes imaginaires** (dragons, pirates, sirènes…) et
-**Dans la vraie vie** : pompiers, police, vétérinaire, boulangerie, chantier, gare, match de foot, camping,
-bord de l'eau, jour de marché.
+**Dans la vraie vie** : pompiers, police, détective, vétérinaire, la ferme, boulangerie, chantier, gare,
+match de foot, camping, bord de l'eau, jour de marché, à l'école.
 
 Un thème du quotidien bascule tout le générateur : le prompt reçoit un **registre réaliste** qui interdit la
 magie, les objets enchantés et les animaux qui parlent ; les objets viennent d'un **coffre du monde réel**

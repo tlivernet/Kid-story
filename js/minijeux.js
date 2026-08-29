@@ -1,6 +1,7 @@
 // Mini-jeux d'épreuve : jouables sans savoir lire, à la place (ou en plus) du dé.
 // Chaque jeu renvoie une promesse { reussi, detail }.
 import { el, vider, attendre, piocher, vibrer } from './util.js';
+import { MOTS_CP, MOTS_IMAGES } from './config.js';
 
 const SYMBOLES = ['🍎', '⭐', '🐸', '🔔', '🌸', '🎈'];
 
@@ -407,7 +408,166 @@ async function compter(zone, { difficulte, narrer }) {
   });
 }
 
-export const JEUX = { memoire, attrape, intrus, tape, corde, taupes, compter };
+// --- Jeux de lecture (niveau CP) ------------------------------------------
+
+// Les mots du chapitre en cours servent de matière : l'enfant relit ce qu'il
+// vient d'entendre.
+function motsDuTexte(texte = [], min = 4, max = 10) {
+  const mots = texte
+    .join(' ')
+    .toLowerCase()
+    .replace(/[^a-zàâäéèêëîïôöùûüçœ' -]/g, ' ')
+    .split(/[\s'-]+/)
+    .filter((mot) => mot.length >= min && mot.length <= max);
+  return [...new Set(mots)];
+}
+
+// Un leurre crédible : même première lettre ou même longueur.
+function leurres(cible, reserve, combien = 2) {
+  const candidats = reserve.filter((mot) => mot !== cible && Math.abs(mot.length - cible.length) <= 2);
+  const proches = candidats.filter((mot) => mot[0] === cible[0]);
+  const pioches = [];
+  const source = [...proches, ...candidats];
+  for (const mot of source) {
+    if (pioches.length >= combien) break;
+    if (!pioches.includes(mot)) pioches.push(mot);
+  }
+  while (pioches.length < combien) {
+    const secours = piocher(MOTS_CP);
+    if (secours !== cible && !pioches.includes(secours)) pioches.push(secours);
+  }
+  return pioches;
+}
+
+function melanger(liste) {
+  const copie = [...liste];
+  for (let i = copie.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+  }
+  return copie;
+}
+
+function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel }) {
+  vider(zone);
+  zone.appendChild(el('p', { class: 'jeu-consigne', text: consigne }));
+  if (rappel) {
+    const bouton = el('button', { class: 'btn jeu-rappel', text: '🔊 Réécouter' });
+    bouton.addEventListener('click', () => narrer?.(rappel));
+    zone.appendChild(bouton);
+  }
+  const grille = el('div', { class: 'jeu-mots' });
+  zone.appendChild(grille);
+
+  return new Promise((resoudre) => {
+    let essais = 0;
+    for (const proposition of melanger(propositions)) {
+      const carte = el('button', { class: 'jeu-mot', text: proposition });
+      carte.addEventListener('click', async () => {
+        if (proposition === bonne) {
+          carte.classList.add('trouve');
+          vibrer(30);
+          await attendre(600);
+          resoudre({ reussi: true, detail: `« ${bonne} » bien lu` });
+          return;
+        }
+        essais += 1;
+        carte.classList.add('rate');
+        vibrer(10);
+        if (essais >= 2) {
+          grille.querySelectorAll('.jeu-mot').forEach((c) => {
+            if (c.textContent === bonne) c.classList.add('trouve');
+          });
+          await attendre(900);
+          resoudre({ reussi: false, detail: `c'était « ${bonne} »` });
+        }
+      });
+      grille.appendChild(carte);
+    }
+  });
+}
+
+// Écoute le mot, touche le bon parmi trois.
+async function motJuste(zone, { texte = [], narrer }) {
+  const vocabulaire = motsDuTexte(texte);
+  const cible = vocabulaire.length ? piocher(vocabulaire) : piocher(MOTS_CP);
+  const reserve = vocabulaire.length > 4 ? vocabulaire : MOTS_CP;
+  const consigne = `Touche le mot : ${cible}`;
+  narrer?.(consigne);
+  return questionLecture(zone, {
+    consigne,
+    propositions: [cible, ...leurres(cible, reserve)],
+    bonne: cible,
+    narrer,
+    rappel: consigne,
+  });
+}
+
+// Le mot qui manque dans une phrase du chapitre.
+async function motManquant(zone, { texte = [], narrer }) {
+  const phrases = texte.filter((p) => String(p).split(/\s+/).length >= 6);
+  const phrase = phrases.length ? piocher(phrases) : 'Le chat dort sur le tapis du salon.';
+  const mots = phrase.split(/\s+/);
+  const positions = mots
+    .map((mot, i) => ({ mot: mot.replace(/[^a-zàâäéèêëîïôöùûüçœ-]/gi, ''), i }))
+    .filter(({ mot }) => mot.length >= 4);
+  const choisi = positions.length ? piocher(positions) : { mot: mots[0], i: 0 };
+  const trou = choisi.mot.toLowerCase();
+  const aTrous = mots.map((mot, i) => (i === choisi.i ? '_____' : mot)).join(' ');
+  const consigne = 'Quel mot manque dans la phrase ?';
+  narrer?.(`${consigne} ${aTrous.replace('_____', 'hum')}`);
+  return questionLecture(zone, {
+    consigne: `${consigne}\n${aTrous}`,
+    propositions: [trou, ...leurres(trou, motsDuTexte(texte).length > 4 ? motsDuTexte(texte) : MOTS_CP)],
+    bonne: trou,
+    narrer,
+    rappel: aTrous.replace('_____', 'hum'),
+  });
+}
+
+// Lis la consigne (elle n'est pas dite) et touche la bonne image.
+async function lireEtFaire(zone, { difficulte, narrer }) {
+  const nombre = difficulte >= 4 ? 4 : 3;
+  const choisis = melanger(MOTS_IMAGES).slice(0, nombre);
+  const cible = choisis[0];
+
+  vider(zone);
+  zone.appendChild(el('p', { class: 'jeu-consigne', text: 'Lis tout seul, puis touche la bonne image.' }));
+  zone.appendChild(el('p', { class: 'jeu-lire', text: `Touche le mot : ${cible.mot}` }));
+  const aide = el('button', { class: 'btn jeu-rappel', text: '🔊 J’ai besoin d’aide' });
+  aide.addEventListener('click', () => narrer?.(`Touche ${cible.mot}`));
+  zone.appendChild(aide);
+  const grille = el('div', { class: 'jeu-grille jeu-grille-4' });
+  zone.appendChild(grille);
+
+  return new Promise((resoudre) => {
+    let essais = 0;
+    for (const entree of melanger(choisis)) {
+      const carte = el('button', { class: 'jeu-case', text: entree.emoji });
+      carte.addEventListener('click', async () => {
+        if (entree.mot === cible.mot) {
+          carte.classList.add('trouve');
+          vibrer(30);
+          await attendre(600);
+          resoudre({ reussi: true, detail: `« ${cible.mot} » lu tout seul` });
+          return;
+        }
+        essais += 1;
+        carte.classList.add('rate');
+        vibrer(10);
+        if (essais >= 2) {
+          await attendre(700);
+          resoudre({ reussi: false, detail: `c'était ${cible.mot}` });
+        }
+      });
+      grille.appendChild(carte);
+    }
+  });
+}
+
+export const JEUX = {
+  memoire, attrape, intrus, tape, corde, taupes, compter, motJuste, motManquant, lireEtFaire,
+};
 
 export const NOMS_JEUX = {
   memoire: 'Jeu de mémoire',
@@ -417,18 +577,23 @@ export const NOMS_JEUX = {
   corde: 'Tir à la corde',
   taupes: 'Attrape sans te faire piquer',
   compter: 'Compte juste',
+  motJuste: 'Touche le bon mot',
+  motManquant: 'Le mot qui manque',
+  lireEtFaire: 'Lis et trouve',
 };
 
 // Les jeux d'action, ceux qui marchent le mieux pendant un combat.
 export const JEUX_ACTION = ['tape', 'corde', 'taupes', 'attrape'];
 export const JEUX_MALINS = ['memoire', 'intrus', 'compter'];
+// Jeux de lecture, pour un enfant en CP : ils travaillent sur le texte du chapitre.
+export const JEUX_LECTURE = ['motJuste', 'motManquant', 'lireEtFaire'];
 
 // Quelle épreuve pour ce choix ? Le réglage décide, le hasard varie.
-export function typeEpreuve(reglage) {
+export function typeEpreuve(reglage, avecLecture = true) {
+  const jeux = Object.keys(JEUX).filter((nom) => avecLecture || !JEUX_LECTURE.includes(nom));
   if (reglage === 'de') return 'de';
-  const jeux = Object.keys(JEUX);
   if (reglage === 'minijeux') return piocher(jeux);
-  return Math.random() < 0.4 ? 'de' : piocher(jeux);
+  return Math.random() < 0.35 ? 'de' : piocher(jeux);
 }
 
 export function jouer(nom, zone, options) {

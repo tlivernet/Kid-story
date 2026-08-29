@@ -67,8 +67,8 @@ verifier(reprise.phrases > 0 && reprise.choix > 0,
   `« Continuer » réaffiche l’histoire (${reprise.phrases} phrases, ${reprise.choix} choix)`);
 
 // --- Mini-jeux --------------------------------------------------------------
-async function lancerJeu(jeu, difficulte) {
-  return page.evaluate(async ({ jeu, difficulte }) => {
+async function lancerJeu(jeu, difficulte, texte = []) {
+  return page.evaluate(async ({ jeu, difficulte, texte }) => {
     const m = await import('./js/minijeux.js');
     document.querySelector('#overlay-epreuve').hidden = false;
     const zone = document.querySelector('#epreuve-zone');
@@ -76,10 +76,11 @@ async function lancerJeu(jeu, difficulte) {
     window.__resultat = undefined;
     m.jouer(jeu, zone, {
       difficulte,
+      texte,
       narrer() {},
       surDemonstration: (symbole) => window.__ordre.push(symbole),
     }).then((r) => { window.__resultat = r; });
-  }, { jeu, difficulte });
+  }, { jeu, difficulte, texte });
 }
 const resultatJeu = () => page.evaluate(() => window.__resultat);
 
@@ -156,6 +157,33 @@ while ((await resultatJeu()) === undefined && Date.now() < finTaupes) {
 }
 const scoreTaupes = await resultatJeu();
 verifier(scoreTaupes?.reussi === true, `attrape sans se faire piquer : les guêpes évitées (${scoreTaupes?.detail ?? 'aucun résultat'})`);
+
+// Jeux de lecture : ils doivent piocher dans le texte du chapitre.
+const chapitre = [
+  'Alban pousse la porte violette du jardin.',
+  'Un ballon jaune flotte devant lui, tout tremblant.',
+];
+await lancerJeu('motJuste', 3, chapitre);
+await page.waitForSelector('#epreuve-zone .jeu-mot');
+const motsProposes = await page.$$eval('#epreuve-zone .jeu-mot', (n) => n.map((m) => m.textContent));
+const consigneMot = await page.textContent('#epreuve-zone .jeu-consigne');
+const attendu = consigneMot.replace('Touche le mot :', '').trim();
+verifier(motsProposes.length === 3 && motsProposes.includes(attendu),
+  `touche le bon mot : « ${attendu} » parmi ${motsProposes.join(', ')}`);
+await page.click(`#epreuve-zone .jeu-mot:text-is("${attendu}")`);
+await page.waitForTimeout(800);
+verifier((await resultatJeu())?.reussi === true, 'le bon mot fait gagner');
+
+await lancerJeu('motManquant', 3, chapitre);
+await page.waitForSelector('#epreuve-zone .jeu-mot');
+const phraseTrou = await page.textContent('#epreuve-zone .jeu-consigne');
+verifier(phraseTrou.includes('_____'), `le mot qui manque : « ${phraseTrou.split('\n').pop().trim()} »`);
+
+await lancerJeu('lireEtFaire', 3, chapitre);
+await page.waitForSelector('#epreuve-zone .jeu-lire');
+const aLire = await page.textContent('#epreuve-zone .jeu-lire');
+const images = await page.$$eval('#epreuve-zone .jeu-case', (n) => n.length);
+verifier(images >= 3 && /Touche le mot/.test(aLire), `lis et trouve : « ${aLire.trim()} » avec ${images} images`);
 
 await lancerJeu('intrus', 5);
 await page.waitForSelector('#epreuve-zone .jeu-case');

@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.8.0',
+  version: '1.9.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -22,8 +22,8 @@ export const THEMES = [
   { id: 'sirenes', nom: 'Sirènes', emoji: '🧜‍♀️', lieu: 'ocean', mots: ['la perle magique', 'le dauphin rieur', 'le jardin de corail'] },
   { id: 'chevaliers', nom: 'Chevaliers', emoji: '🏰', lieu: 'chateau', mots: ['le bouclier doré', 'la couronne perdue', 'le pont-levis cassé'] },
   { id: 'sorciers', nom: 'Sorciers', emoji: '🧙', lieu: 'foret', mots: ['la baguette perdue', 'le grimoire magique', 'la chouette savante'] },
-  { id: 'detective', nom: 'Détective', emoji: '🕵️', lieu: 'ville', mots: ['le gâteau disparu', 'le chat du voisin', 'l’indice secret'] },
-  { id: 'ferme', nom: 'La ferme', emoji: '🚜', lieu: 'ferme', mots: ['la poule fugueuse', 'le mouton frisé', 'la clé du tracteur'] },
+  { id: 'detective', nom: 'Détective', emoji: '🕵️', lieu: 'ville', realiste: true, mots: ['le gâteau disparu', 'le chat du voisin', 'l’indice secret'] },
+  { id: 'ferme', nom: 'La ferme', emoji: '🚜', lieu: 'ferme', realiste: true, mots: ['la poule fugueuse', 'le mouton frisé', 'la clé du tracteur'] },
   { id: 'neige', nom: 'Pays de neige', emoji: '⛄', lieu: 'banquise', mots: ['le pingouin timide', 'le traîneau perdu', 'le flocon magique'] },
   { id: 'robots', nom: 'Robots', emoji: '🤖', lieu: 'ville', mots: ['le boulon doré', 'le robot endormi', 'l’aimant géant'] },
   { id: 'animaux', nom: 'Animaux qui parlent', emoji: '🦊', lieu: 'foret', mots: ['la noisette d’or', 'la plume bleue', 'le terrier secret'] },
@@ -40,6 +40,7 @@ export const THEMES = [
   { id: 'camping', nom: 'Camping', emoji: '🏕️', lieu: 'foret', realiste: true, mots: ['la tente envolée', 'le sentier mal balisé', 'la lampe sans piles'] },
   { id: 'peche', nom: 'Au bord de l’eau', emoji: '🎣', lieu: 'lac', realiste: true, mots: ['la barque détachée', 'le poisson record', 'le ponton cassé'] },
   { id: 'marche', nom: 'Jour de marché', emoji: '🧺', lieu: 'marche', realiste: true, mots: ['la caisse qui a disparu', 'les tomates renversées', 'le client pressé'] },
+  { id: 'ecole-vraie', nom: 'À l’école', emoji: '🎒', lieu: 'ecole', realiste: true, mots: ['la kermesse à préparer', 'le doudou perdu de la maternelle', 'la sortie au musée'] },
 ];
 
 // Décors dessinés par js/scene.js — la liste sert aussi d'énumération au modèle.
@@ -372,6 +373,30 @@ export const INSPIRATIONS_REELLES = {
   tons: ['vif et curieux', 'calme et sérieux', 'chaleureux et rigolo', 'appliqué et fier'],
 };
 
+// Mots courants de CP : servent de leurres crédibles dans les jeux de lecture.
+export const MOTS_CP = [
+  'ami', 'arbre', 'balle', 'bateau', 'bonbon', 'botte', 'branche', 'bruit', 'cabane', 'cadeau',
+  'canard', 'carte', 'chapeau', 'chat', 'chemin', 'cheval', 'chien', 'ciel', 'clé', 'coeur',
+  'copain', 'corde', 'couleur', 'cuisine', 'dessin', 'doigt', 'eau', 'école', 'écran', 'étoile',
+  'famille', 'fenêtre', 'fleur', 'forêt', 'fromage', 'gâteau', 'grenier', 'histoire', 'jardin', 'jouet',
+  'journée', 'lampe', 'lapin', 'lettre', 'livre', 'lune', 'main', 'maison', 'matin', 'mouton',
+  'nuage', 'oiseau', 'panier', 'papier', 'parc', 'petit', 'pierre', 'pluie', 'poisson', 'pomme',
+  'porte', 'poule', 'route', 'sable', 'salade', 'soleil', 'souris', 'table', 'tapis', 'tortue',
+  'train', 'vache', 'vélo', 'vent', 'village', 'voiture',
+];
+
+// Couples mot/image pour « lis et fais » : l'enfant lit, puis touche la bonne image.
+export const MOTS_IMAGES = [
+  { mot: 'chat', emoji: '🐱' }, { mot: 'chien', emoji: '🐶' }, { mot: 'ballon', emoji: '🎈' },
+  { mot: 'pomme', emoji: '🍎' }, { mot: 'fleur', emoji: '🌸' }, { mot: 'étoile', emoji: '⭐' },
+  { mot: 'maison', emoji: '🏠' }, { mot: 'lune', emoji: '🌙' }, { mot: 'poisson', emoji: '🐟' },
+  { mot: 'gâteau', emoji: '🍰' }, { mot: 'arbre', emoji: '🌳' }, { mot: 'livre', emoji: '📖' },
+  { mot: 'clé', emoji: '🔑' }, { mot: 'lapin', emoji: '🐰' }, { mot: 'vélo', emoji: '🚲' },
+  { mot: 'soleil', emoji: '☀️' }, { mot: 'bateau', emoji: '⛵' }, { mot: 'train', emoji: '🚂' },
+  { mot: 'chapeau', emoji: '🎩' }, { mot: 'parapluie', emoji: '☂️' }, { mot: 'souris', emoji: '🐭' },
+  { mot: 'tortue', emoji: '🐢' }, { mot: 'voiture', emoji: '🚗' }, { mot: 'oiseau', emoji: '🐦' },
+];
+
 export const REGLAGES_DEFAUT = {
   cle: '',
   modele: 'claude-opus-5',
@@ -387,6 +412,7 @@ export const REGLAGES_DEFAUT = {
   confirmerChoix: true,     // l'enfant écoute le choix puis confirme (il ne lit pas encore)
   lireChoix: true,          // les choix sont lus à voix haute automatiquement
   epreuves: 'melange',      // 'de', 'minijeux' ou 'melange'
+  jeuxLecture: true,        // ajoute les épreuves de lecture (niveau CP)
   douceur: 'normal',        // 'tendre' (aucun cœur perdu), 'normal', 'corse'
   fournisseurVoix: 'navigateur', // 'navigateur' ou 'google'
   cleGoogle: '',
