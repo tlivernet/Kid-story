@@ -1,7 +1,7 @@
 // Tests de l'état de l'aventure : sac, bible des personnages, graines narratives, arc.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nouvelEtat, appliquerChapitre } from '../js/state.js';
+import { nouvelEtat, appliquerChapitre, normaliserEtat } from '../js/state.js';
 import { etape, blocEtat } from '../js/prompt.js';
 
 const base = () => nouvelEtat({
@@ -120,4 +120,26 @@ test('le message envoyé au modèle décrit aussi bien le dé qu’un mini-jeu',
     epreuve: { nom: 'Jeu de mémoire', detail: 'la suite entière retrouvée', reussi: true },
   });
   assert.match(avecJeu, /la suite entière retrouvée → RÉUSSITE/);
+});
+
+test('une partie enregistrée par une ancienne version est complétée', () => {
+  const vieux = {
+    id: 'av-ancien', heros: { prenom: 'Lina', avatar: '🦊' }, theme: 'Dragons',
+    chapitre: 3, coeurs: 2, etoiles: 4, sac: [{ nom: 'Clé', emoji: '🗝️', pouvoir: 'ouvre' }],
+    quete: 'trouver l’œuf', memoire: 'des faits', longueur: 12,
+  };
+  const etat = normaliserEtat(vieux);
+  assert.deepEqual(etat.promesses, []);
+  assert.deepEqual(etat.personnages, []);
+  assert.deepEqual(etat.chapitres, []);
+  assert.equal(etat.coeurs, 2);
+  assert.equal(etat.sac.length, 1);
+  // Et surtout : un nouveau chapitre s'applique sans planter.
+  appliquerChapitre(etat, chapitre({ promesse_plantee: 'une porte grince' }));
+  assert.deepEqual(etat.promesses, ['une porte grince']);
+});
+
+test('normaliserEtat ignore une sauvegarde vide', () => {
+  assert.equal(normaliserEtat(null), null);
+  assert.equal(normaliserEtat('abîmé'), null);
 });

@@ -53,6 +53,19 @@ await page.waitForTimeout(300);
 verifier((await page.$$('#contenu-resume .resume-ligne')).length >= 3, 'le résumé de l’histoire est lisible');
 await page.click('#btn-fermer-resume');
 
+// Régression : rouvrir l'application puis « Continuer » doit réafficher le chapitre.
+await page.click('#btn-maison');
+await page.reload();
+await page.waitForSelector('#btn-continuer:not([hidden])', { timeout: 5000 });
+await page.click('#btn-continuer');
+await page.waitForTimeout(800);
+const reprise = await page.evaluate(() => ({
+  phrases: document.querySelectorAll('.phrase').length,
+  choix: document.querySelectorAll('#choix .carte-choix').length,
+}));
+verifier(reprise.phrases > 0 && reprise.choix > 0,
+  `« Continuer » réaffiche l’histoire (${reprise.phrases} phrases, ${reprise.choix} choix)`);
+
 // --- Mini-jeux --------------------------------------------------------------
 async function lancerJeu(jeu, difficulte) {
   return page.evaluate(async ({ jeu, difficulte }) => {

@@ -20,7 +20,11 @@ const ui = {
   demo: false,
   enCours: false,
   requete: null,
+  ecran: 'accueil',
   phrasesAffichees: 0,
+  phrasesCourantes: [],
+  phraseCourante: 0,
+  derniereAction: null,
   installPrompt: null,
 };
 
@@ -54,6 +58,29 @@ async function garderEcranAllume() {
 function laisserEcranDormir() {
   try { ui.verrouEcran?.release(); } catch { /* déjà relâché */ }
   ui.verrouEcran = null;
+}
+
+const JOURNAL_ERREURS = [];
+
+function noterErreur(source, message) {
+  JOURNAL_ERREURS.unshift(`${new Date().toLocaleTimeString('fr-FR')} — ${source} : ${message}`);
+  JOURNAL_ERREURS.length = Math.min(JOURNAL_ERREURS.length, 8);
+}
+
+// Un pépin technique ne doit jamais laisser un écran vide : on l'affiche et on
+// propose de réessayer.
+function signalerPepin(message) {
+  noterErreur('technique', message || 'erreur inconnue');
+  try {
+    if (ui.ecran !== 'jeu') return;
+    ui.enCours = false;
+    clearInterval(ui.chienDeGarde);
+    $('#chargement').hidden = true;
+    afficherErreur(
+      { message: 'Un pépin a interrompu l’histoire.', aide: message || '' },
+      ui.derniereAction,
+    );
+  } catch { /* on ne casse pas l'application dans le gestionnaire d'erreurs */ }
 }
 
 let toastTimer = null;
@@ -178,8 +205,14 @@ function reprendre() {
   narrateur.debloquer();
   montrer('jeu');
   majJauges();
-  if (sauvegarde.dernier) rendreChapitre(sauvegarde.dernier, false);
-  else demanderChapitre(null);
+  try {
+    if (sauvegarde.dernier) rendreChapitre(sauvegarde.dernier, false);
+    else demanderChapitre(null);
+  } catch (erreur) {
+    // Un chapitre enregistré illisible ne doit pas bloquer la reprise.
+    noterErreur('reprise', erreur.message);
+    demanderChapitre(null);
+  }
 }
 
 // --- Affichage d'un chapitre ------------------------------------------------
@@ -508,6 +541,7 @@ function faireEpreuve(choix) {
 async function demanderChapitre(action) {
   const etat = ui.etat;
   ui.enCours = true;
+  ui.derniereAction = action;
   annulerValidation();
   ui.phrasesAffichees = 0;
   vider($('#texte-histoire'));
@@ -518,6 +552,10 @@ async function demanderChapitre(action) {
   $('#chargement-texte').textContent = modeDemo()
     ? 'La suite de l’histoire arrive…'
     : 'La Plume Magique écrit ton histoire…';
+  clearTimeout(ui.minuteurAttente);
+  ui.minuteurAttente = setTimeout(() => {
+    if (ui.enCours) $('#chargement-texte').textContent = 'C’est un peu long… la Plume réfléchit encore.';
+  }, 20000);
 
   const message = etat.chapitre === 0 ? premierMessage(etat, etat.idee) : messageSuivant(etat, action);
   ui.lectureDemarree = false;
@@ -565,8 +603,12 @@ async function demanderChapitre(action) {
     }
   } catch (erreur) {
     narrateur.stop();
-    if (erreur.name !== 'AbortError') afficherErreur(erreur, action);
+    if (erreur.name !== 'AbortError') {
+      noterErreur('histoire', `${erreur.message} ${erreur.aide || ''}`.trim());
+      afficherErreur(erreur, action);
+    }
     ui.enCours = false;
+    clearTimeout(ui.minuteurAttente);
     $('#chargement').hidden = true;
     return;
   } finally {
@@ -574,6 +616,7 @@ async function demanderChapitre(action) {
   }
 
   if (ui.lecture) narrateur.fermer();
+  clearTimeout(ui.minuteurAttente);
   $('#chargement').hidden = true;
   ui.enCours = false;
 
@@ -611,6 +654,9 @@ function afficherErreur(erreur, action) {
   const demo = el('button', { class: 'btn', text: '🎲 Continuer en mode démo' });
   demo.addEventListener('click', () => { ui.demo = true; demanderChapitre(action); });
   boutons.appendChild(demo);
+  const maison = el('button', { class: 'btn', text: '🏠 Accueil' });
+  maison.addEventListener('click', () => { majAccueil(); montrer('accueil'); });
+  boutons.appendChild(maison);
   boite.appendChild(boutons);
   boite.hidden = false;
 }
@@ -749,6 +795,10 @@ function construireReglages() {
   noterVoixGoogle();
   $('#champ-cle').value = ui.reglages.cle;
   $('#version-app').textContent = `Le Livre Magique ${APP.version}`;
+  const journalErreurs = $('#journal-erreurs');
+  journalErreurs.textContent = JOURNAL_ERREURS.length
+    ? JOURNAL_ERREURS.join('\n')
+    : 'Aucun incident depuis l’ouverture de l’application.';
   $('#champ-vitesse').value = ui.reglages.vitesse;
   $('#valeur-vitesse').textContent = ui.reglages.vitesse;
   $('#champ-lecture-auto').checked = ui.reglages.lectureAuto;
@@ -1035,6 +1085,12 @@ function init() {
   brancher();
   majAccueil();
 
+  window.addEventListener('error', (e) => signalerPepin(e.message));
+  window.addEventListener('unhandledrejection', (e) => {
+    const raison = e.reason;
+    if (raison?.name === 'AbortError') return;
+    signalerPepin(raison?.message || String(raison));
+  });
   surveillerMisesAJour();
 }
 

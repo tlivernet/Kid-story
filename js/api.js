@@ -4,6 +4,16 @@
 const URL_API = 'https://api.anthropic.com/v1/messages';
 const VERSION_API = '2023-06-01';
 const BETA_FALLBACK = 'server-side-fallback-2026-07-01';
+const SILENCE_MAX = 30000; // au-delà, on considère que la réponse ne viendra pas
+
+// Minuterie relancée à chaque signe de vie du flux.
+function minuterie(delai, surExpiration) {
+  let id = setTimeout(surExpiration, delai);
+  return {
+    relancer() { clearTimeout(id); id = setTimeout(surExpiration, delai); },
+    arreter() { clearTimeout(id); },
+  };
+}
 
 export class ErreurApi extends Error {
   constructor(message, { code = 'inconnue', aide = '' } = {}) {
@@ -128,10 +138,19 @@ async function lireErreur(reponse) {
  * Retourne l'objet JSON du chapitre.
  */
 export async function raconter(options) {
-  const { cle, modele, systeme, messages, schema, signal } = options;
+  const { cle, modele, systeme, messages, schema, signal, silenceMax = SILENCE_MAX } = options;
   let fallback = options.fallback !== false && /opus|fable/.test(modele);
 
   for (let tentative = 0; tentative < 2; tentative += 1) {
+    // Une requête qui reste muette bloquerait l'histoire indéfiniment.
+    const controleur = new AbortController();
+    let expire = false;
+    const veille = minuterie(silenceMax, () => { expire = true; controleur.abort(); });
+    if (signal) {
+      if (signal.aborted) { veille.arreter(); throw new DOMException('Annulé', 'AbortError'); }
+      signal.addEventListener('abort', () => controleur.abort(), { once: true });
+    }
+
     const entetes = {
       'content-type': 'application/json',
       'x-api-key': cle,
@@ -146,9 +165,16 @@ export async function raconter(options) {
         method: 'POST',
         headers: entetes,
         body: JSON.stringify(corpsRequete({ modele, systeme, messages, schema, fallback })),
-        signal,
+        signal: controleur.signal,
       });
     } catch (erreur) {
+      veille.arreter();
+      if (expire) {
+        throw new ErreurApi('La Plume Magique met trop de temps à répondre.', {
+          code: 'delai',
+          aide: 'Vérifie la connexion, puis réessaie.',
+        });
+      }
       if (erreur.name === 'AbortError') throw erreur;
       throw new ErreurApi('Impossible de joindre la Plume Magique.', {
         code: 'reseau',
@@ -157,6 +183,7 @@ export async function raconter(options) {
     }
 
     if (!reponse.ok) {
+      veille.arreter();
       const erreur = await lireErreur(reponse);
       // Le secours automatique est une option bêta : on réessaie sans si elle est refusée.
       if (fallback && reponse.status === 400 && /fallback|beta/i.test(erreur.aide || '')) {
@@ -165,12 +192,25 @@ export async function raconter(options) {
       }
       throw erreur;
     }
-    return await lireFlux(reponse, options);
+
+    try {
+      return await lireFlux(reponse, options, veille);
+    } catch (erreur) {
+      if (expire) {
+        throw new ErreurApi('L’histoire s’est interrompue en chemin.', {
+          code: 'delai',
+          aide: 'La connexion s’est tue pendant l’écriture. Réessaie.',
+        });
+      }
+      throw erreur;
+    } finally {
+      veille.arreter();
+    }
   }
   throw new ErreurApi('La demande a échoué.', { code: 'inconnue' });
 }
 
-async function lireFlux(reponse, { onPhrase, onTitre }) {
+async function lireFlux(reponse, { onPhrase, onTitre }, veille = null) {
   const lecteur = reponse.body.getReader();
   const decodeur = new TextDecoder();
   let reste = '';
@@ -182,6 +222,7 @@ async function lireFlux(reponse, { onPhrase, onTitre }) {
   while (true) {
     const { done, value } = await lecteur.read();
     if (done) break;
+    veille?.relancer();
     reste += decodeur.decode(value, { stream: true });
     const blocs = reste.split('\n\n');
     reste = blocs.pop() ?? '';

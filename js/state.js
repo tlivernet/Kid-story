@@ -34,6 +34,31 @@ export function nouvelEtat({
   };
 }
 
+// Une partie enregistrée par une version plus ancienne n'a pas tous les champs :
+// on les complète avant de s'en servir, sinon la reprise plante.
+export function normaliserEtat(etat) {
+  if (!etat || typeof etat !== 'object') return null;
+  return {
+    ...etat,
+    heros: etat.heros || { prenom: 'Héros', avatar: '🦸' },
+    longueur: Number(etat.longueur) || REGLAGES_DEFAUT.longueur,
+    chapitre: Number(etat.chapitre) || 0,
+    coeurs: Number.isFinite(etat.coeurs) ? etat.coeurs : 3,
+    etoiles: Number(etat.etoiles) || 0,
+    sac: Array.isArray(etat.sac) ? etat.sac : [],
+    personnages: Array.isArray(etat.personnages) ? etat.personnages : [],
+    promesses: Array.isArray(etat.promesses) ? etat.promesses : [],
+    chapitres: Array.isArray(etat.chapitres) ? etat.chapitres : [],
+    historique: Array.isArray(etat.historique) ? etat.historique : [],
+    richesse: etat.richesse || REGLAGES_DEFAUT.richesse,
+    quete: etat.quete || '',
+    memoire: etat.memoire || '',
+    compagnon: etat.compagnon || '',
+    theme: etat.theme || 'une aventure',
+    id: etat.id || `av-${Date.now()}`,
+  };
+}
+
 const MAX_SAC = 6;
 const MAX_GRAINES = 4;
 
@@ -53,6 +78,12 @@ function memeGraine(a, b) {
 }
 
 export function appliquerChapitre(etat, chapitre) {
+  // Ceinture et bretelles : une partie reprise d'une ancienne version peut
+  // arriver ici sans certains tableaux.
+  if (!Array.isArray(etat.sac)) etat.sac = [];
+  if (!Array.isArray(etat.promesses)) etat.promesses = [];
+  if (!Array.isArray(etat.personnages)) etat.personnages = [];
+  if (!Array.isArray(etat.chapitres)) etat.chapitres = [];
   const nouveaux = [];
 
   for (const objet of chapitre.sac_ajouter || []) {

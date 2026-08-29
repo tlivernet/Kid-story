@@ -1,5 +1,6 @@
 // Stockage local : réglages, partie en cours, journal des aventures.
 import { REGLAGES_DEFAUT } from './config.js';
+import { normaliserEtat } from './state.js';
 
 const PREFIXE = 'livre-magique:';
 
@@ -31,7 +32,7 @@ export const reglages = {
 };
 
 export const partie = {
-  charger: () => lire('partie', null),
+  charger: () => normaliserEtat(lire('partie', null)),
   enregistrer: (etat) => ecrire('partie', etat),
   effacer: () => localStorage.removeItem(PREFIXE + 'partie'),
 };

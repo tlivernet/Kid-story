@@ -105,6 +105,36 @@ test('le secours bêta refusé est retenté sans l’option', async () => {
   assert.equal(chapitre.titre, CHAPITRE.titre);
 });
 
+test('un flux qui reste muet finit par rendre la main', async () => {
+  globalThis.fetch = async (url, init) => {
+    let flot;
+    const flux = new ReadableStream({
+      start(controleur) {
+        flot = controleur;
+        controleur.enqueue(new TextEncoder().encode('event: message_start\ndata: {"type":"message_start"}\n\n'));
+        // puis plus rien : la connexion reste ouverte sans jamais répondre
+      },
+    });
+    // Comme un vrai fetch : l'interruption fait échouer la lecture du corps.
+    init.signal?.addEventListener('abort', () => flot.error(new DOMException('Annulé', 'AbortError')));
+    return new Response(flux, { status: 200 });
+  };
+  await assert.rejects(
+    raconter(options({ silenceMax: 120 })),
+    (e) => e.code === 'delai',
+  );
+});
+
+test('une requête sans réponse ne bloque pas indéfiniment', async () => {
+  globalThis.fetch = (url, init) => new Promise((resoudre, rejeter) => {
+    init.signal?.addEventListener('abort', () => rejeter(new DOMException('Annulé', 'AbortError')));
+  });
+  await assert.rejects(
+    raconter(options({ silenceMax: 120 })),
+    (e) => e.code === 'delai' && /trop de temps/.test(e.message),
+  );
+});
+
 test('un refus de sécurité est signalé', async () => {
   globalThis.fetch = async () => {
     const encodeur = new TextEncoder();

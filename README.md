@@ -55,6 +55,15 @@ venir du prompt.
 - Un **défilement du doigt** n'est plus pris pour un appui sur un mot.
 - Si la voix se bloque, un chien de garde révèle les choix — et les énonce quand même si la voix fonctionne.
 
+### Quand quelque chose se passe mal
+- Une requête qui reste **muette plus de 30 secondes** est abandonnée et l'erreur est affichée, au lieu de
+  laisser tourner l'animation d'écriture indéfiniment.
+- Toute erreur JavaScript imprévue affiche une carte « Un pépin a interrompu l'histoire » avec
+  *Réessayer*, *Continuer en mode démo* et *Accueil* — plus jamais d'écran vide sans explication.
+- Les huit derniers incidents sont listés en bas de l'écran des réglages (utile pour rapporter un problème).
+- Une partie enregistrée par une version plus ancienne est **complétée automatiquement** au chargement :
+  les champs ajoutés depuis (troupe, graines, chapitres) ne peuvent plus faire échouer une reprise.
+
 ### Sécurité de l'histoire
 Le prompt système interdit la violence, la mort, la peur, les séparations tristes : les « méchants » sont maladroits
 et deviennent souvent des amis, un échec au dé est drôle et jamais humiliant, et le héros ne peut pas « perdre ».
