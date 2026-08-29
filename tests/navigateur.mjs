@@ -60,6 +60,7 @@ await page.waitForSelector('#chargement:not([hidden])', { timeout: 8000 });
 verifier(true, 'le choix se valide tout seul après trois secondes');
 await page.waitForSelector('#choix .carte-choix', { timeout: 20000 });
 
+await page.click('#btn-outils');
 await page.click('#btn-resume');
 await page.waitForTimeout(300);
 verifier((await page.$$('#contenu-resume .resume-ligne')).length >= 3, 'le résumé de l’histoire est lisible');
@@ -274,6 +275,7 @@ await page.waitForTimeout(1500);
 verifier(await page.isHidden('#overlay-epreuve'), 'le combat se termine et rend la main à l’histoire');
 
 await page.waitForSelector('#choix:not(.masque) .carte-choix', { timeout: 40000 });
+await page.click('#btn-outils');
 await page.click('#btn-resume');
 await page.waitForTimeout(400);
 const lieux = (await page.$$('#carte-lieux .tuile-lieu')).length;

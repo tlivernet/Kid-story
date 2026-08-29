@@ -139,11 +139,20 @@ function majAccueil() {
     // annoncée par erreur la rendrait définitivement injoignable.
     bouton.hidden = false;
     $('#btn-continuer .btn-label').textContent = sauvegarde.termine
-      ? `Reprendre : ${sauvegarde.titre || sauvegarde.theme}`
-      : `Continuer : ${sauvegarde.titre || sauvegarde.theme}`;
+      ? 'Reprendre l’aventure'
+      : 'Continuer l’aventure';
+    const titre = sauvegarde.titre || sauvegarde.theme;
+    $('#detail-continuer').textContent = sauvegarde.chapitre > 0
+      ? `${titre} · chapitre ${sauvegarde.chapitre}`
+      : titre;
   } else {
     bouton.hidden = true;
   }
+  $('#detail-nouvelle').textContent = `${THEMES.length} mondes à explorer`;
+  const terminees = aventuresConnues().filter((a) => a.termine).length;
+  $('#detail-carnet').textContent = terminees
+    ? `${terminees} aventure${terminees > 1 ? 's' : ''} terminée${terminees > 1 ? 's' : ''}`
+    : 'Encore vide — ta première histoire t’attend';
   $('#note-mode').textContent = ui.reglages.cle
     ? ''
     : 'Mode démo : les histoires sont fabriquées sur l’appareil. Ajoute une clé API Claude dans les réglages pour des aventures infinies.';
@@ -157,23 +166,31 @@ function construireThemes() {
   const grille = $('#grille-themes');
   vider(grille);
   const cartes = [
-    { titre: '✨ Mondes imaginaires' },
+    { titre: 'Mondes imaginaires', pastille: '✨' },
     ...THEMES.filter((t) => !t.realiste),
-    { titre: '🌍 Dans la vraie vie' },
+    { titre: 'Dans la vraie vie', pastille: '🌍' },
     ...THEMES.filter((t) => t.realiste),
-    { titre: '🎲 Au hasard' },
+    { titre: 'Au hasard', pastille: '🎲' },
     { id: 'surprise', nom: 'Surprise !', emoji: '🎲' },
     { id: 'surprise-reel', nom: 'Vraie vie surprise', emoji: '🎯', realiste: true },
     { id: 'idee', nom: 'Mon idée', emoji: '✏️' },
   ];
+  // Chaque monde reçoit une teinte stable : on le retrouve du coin de l'œil,
+  // sans avoir à lire son nom.
+  let rang = 0;
   for (const theme of cartes) {
     if (theme.titre) {
-      grille.appendChild(el('h3', { class: 'titre-groupe', text: theme.titre }));
+      grille.appendChild(el('h3', { class: 'titre-groupe' }, [
+        el('span', { class: 'pastille', text: theme.pastille }),
+        el('span', { class: 'libelle', text: theme.titre }),
+        el('span', { class: 'trait' }),
+      ]));
+      rang = 0;
       continue;
     }
-    const carte = el('button', { class: 'carte-theme' }, [
-      el('span', { class: 'emoji', text: theme.emoji }),
-      el('span', { text: theme.nom }),
+    const carte = el('button', { class: `carte-theme teinte-${(rang++ % 6) + 1}` }, [
+      el('span', { class: 'haut' }, [el('span', { class: 'emoji', text: theme.emoji })]),
+      el('span', { class: 'nom', text: theme.nom }),
     ]);
     carte.addEventListener('click', () => {
       let choisi = theme;
@@ -455,25 +472,64 @@ function rendreChapitre(chapitre, anime = true) {
     { lieu: chapitre.lieu, moment: chapitre.moment, acteurs: chapitre.acteurs, objets_decor: chapitre.objets_decor },
     `${ui.etat.id}-${ui.etat.chapitre}`,
   );
-  if (ui.etat.titre) {
-    $('#titre-histoire').textContent = ui.etat.titre;
-    $('#titre-histoire').hidden = false;
-  }
+  majTitreHistoire();
   rendreChoix(chapitre, false);
   majJauges();
   if (anime && ui.lecture) {
+    majBoutonPause();
     narrateur.lire(chapitre.texte || [], rappelsLecture);
   }
 }
 
+// Cœurs et étoiles dessinés : un emoji change de taille et de dessin selon
+// l'appareil, un tracé non.
+const TRACE_COEUR = 'M12 21S3.5 15.3 3.5 9.6A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8.5 2.6C20.5 15.3 12 21 12 21z';
+const TRACE_ETOILE = 'M12 3l2.7 5.7 6.3.8-4.6 4.3 1.2 6.2L12 17l-5.6 3 1.2-6.2L3 9.5l6.3-.8z';
+const coeurSvg = (plein) => `<svg viewBox="0 0 24 24" class="${plein ? 'coeur' : 'coeur-vide'}" aria-hidden="true"><path d="${TRACE_COEUR}"/></svg>`;
+
 function majJauges() {
   const etat = ui.etat;
   if (!etat) return;
-  $('#coeurs').textContent = '❤️'.repeat(etat.coeurs) + '🤍'.repeat(Math.max(0, 3 - etat.coeurs));
-  $('#etoiles').textContent = `⭐ ${etat.etoiles}`;
+  const pleins = Math.max(0, Math.min(3, etat.coeurs));
+  $('#coeurs').innerHTML = coeurSvg(true).repeat(pleins) + coeurSvg(false).repeat(3 - pleins);
+  $('#coeurs').setAttribute('aria-label', `${pleins} cœurs de courage sur 3`);
+  $('#etoiles').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${TRACE_ETOILE}"/></svg><b>${etat.etoiles}</b>`;
+  $('#etoiles').setAttribute('aria-label', `${etat.etoiles} étoiles`);
   const pastille = $('#pastille-sac');
   pastille.textContent = etat.sac.length;
   pastille.hidden = etat.sac.length === 0;
+  $('#compte-sac').textContent = etat.sac.length;
+}
+
+// Le titre de l'histoire sert aussi de repère de progression.
+function majTitreHistoire(titre = ui.etat?.titre) {
+  const noeud = $('#titre-histoire');
+  if (!titre) { noeud.hidden = true; return; }
+  const numero = Number(ui.etat?.chapitre) || 0;
+  noeud.textContent = numero > 0 ? `Chapitre ${numero} · ${titre}` : titre;
+  noeud.hidden = false;
+}
+
+// Le bouton de lecture montre l'action à venir, pas l'état courant.
+function majBoutonPause() {
+  const bouton = $('#btn-pause');
+  const enPause = Boolean(narrateur.enPause);
+  bouton.classList.toggle('en-pause', enPause);
+  bouton.setAttribute('aria-label', enPause ? 'Reprendre la lecture' : 'Pause');
+}
+
+function majBoutonSon() {
+  $('#emoji-son').textContent = ui.lecture ? '🔊' : '🔇';
+  $('#libelle-son').textContent = ui.lecture ? 'Voix allumée' : 'Voix coupée';
+  $('#btn-son').classList.toggle('muet', !ui.lecture);
+}
+
+// Le menu regroupe le sac, le résumé et la voix.
+function menuOutils(ouvrir) {
+  const menu = $('#menu-outils');
+  const veut = ouvrir === undefined ? menu.hidden : ouvrir;
+  menu.hidden = !veut;
+  $('#btn-outils').setAttribute('aria-expanded', String(veut));
 }
 
 // --- Choix ------------------------------------------------------------------
@@ -862,10 +918,7 @@ async function demanderChapitre(action) {
         fallback: ui.reglages.fallback,
         signal: ui.requete.signal,
         onTitre: (titre) => {
-          if (etat.chapitre === 0 && titre) {
-            $('#titre-histoire').textContent = titre;
-            $('#titre-histoire').hidden = false;
-          }
+          if (etat.chapitre === 0 && titre) majTitreHistoire(titre);
         },
         onPhrase: surPhrase,
       });
@@ -931,10 +984,7 @@ async function demanderChapitre(action) {
     { lieu: chapitre.lieu, moment: chapitre.moment, acteurs: chapitre.acteurs, objets_decor: chapitre.objets_decor },
     `${etat.id}-${etat.chapitre}`,
   );
-  if (etat.titre) {
-    $('#titre-histoire').textContent = etat.titre;
-    $('#titre-histoire').hidden = false;
-  }
+  majTitreHistoire(etat.titre);
   majJauges();
   ui.combatEnAttente = Boolean(etat.adversaire);
   const litLeTexte = ui.lecture && narrateur.disponible && !etat.termine;
@@ -1299,8 +1349,14 @@ function brancher() {
     montrer('accueil');
     appliquerMaj();
   });
-  $('#btn-sac').addEventListener('click', ouvrirSac);
-  $('#btn-resume').addEventListener('click', ouvrirResume);
+  $('#btn-outils').addEventListener('click', (e) => { e.stopPropagation(); menuOutils(); });
+  document.addEventListener('click', (e) => {
+    if ($('#menu-outils').hidden) return;
+    if (e.target.closest('#menu-outils') || e.target.closest('#btn-outils')) return;
+    menuOutils(false);
+  });
+  $('#btn-sac').addEventListener('click', () => { menuOutils(false); ouvrirSac(); });
+  $('#btn-resume').addEventListener('click', () => { menuOutils(false); ouvrirResume(); });
   $('#btn-fermer-resume').addEventListener('click', () => { narrateur.stop(); $('#modale-resume').hidden = true; });
   $('#btn-ecouter-resume').addEventListener('click', () => {
     narrateur.debloquer();
@@ -1323,8 +1379,8 @@ function brancher() {
 
   $('#btn-son').addEventListener('click', () => {
     ui.lecture = !ui.lecture;
-    $('#btn-son').textContent = ui.lecture ? '🔊' : '🔇';
-    $('#btn-son').classList.toggle('muet', !ui.lecture);
+    majBoutonSon();
+    menuOutils(false);
     if (!ui.lecture) narrateur.stop();
     else narrateur.debloquer();
   });
@@ -1333,15 +1389,16 @@ function brancher() {
     const chapitre = ui.etat?.dernier;
     if (!chapitre) return;
     ui.lecture = true;
-    $('#btn-son').textContent = '🔊';
-    $('#btn-son').classList.remove('muet');
+    majBoutonSon();
     narrateur.debloquer();
+    majBoutonPause();
     narrateur.lire(chapitre.texte || [], rappelsLecture);
   });
 
   $('#btn-pause').addEventListener('click', () => {
-    if (narrateur.enPause) { narrateur.reprendre(); $('#btn-pause').textContent = '⏸️'; }
-    else { narrateur.pause(); $('#btn-pause').textContent = '▶️'; }
+    if (narrateur.enPause) narrateur.reprendre();
+    else narrateur.pause();
+    majBoutonPause();
   });
 
   $('#btn-rejouer').addEventListener('click', () => { partie.effacer(); majAccueil(); montrer('theme'); });
@@ -1463,8 +1520,7 @@ function brancher() {
 
 function init() {
   ui.lecture = ui.reglages.lectureAuto;
-  $('#btn-son').textContent = ui.lecture ? '🔊' : '🔇';
-  $('#btn-son').classList.toggle('muet', !ui.lecture);
+  majBoutonSon();
   const heros = storeHeros.charger();
   $('#champ-prenom').value = heros.prenom || '';
   appliquerReglages();

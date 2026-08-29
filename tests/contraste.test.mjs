@@ -32,7 +32,12 @@ function contraste(texte, fond) {
 // nom, couleur du texte, couleur du fond, taille en px (>= 24 : seuil 3)
 const SURFACES = (v) => [
   ['texte de l’histoire', v.encre, v.creme, 24],
-  ['phrase en cours de lecture', '#2f2545', '#fff3cf', 24],
+  ['phrase en cours de lecture', v.encre, v['or-voile'], 24],
+  ['cœurs et étoiles du bandeau', v === clair ? '#8a6100' : v.or, v === clair ? '#ffffff' : '#2c2444', 17],
+  ['titre de chapitre', v['violet-texte'], v.creme, 14],
+  ['astuce de la barre de lecture', v === clair ? '#6b5f3f' : v['encre-doux'], v['creme-fonce'], 13],
+  ['ligne du menu d’outils', v.encre, v === clair ? '#ffffff' : '#2c2444', 17],
+  ['bandeau flottant', v === clair ? '#ffffff' : v.encre, v === clair ? '#2f2545' : '#453a63', 17],
   ['carte de choix', v.encre, v === clair ? '#ffffff' : '#2c2444', 20],
   ['choix énoncé', '#2f2545', '#fff6da', 20],
   ['titre du chapitre', v['violet-texte'], v.creme, 24],

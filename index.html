@@ -22,17 +22,26 @@
   <section class="ecran actif" id="ecran-accueil">
     <div class="accueil-fond" id="accueil-fond"></div>
     <div class="accueil-contenu">
+      <p class="marque"><span class="filet"></span><span>Une histoire par jour</span><span class="filet"></span></p>
       <h1 class="titre-app">Le Livre<br><span>Magique</span></h1>
       <p class="sous-titre">Choisis ton histoire… et vis-la !</p>
       <div class="pile">
-        <button class="btn btn-geant" id="btn-continuer" hidden>
-          <span class="btn-emoji">▶️</span><span class="btn-label">Continuer l’aventure</span>
-        </button>
+        <!-- Chaque touche dit aussi où elle mène : reprendre une histoire n'est
+             plus un bouton qui apparaît sans contexte. -->
         <button class="btn btn-geant btn-primaire" id="btn-nouvelle">
-          <span class="btn-emoji">✨</span><span class="btn-label">Nouvelle aventure</span>
+          <span class="btn-emoji">✨</span>
+          <span class="btn-texte"><b class="btn-label">Nouvelle aventure</b><small class="btn-detail" id="detail-nouvelle"></small></span>
+          <svg class="btn-fleche" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <button class="btn btn-geant" id="btn-continuer" hidden>
+          <span class="btn-emoji">▶️</span>
+          <span class="btn-texte"><b class="btn-label">Continuer l’aventure</b><small class="btn-detail" id="detail-continuer"></small></span>
+          <svg class="btn-fleche" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
         </button>
         <button class="btn btn-geant" id="btn-carnet">
-          <span class="btn-emoji">📖</span><span class="btn-label">Mon carnet</span>
+          <span class="btn-emoji">📖</span>
+          <span class="btn-texte"><b class="btn-label">Mon carnet</b><small class="btn-detail" id="detail-carnet"></small></span>
+          <svg class="btn-fleche" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
       <div class="accueil-bas">
@@ -47,7 +56,10 @@
   <section class="ecran" id="ecran-theme">
     <header class="barre-simple">
       <button class="btn-rond" data-retour="accueil" aria-label="Retour">🏠</button>
-      <h2>Quelle histoire aujourd’hui ?</h2>
+      <div class="titre-barre">
+        <h2>Quelle histoire aujourd’hui ?</h2>
+        <p class="aide">Touche le monde qui te plaît</p>
+      </div>
     </header>
     <div class="grille-themes" id="grille-themes"></div>
   </section>
@@ -80,20 +92,39 @@
   <!-- JEU -->
   <section class="ecran" id="ecran-jeu">
     <header class="barre-jeu">
-      <button class="btn-rond" id="btn-maison" aria-label="Accueil">🏠</button>
+      <button class="btn-icone" id="btn-maison" aria-label="Accueil">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5h4v5"/></svg>
+      </button>
       <div class="jauges">
         <span class="coeurs" id="coeurs" aria-label="courage"></span>
-        <span class="etoiles" id="etoiles">⭐ 0</span>
+        <span class="separateur-jauge" aria-hidden="true"></span>
+        <span class="etoiles" id="etoiles" aria-label="étoiles">0</span>
       </div>
-      <button class="btn-rond" id="btn-resume" aria-label="Résumé de l’histoire">📜</button>
-      <button class="btn-rond" id="btn-sac" aria-label="Sac de quête">🎒<span class="pastille" id="pastille-sac" hidden>0</span></button>
-      <button class="btn-rond" id="btn-son" aria-label="Lecture à voix haute">🔊</button>
+      <button class="btn-icone" id="btn-outils" aria-label="Sac, résumé et voix" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" class="plein" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>
+        <span class="pastille" id="pastille-sac" hidden>0</span>
+      </button>
+      <!-- Les trois outils tiennent dans un seul menu : le bandeau ne garde que
+           ce qui doit rester visible pendant l'histoire. -->
+      <div class="menu-outils" id="menu-outils" hidden>
+        <button class="ligne-outil" id="btn-sac">
+          <span class="emoji">🎒</span><span class="libelle">Mon sac de quête</span><span class="compte" id="compte-sac">0</span>
+        </button>
+        <button class="ligne-outil" id="btn-resume">
+          <span class="emoji">📜</span><span class="libelle">Où en est mon histoire ?</span>
+        </button>
+        <button class="ligne-outil" id="btn-son">
+          <span class="emoji" id="emoji-son">🔊</span><span class="libelle" id="libelle-son">Voix allumée</span>
+        </button>
+      </div>
     </header>
 
-    <div class="scene" id="scene"></div>
+    <div class="planche">
+      <div class="scene" id="scene"></div>
+    </div>
+    <h2 class="titre-histoire" id="titre-histoire" hidden></h2>
 
     <div class="zone-histoire">
-      <h2 class="titre-histoire" id="titre-histoire" hidden></h2>
       <div class="texte-histoire" id="texte-histoire" aria-live="polite"></div>
       <div class="chargement" id="chargement" hidden>
         <div class="plume">🪶</div>
@@ -104,11 +135,19 @@
 
     <div class="choix" id="choix"></div>
 
+    <!-- Une seule grosse touche, celle que l'enfant cherche : Pause. -->
     <footer class="barre-lecture">
-      <button class="btn-rond" id="btn-relire" aria-label="Relire">🔁</button>
-      <button class="btn-rond" id="btn-pause" aria-label="Pause">⏸️</button>
-      <button class="btn-rond" id="btn-passer" aria-label="Voir les choix tout de suite">⏭️</button>
-      <span class="astuce">Touche un mot pour l’entendre 👆</span>
+      <button class="btn-lecture" id="btn-relire" aria-label="Relire">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 1 2.6 5.9"/><path d="M4 6.5V12h5.5"/></svg>
+      </button>
+      <button class="btn-lecture btn-lecture-principal" id="btn-pause" aria-label="Pause">
+        <svg viewBox="0 0 24 24" class="plein icone-pause" aria-hidden="true"><rect x="6" y="4" width="4.4" height="16" rx="2"/><rect x="13.6" y="4" width="4.4" height="16" rx="2"/></svg>
+        <svg viewBox="0 0 24 24" class="plein icone-jouer" aria-hidden="true"><path d="M7 4.5 19 12 7 19.5z"/></svg>
+      </button>
+      <button class="btn-lecture" id="btn-passer" aria-label="Voir les choix tout de suite">
+        <svg viewBox="0 0 24 24" class="plein" aria-hidden="true"><path d="M5 5l9 7-9 7z"/><rect x="16.5" y="5" width="3" height="14" rx="1.5"/></svg>
+      </button>
+      <span class="astuce">Touche un mot<br>pour l’entendre 👆</span>
     </footer>
   </section>
 
