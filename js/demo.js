@@ -101,7 +101,13 @@ export function chapitreDemo(etat, action) {
     const but = piocher(theme.mots, r);
     return {
       titre: `${h} et ${theme.nom.toLowerCase()}`,
-      texte: [
+      texte: etat.realiste ? [
+        `${h} enfile ses chaussures, prêt pour la journée.`,
+        `Aujourd'hui, ${etat.inspiration ? etat.inspiration.debut : 'une drôle de journée commence'}.`,
+        `${compagnon.nom} arrive en courant.`,
+        `« Vite ! On doit s'occuper de ${but} », dit-il.`,
+        'L’aventure commence maintenant.',
+      ] : [
         `${h} ouvre un grand livre poussiéreux.`,
         'Zoup ! Le voilà dans une autre histoire.',
         etat.inspiration ? `Ici, ${etat.inspiration.debut}.` : 'Ici, tout reste à découvrir.',

@@ -1,5 +1,5 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
-import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS, familleVoix } from './config.js';
+import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS, INSPIRATIONS_REELLES, familleVoix } from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre, piocher } from './util.js';
 import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
@@ -9,7 +9,7 @@ import { marquerPhrase, marquerMot, effacerTout } from './surlignage.js';
 import { mesurerTexte, consigneStyle } from './qualite.js';
 import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
-import { typeEpreuve, jouer, NOMS_JEUX } from './minijeux.js';
+import { typeEpreuve, jouer, NOMS_JEUX, JEUX_ACTION, JEUX_MALINS } from './minijeux.js';
 import { nouvelEtat, appliquerChapitre, ajouterEchange, messagesPour, perdreCoeur, secourir } from './state.js';
 import { chapitreDemo } from './demo.js';
 
@@ -151,15 +151,29 @@ function majAccueil() {
 function construireThemes() {
   const grille = $('#grille-themes');
   vider(grille);
-  const cartes = [...THEMES, { id: 'surprise', nom: 'Surprise !', emoji: '🎲' }, { id: 'idee', nom: 'Mon idée', emoji: '✏️' }];
+  const cartes = [
+    { titre: '✨ Mondes imaginaires' },
+    ...THEMES.filter((t) => !t.realiste),
+    { titre: '🌍 Dans la vraie vie' },
+    ...THEMES.filter((t) => t.realiste),
+    { titre: '🎲 Au hasard' },
+    { id: 'surprise', nom: 'Surprise !', emoji: '🎲' },
+    { id: 'surprise-reel', nom: 'Vraie vie surprise', emoji: '🎯', realiste: true },
+    { id: 'idee', nom: 'Mon idée', emoji: '✏️' },
+  ];
   for (const theme of cartes) {
+    if (theme.titre) {
+      grille.appendChild(el('h3', { class: 'titre-groupe', text: theme.titre }));
+      continue;
+    }
     const carte = el('button', { class: 'carte-theme' }, [
       el('span', { class: 'emoji', text: theme.emoji }),
       el('span', { text: theme.nom }),
     ]);
     carte.addEventListener('click', () => {
       let choisi = theme;
-      if (theme.id === 'surprise') choisi = THEMES[Math.floor(Math.random() * THEMES.length)];
+      if (theme.id === 'surprise') choisi = piocher(THEMES.filter((t) => !t.realiste));
+      if (theme.id === 'surprise-reel') choisi = piocher(THEMES.filter((t) => t.realiste));
       ui.theme = choisi;
       $('#bloc-idee').hidden = theme.id !== 'idee';
       montrer('heros');
@@ -187,7 +201,8 @@ function construireAvatars() {
 
 // Deux aventures sur le même thème ne doivent pas se ressembler : on tire une
 // carte d'inspiration, en évitant les débuts déjà vus récemment.
-function tirerInspiration() {
+function tirerInspiration(realiste = false) {
+  const source = realiste ? INSPIRATIONS_REELLES : INSPIRATIONS;
   const vus = souvenirs.charger();
   // Chaque élément est tiré parmi ceux qu'on n'a pas vus récemment.
   const neuf = (liste, dejaVus) => {
@@ -195,11 +210,11 @@ function tirerInspiration() {
     return piocher(restants.length ? restants : liste);
   };
   return {
-    debut: neuf(INSPIRATIONS.debuts, vus.debuts),
-    compagnon: neuf(INSPIRATIONS.compagnons, vus.compagnons),
-    objet: neuf(INSPIRATIONS.objets, vus.objets),
-    twist: neuf(INSPIRATIONS.twists, vus.twists),
-    ton: piocher(INSPIRATIONS.tons),
+    debut: neuf(source.debuts, vus.debuts),
+    compagnon: neuf(source.compagnons, vus.compagnons),
+    objet: neuf(source.objets, vus.objets),
+    twist: neuf(source.twists, vus.twists),
+    ton: piocher(source.tons),
   };
 }
 
@@ -215,13 +230,15 @@ function demarrer() {
   storeHeros.enregistrer(heros);
 
   const theme = ui.theme && ui.theme.id !== 'idee' ? ui.theme : { id: 'idee', nom: idee || 'une histoire surprise' };
+  const realiste = Boolean(theme.realiste);
   ui.etat = nouvelEtat({
     heros,
     theme: theme.nom,
-    themeId: theme.id === 'idee' ? THEMES[Math.floor(Math.random() * THEMES.length)].id : theme.id,
+    themeId: theme.id === 'idee' ? piocher(THEMES).id : theme.id,
     longueur: Number(ui.reglages.longueur) || 12,
     richesse: ui.reglages.richesse,
-    inspiration: tirerInspiration(),
+    realiste,
+    inspiration: tirerInspiration(realiste),
     objetsEvites: objetsDejaVus(),
     idee,
   });
@@ -504,6 +521,7 @@ async function choisir(choix, possede, bouton) {
   if (choix.objet_requis) action.resume += ` en utilisant ${choix.objet_requis}.`;
 
   if (choix.epreuve_difficulte) {
+    ui.etat.derniereEpreuve = ui.etat.chapitre;
     const resultat = await faireEpreuve(choix);
     action.epreuve = { nom: choix.epreuve_nom || 'épreuve', ...resultat };
     if (!resultat.reussi) {
@@ -546,9 +564,19 @@ async function conclureEpreuve(reussi, message, dansCombat = false) {
   resultat.textContent = message;
   resultat.classList.add(reussi ? 'gagne' : 'rate');
   vibrer(reussi ? 40 : 12);
-  // On laisse la phrase se terminer avant de passer à la suite.
+
+  // La victoire doit se voir : une fanfare d'emojis au-dessus du résultat.
+  const zone = $('#epreuve-zone');
+  const fanfare = el('p', {
+    class: 'epreuve-fanfare',
+    text: reussi ? piocher(['🎉🌟🎉', '👏✨👏', '🏆🎊🏆']) : piocher(['💪😅💪', '🍀🙂🍀']),
+  });
+  zone.appendChild(fanfare);
+
+  // On laisse la phrase se terminer, et l'écran s'affiche au moins deux secondes.
+  const minimum = attendre(animationsReduites ? 900 : 2000);
   await annoncer(reussi ? `Bravo ! ${message}` : `Presque ! ${message}`);
-  await attendre(animationsReduites ? 400 : 900);
+  await minimum;
   if (!dansCombat) $('#overlay-epreuve').hidden = true;
 }
 
@@ -685,7 +713,7 @@ async function lancerCombat() {
     if (action.type === 'de') {
       resultat = await epreuveDe(faux, true);
     } else {
-      const jeu = action.type === 'adresse' ? piocher(['attrape', 'tape']) : piocher(['memoire', 'intrus']);
+      const jeu = action.type === 'adresse' ? piocher(JEUX_ACTION) : piocher(JEUX_MALINS);
       resultat = await epreuveJeu(faux, jeu, true);
     }
     if (resultat.reussi) {

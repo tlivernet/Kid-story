@@ -129,3 +129,47 @@ test('chaque famille de voix Google est reconnue et située en prix', async () =
   assert.equal(familleVoix('fr-FR-Studio-A').cout, 'nettement la plus chère');
   assert.equal(familleVoix('fr-FR-Inconnue-9').nom, 'Autre', 'une famille future ne casse rien');
 });
+
+test('une histoire réaliste pioche dans le coffre du monde réel', async () => {
+  const { TRESORS_REELS, TRESORS } = await import('../js/config.js');
+  const reels = new Set(TRESORS_REELS.map((t) => t.nom));
+  const magiques = new Set(TRESORS.map((t) => t.nom));
+  for (let i = 0; i < 20; i += 1) {
+    const texte = coffre({ realiste: true, objetsEvites: [], sac: [] }).split('\n')[0];
+    const items = texte.split(':')[1].split(';').map((t) => t.trim().replace(/^\S+\s/, ''));
+    for (const nom of items) {
+      assert.ok(reels.has(nom), `${nom} n'est pas un objet du monde réel`);
+      assert.ok(!magiques.has(nom));
+    }
+  }
+});
+
+test('le registre réaliste interdit explicitement la magie', async () => {
+  const { registre } = await import('../js/prompt.js');
+  assert.equal(registre({ realiste: false }), '', 'rien à imposer aux histoires féeriques');
+  const consigne = registre({ realiste: true });
+  assert.match(consigne, /Aucune magie/);
+  assert.match(consigne, /aucun animal qui parle/);
+  assert.match(consigne, /lampe torche/);
+});
+
+test('les thèmes du quotidien sont bien marqués et assez nombreux', async () => {
+  const { THEMES } = await import('../js/config.js');
+  const reels = THEMES.filter((t) => t.realiste);
+  assert.ok(reels.length >= 8, `seulement ${reels.length} thèmes du quotidien`);
+  assert.ok(reels.some((t) => t.id === 'pompiers'));
+  assert.ok(THEMES.filter((t) => !t.realiste).length >= 10, 'les mondes imaginaires restent nombreux');
+});
+
+test('la réserve d’objets a doublé', async () => {
+  const { TRESORS } = await import('../js/config.js');
+  assert.ok(TRESORS.length >= 120, `seulement ${TRESORS.length} trésors`);
+  assert.equal(new Set(TRESORS.map((t) => t.nom)).size, TRESORS.length, 'aucun doublon');
+});
+
+test('deux épreuves ne se suivent pas', async () => {
+  const { momentDEpreuve } = await import('../js/prompt.js');
+  assert.equal(momentDEpreuve({ chapitre: 5 }), true, 'aucune épreuve encore jouée');
+  assert.equal(momentDEpreuve({ chapitre: 4, derniereEpreuve: 3 }), false);
+  assert.equal(momentDEpreuve({ chapitre: 5, derniereEpreuve: 3 }), true);
+});

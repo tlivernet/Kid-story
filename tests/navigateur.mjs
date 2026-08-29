@@ -32,7 +32,7 @@ await page.goto(ADRESSE);
 
 // --- Parcours d'une aventure ------------------------------------------------
 await page.click('#btn-nouvelle');
-await page.click('.grille-themes .carte-theme:nth-child(1)');
+await page.click('.grille-themes .carte-theme >> nth=0');
 await page.fill('#champ-prenom', 'Lina');
 await page.click('#btn-demarrer');
 await page.waitForSelector('#choix .carte-choix:not([hidden])', { timeout: 15000 });
@@ -124,6 +124,39 @@ await page.waitForTimeout(900);
 const scoreTape = await resultatJeu();
 verifier(scoreTape?.reussi === true, `tape vite : ${objectifTape} coups suffisent (${scoreTape?.detail ?? 'aucun résultat'})`);
 
+// Les jeux d'action ajoutés pour le combat.
+await lancerJeu('corde', 3);
+await page.waitForSelector('#epreuve-zone .jeu-tambour:not([disabled])', { timeout: 12000 });
+const finCorde = Date.now() + 15000;
+while ((await resultatJeu()) === undefined && Date.now() < finCorde) {
+  await page.click('#epreuve-zone .jeu-tambour', { timeout: 2000 }).catch(() => {});
+  await page.waitForTimeout(40);
+}
+await page.waitForTimeout(900);
+const scoreCorde = await resultatJeu();
+verifier(scoreCorde?.reussi === true, `tir à la corde : tirer vite fait gagner (${scoreCorde?.detail ?? 'aucun résultat'})`);
+
+await lancerJeu('compter', 3);
+await page.waitForSelector('#epreuve-zone .jeu-tambour:not([disabled])', { timeout: 12000 });
+const aTaper = await page.$$eval('#epreuve-zone .pastille-compte', (n) => n.length);
+for (let i = 0; i < aTaper; i += 1) {
+  await page.click('#epreuve-zone .jeu-tambour');
+  await page.waitForTimeout(120);
+}
+await page.waitForTimeout(3000);
+const scoreCompte = await resultatJeu();
+verifier(scoreCompte?.reussi === true, `compte juste : ${aTaper} tapes exactement (${scoreCompte?.detail ?? 'aucun résultat'})`);
+
+await lancerJeu('taupes', 2);
+const finTaupes = Date.now() + 25000;
+while ((await resultatJeu()) === undefined && Date.now() < finTaupes) {
+  const ami = await page.$('#epreuve-zone .jeu-cible:not(.guepe):not(.attrapee)');
+  if (ami) await ami.click().catch(() => {});
+  await page.waitForTimeout(120);
+}
+const scoreTaupes = await resultatJeu();
+verifier(scoreTaupes?.reussi === true, `attrape sans se faire piquer : les guêpes évitées (${scoreTaupes?.detail ?? 'aucun résultat'})`);
+
 await lancerJeu('intrus', 5);
 await page.waitForSelector('#epreuve-zone .jeu-case');
 const nbCases = (await page.$$('#epreuve-zone .jeu-case')).length;
@@ -172,7 +205,7 @@ async function attendreAction() {
 
 await page.goto(ADRESSE); // on repart d'une aventure neuve
 await page.click('#btn-nouvelle');
-await page.click('.grille-themes .carte-theme:nth-child(1)');
+await page.click('.grille-themes .carte-theme >> nth=0');
 await page.fill('#champ-prenom', 'Lina');
 await page.click('#btn-demarrer');
 

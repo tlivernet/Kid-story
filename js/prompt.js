@@ -1,5 +1,5 @@
 // Instructions et schéma JSON envoyés à Claude.
-import { LIEUX, MOMENTS, TRESORS } from './config.js';
+import { LIEUX, MOMENTS, TRESORS, TRESORS_REELS } from './config.js';
 import { piocher, memeIdee } from './util.js';
 
 export const SYSTEME = `Tu es « la Plume Magique », conteuse d'histoires interactives, à la manière des livres dont on est le héros.
@@ -205,6 +205,12 @@ export function etape(chapitre, longueur) {
 
 // Un objet ne peut apparaître qu'un chapitre sur trois (ou si le sac est vide) :
 // sinon chaque paragraphe tourne autour d'un nouvel accessoire.
+// Deux épreuves collées fatiguent : on laisse au moins un chapitre entre elles.
+export function momentDEpreuve(etat) {
+  if (!Number.isFinite(etat.derniereEpreuve)) return true;
+  return etat.chapitre - etat.derniereEpreuve >= 2;
+}
+
 export function momentDObjet(etat) {
   if (!etat.chapitre) return true;
   if (!etat.sac?.length) return true;
@@ -213,10 +219,11 @@ export function momentDObjet(etat) {
 
 // Quelques trésors tirés au sort, pour renouveler les objets proposés.
 export function coffre(etat, combien = 8) {
+  const reserve = etat.realiste ? TRESORS_REELS : TRESORS;
   const evites = etat.objetsEvites || [];
-  const dispo = TRESORS.filter((t) => !evites.some((vu) => memeIdee(vu, t.nom)));
+  const dispo = reserve.filter((t) => !evites.some((vu) => memeIdee(vu, t.nom)));
   const tires = [];
-  const source = dispo.length >= combien ? dispo : TRESORS;
+  const source = dispo.length >= combien ? dispo : reserve;
   while (tires.length < combien && tires.length < source.length) {
     const tresor = piocher(source);
     if (!tires.includes(tresor)) tires.push(tresor);
@@ -226,6 +233,22 @@ export function coffre(etat, combien = 8) {
     lignes.push(`Déjà vus dans les aventures précédentes, à ne pas reprendre : ${etat.objetsEvites.join(', ')}.`);
   }
   return lignes.join('\n');
+}
+
+// Registre de l'histoire : féerique par défaut, ou strictement réaliste.
+export function registre(etat) {
+  if (!etat.realiste) return '';
+  return [
+    'REGISTRE : HISTOIRE VRAIE DE TOUS LES JOURS',
+    '- Aucune magie, aucun objet enchanté, aucun animal qui parle, aucune créature imaginaire.',
+    '- Les objets sont ordinaires : une lampe torche, une échelle, un talkie-walkie, un carnet.',
+    '- Les personnages sont des gens du quotidien : voisins, collègues, commerçants, enfants.',
+    '- L’aventure vient du métier, des imprévus, de l’entraide et du courage — pas d’un pouvoir.',
+    '- Les « épreuves » sont des gestes concrets : grimper à l’échelle, calmer un chien, courir vite,',
+    '  chercher un indice, réparer, convaincre quelqu’un.',
+    '- Une « rencontre costaude » est un obstacle réel : une porte coincée, un chien qui grogne,',
+    '  un client fâché, un ruisseau à traverser.',
+  ].join('\n');
 }
 
 // Bloc d'état relu par le modèle à chaque tour.
@@ -279,6 +302,7 @@ export function premierMessage(etat, idee) {
     'DÉBUT DE L’AVENTURE',
     `Thème choisi par l'enfant : ${etat.theme}.`,
     idee ? `Idée en plus : ${idee}.` : '',
+    registre(etat),
     carteInspiration(etat.inspiration),
     `ÉTAPE « ${nom} » — ${consigne}`,
     coffre(etat),
@@ -290,7 +314,7 @@ export function premierMessage(etat, idee) {
 
 export function messageSuivant(etat, action) {
   const resume = action?.resume || 'Il veut simplement connaître la suite.';
-  const lignes = [blocEtat(etat), '', 'CE QUE L’ENFANT A FAIT', resume];
+  const lignes = [blocEtat(etat), registre(etat), '', 'CE QUE L’ENFANT A FAIT', resume].filter(Boolean);
   if (action?.epreuve) {
     const { nom, de, bonus, total, difficulte, reussi, detail } = action.epreuve;
     const comment = de
@@ -340,6 +364,7 @@ export function messageSuivant(etat, action) {
     '',
     `ÉTAPE « ${nom} » — ${consigne}`,
     momentDObjet(etat) ? coffre(etat) : 'AUCUN OBJET dans ce chapitre : sac_ajouter reste vide, et le texte ne parle pas d’un nouvel objet.',
+    momentDEpreuve(etat) ? '' : 'PAS D’ÉPREUVE ce tour-ci : epreuve_nom vide et epreuve_difficulte à 0 pour tous les choix.',
     consigneLongueur(etat),
     'Écris le chapitre suivant.',
   );

@@ -58,7 +58,7 @@ async function scenario(defaut, panne = null) {
 
   await page.goto(ADRESSE);
   await page.click('#btn-nouvelle');
-  await page.click('.grille-themes .carte-theme:nth-child(1)');
+  await page.click('.grille-themes .carte-theme >> nth=0');
   await page.fill('#champ-prenom', 'Lina');
   await page.click('#btn-demarrer');
   await page.waitForSelector('#choix:not(.masque) .carte-choix', { timeout: 20000 });

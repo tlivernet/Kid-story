@@ -4,7 +4,7 @@ import { memeIdee } from './util.js';
 
 export function nouvelEtat({
   heros, theme, themeId, longueur = REGLAGES_DEFAUT.longueur, idee = '',
-  richesse = REGLAGES_DEFAUT.richesse, inspiration = null,
+  richesse = REGLAGES_DEFAUT.richesse, inspiration = null, realiste = false,
 }) {
   return {
     id: `av-${Date.now()}`,
@@ -24,6 +24,7 @@ export function nouvelEtat({
     adversaire: null,
     objetsEvites: [],
     richesse,
+    realiste,
     inspiration,
     quete: '',
     memoire: '',
@@ -56,6 +57,7 @@ export function normaliserEtat(etat) {
     lieux: Array.isArray(etat.lieux) ? etat.lieux : [],
     objetsEvites: Array.isArray(etat.objetsEvites) ? etat.objetsEvites : [],
     adversaire: etat.adversaire || null,
+    realiste: Boolean(etat.realiste),
     historique: Array.isArray(etat.historique) ? etat.historique : [],
     richesse: etat.richesse || REGLAGES_DEFAUT.richesse,
     quete: etat.quete || '',
