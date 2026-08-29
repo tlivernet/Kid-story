@@ -19,9 +19,16 @@ const OBJETS = [
   { nom: 'Carte froissée', emoji: '🗺️', pouvoir: 'montre le chemin' },
 ];
 
+const ADVERSAIRES = [
+  { nom: 'Groumf le troll grognon', emoji: '🧌', coeurs: 2 },
+  { nom: 'une oie très têtue', emoji: '🦢', coeurs: 1 },
+  { nom: 'un robot mal réglé', emoji: '🤖', coeurs: 2 },
+  { nom: 'Barbouille le dragon chatouilleux', emoji: '🐉', coeurs: 3 },
+];
+
 const PERIPETIES = [
   {
-    lieu: 'foret', acteurs: ['🌳', '🐿️'],
+    lieu: 'foret', nom: 'le chemin de mousse', acteurs: ['🌳', '🐿️'],
     texte: (h) => [`${h} avance sur un chemin de mousse.`, 'Un écureuil saute de branche en branche.', 'Il montre un arbre tout tordu.', 'Dans le tronc, quelque chose brille !'],
     choix: [
       { texte: 'Regarder dans le tronc', emoji: '🔦', epreuve_nom: '', epreuve_difficulte: 0 },
@@ -30,7 +37,7 @@ const PERIPETIES = [
     ],
   },
   {
-    lieu: 'riviere', acteurs: ['🌊', '🐸'],
+    lieu: 'riviere', nom: 'la rivière qui chante', acteurs: ['🌊', '🐸'],
     texte: (h) => ['Une rivière coupe le chemin.', 'L’eau chante en sautant sur les cailloux.', 'Une grenouille rigole sur un rocher.', `« Tu sais sauter, ${h} ? » demande-t-elle.`],
     choix: [
       { texte: 'Sauter de pierre en pierre', emoji: '🪨', epreuve_nom: 'sauter', epreuve_difficulte: 3 },
@@ -39,7 +46,7 @@ const PERIPETIES = [
     ],
   },
   {
-    lieu: 'grotte', acteurs: ['🕯️', '🦇'],
+    lieu: 'grotte', nom: 'la grotte du passage secret', acteurs: ['🕯️', '🦇'],
     texte: () => ['Une grotte s’ouvre dans la colline.', 'Il fait sombre, mais pas effrayant.', 'Une chauve-souris dit bonjour, la tête en bas.', 'Elle connaît un passage secret.'],
     choix: [
       { texte: 'Entrer doucement', emoji: '🚶', epreuve_nom: '', epreuve_difficulte: 0 },
@@ -48,7 +55,7 @@ const PERIPETIES = [
     ],
   },
   {
-    lieu: 'village', acteurs: ['🏠', '👵'],
+    lieu: 'village', nom: 'le village qui sent la brioche', acteurs: ['🏠', '👵'],
     texte: (h) => ['Un petit village sent la brioche chaude.', 'Une mamie balaie devant sa porte.', `« Bonjour ${h} ! » dit-elle en souriant.`, 'Elle a perdu son chat gris.'],
     choix: [
       { texte: 'Chercher le chat', emoji: '🐈', epreuve_nom: '', epreuve_difficulte: 0 },
@@ -57,7 +64,7 @@ const PERIPETIES = [
     ],
   },
   {
-    lieu: 'montagne', acteurs: ['⛰️', '🐐'],
+    lieu: 'montagne', nom: 'le sentier des chèvres', acteurs: ['⛰️', '🐐'],
     texte: () => ['Le chemin monte, monte, monte.', 'Le vent chatouille les oreilles.', 'Une chèvre bondit sur les rochers.', 'Tout en haut, on voit très loin.'],
     choix: [
       { texte: 'Escalader le rocher', emoji: '🧗', epreuve_nom: 'escalader', epreuve_difficulte: 4 },
@@ -66,7 +73,7 @@ const PERIPETIES = [
     ],
   },
   {
-    lieu: 'ruines', acteurs: ['🏛️', '🦎'],
+    lieu: 'ruines', nom: 'les vieilles pierres', acteurs: ['🏛️', '🦎'],
     texte: () => ['De vieilles pierres dorment dans l’herbe.', 'Un lézard fait la sieste sur une colonne.', 'Sur le mur, il y a un dessin bizarre.', 'On dirait une devinette !'],
     choix: [
       { texte: 'Résoudre la devinette', emoji: '🧩', epreuve_nom: 'réfléchir', epreuve_difficulte: 3 },
@@ -103,12 +110,14 @@ export function chapitreDemo(etat, action) {
         'L’aventure commence maintenant.',
       ],
       lieu: theme.lieu,
+      lieu_nom: 'le seuil du grand livre',
       moment: 'jour',
       acteurs: [etat.heros.avatar, compagnon.emoji],
       objets_decor: ['📖'],
       quete: `retrouver ${but}`,
       memoire: `${h} cherche ${but} avec ${compagnon.nom}.`,
       compagnon: `${compagnon.nom} ${compagnon.emoji}`,
+      adversaire_nom: '', adversaire_emoji: '', adversaire_coeurs: 0,
       sac_ajouter: [piocher(OBJETS, r)],
       sac_retirer: [],
       coeurs_delta: 0,
@@ -133,12 +142,14 @@ export function chapitreDemo(etat, action) {
         `Bravo ${h}, tu es un vrai héros !`,
       ],
       lieu: etat.lieu || theme.lieu,
+      lieu_nom: 'le bout du chemin',
       moment: 'soir',
       acteurs: [etat.heros.avatar, '🎉'],
       objets_decor: ['🏆'],
       quete: etat.quete,
       memoire: etat.memoire,
       compagnon: etat.compagnon,
+      adversaire_nom: '', adversaire_emoji: '', adversaire_coeurs: 0,
       sac_ajouter: [],
       sac_retirer: [],
       coeurs_delta: 0,
@@ -150,23 +161,31 @@ export function chapitreDemo(etat, action) {
   }
 
   const scene = piocher(PERIPETIES, r);
+  // Une rencontre costaude au troisième chapitre, comme dans une vraie partie.
+  const adversaire = etat.chapitre === 3 ? piocher(ADVERSAIRES, r) : null;
   const donneObjet = r() > 0.6;
   const objet = piocher(OBJETS.filter((o) => !etat.sac.some((s) => s.nom === o.nom)), r) || null;
   return {
     titre: '',
-    texte: [...debutSelonAction(action, h), ...scene.texte(h)],
+    texte: adversaire
+      ? [...debutSelonAction(action, h), ...scene.texte(h).slice(0, 2), `Soudain, ${adversaire.nom} te barre la route !`]
+      : [...debutSelonAction(action, h), ...scene.texte(h)],
     lieu: scene.lieu,
+    lieu_nom: scene.nom,
     moment: r() > 0.8 ? 'soir' : 'jour',
     acteurs: [etat.heros.avatar, ...scene.acteurs.slice(0, 1)],
     objets_decor: scene.acteurs.slice(1),
     quete: etat.quete,
     memoire: `${etat.memoire} Puis ${h} est passé par ${scene.lieu}.`.slice(-380),
     compagnon: etat.compagnon,
+    adversaire_nom: adversaire?.nom || '',
+    adversaire_emoji: adversaire?.emoji || '',
+    adversaire_coeurs: adversaire?.coeurs || 0,
     sac_ajouter: donneObjet && objet ? [objet] : [],
     sac_retirer: [],
     coeurs_delta: action?.epreuve && !action.epreuve.reussi ? -1 : 0,
     etoiles_delta: action?.epreuve?.reussi ? 1 : 0,
-    choix: scene.choix.map((c) => ({ objet_requis: '', ...c })),
+    choix: adversaire ? [] : scene.choix.map((c) => ({ objet_requis: '', ...c })),
     fin_titre: '',
     fin_message: '',
   };

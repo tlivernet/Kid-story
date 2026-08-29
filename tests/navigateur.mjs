@@ -129,6 +129,69 @@ await page.waitForSelector('#epreuve-zone .jeu-case');
 const nbCases = (await page.$$('#epreuve-zone .jeu-case')).length;
 verifier(nbCases === 16, `trouve l’intrus devient difficile : ${nbCases} cases au niveau 5`);
 
+// --- Rencontre costaude et carte des lieux ---------------------------------
+const etatEcran = () => page.evaluate(() => ({
+  combat: Boolean(document.querySelector('#epreuve-objectif .adversaire')),
+  epreuve: !document.querySelector('#overlay-epreuve').hidden,
+  choix: document.querySelectorAll('#choix:not(.masque) .carte-choix').length,
+  actions: document.querySelectorAll('#epreuve-zone .carte-choix').length,
+}));
+
+async function jouerEpreuve() {
+  if (await page.isVisible('#btn-lancer-de')) {
+    await page.click('#btn-lancer-de');
+    await page.waitForTimeout(2800);
+    return;
+  }
+  const cibles = await page.$$('#epreuve-zone .jeu-case, #epreuve-zone .jeu-cible, #epreuve-zone .jeu-tambour');
+  for (const cible of cibles.slice(0, 8)) await cible.click().catch(() => {});
+  await page.waitForTimeout(1500);
+}
+
+async function attendreAction() {
+  await page.waitForFunction(() => (
+    !document.querySelector('#overlay-epreuve').hidden
+    || document.querySelector('#choix:not(.masque) .carte-choix') !== null
+  ), { timeout: 40000 });
+}
+
+await page.goto(ADRESSE); // on repart d'une aventure neuve
+await page.click('#btn-nouvelle');
+await page.click('.grille-themes .carte-theme:nth-child(1)');
+await page.fill('#champ-prenom', 'Lina');
+await page.click('#btn-demarrer');
+
+let combatVu = false;
+for (let tour = 0; tour < 25 && !combatVu; tour += 1) {
+  await attendreAction();
+  const vue = await etatEcran();
+  if (vue.combat) { combatVu = true; break; }
+  if (vue.epreuve) { await jouerEpreuve(); continue; }
+  await page.click('#choix .carte-choix');
+  await page.waitForTimeout(3800);
+}
+verifier(combatVu, 'une rencontre costaude finit par barrer la route');
+
+for (let manche = 0; manche < 20; manche += 1) {
+  const vue = await etatEcran();
+  if (!vue.epreuve) break;
+  if (vue.actions) {
+    await page.click('#epreuve-zone .carte-choix');
+    await page.waitForTimeout(600);
+    continue;
+  }
+  await jouerEpreuve();
+}
+await page.waitForTimeout(1500);
+verifier(await page.isHidden('#overlay-epreuve'), 'le combat se termine et rend la main à l’histoire');
+
+await page.waitForSelector('#choix:not(.masque) .carte-choix', { timeout: 40000 });
+await page.click('#btn-resume');
+await page.waitForTimeout(400);
+const lieux = (await page.$$('#carte-lieux .tuile-lieu')).length;
+verifier(lieux >= 2, `la carte propose de retourner dans un lieu connu (${lieux} lieux)`);
+await page.click('#btn-fermer-resume');
+
 verifier(erreursJs.length === 0, `aucune erreur JavaScript${erreursJs.length ? ` (${erreursJs.join(' | ')})` : ''}`);
 await navigateur.close();
 process.exit(echecs.length ? 1 : 0);

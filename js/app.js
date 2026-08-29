@@ -8,7 +8,7 @@ import { dessinerScene } from './scene.js';
 import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
 import { typeEpreuve, jouer, NOMS_JEUX } from './minijeux.js';
-import { nouvelEtat, appliquerChapitre, ajouterEchange, messagesPour } from './state.js';
+import { nouvelEtat, appliquerChapitre, ajouterEchange, messagesPour, perdreCoeur, secourir } from './state.js';
 import { chapitreDemo } from './demo.js';
 
 const ui = {
@@ -30,6 +30,27 @@ const ui = {
 
 const animationsReduites = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DELAI_VALIDATION = 3000; // temps laissé pour changer d'avis avant de valider
+
+// Le réglage « douceur » décale la difficulté des épreuves et décide si un
+// échec coûte du courage.
+function difficulteEffective(base) {
+  const decalage = { tendre: -1, normal: 0, corse: 1 }[ui.reglages.douceur] ?? 0;
+  return Math.min(6, Math.max(2, (base || 3) + decalage));
+}
+
+const echecCouteCoeur = () => ui.reglages.douceur !== 'tendre';
+
+// Un échec fait perdre un cœur ; à zéro, on est secouru (jamais de fin brutale).
+function encaisserEchec() {
+  if (!echecCouteCoeur()) return null;
+  perdreCoeur(ui.etat);
+  majJauges();
+  if (ui.etat.coeurs > 0) return null;
+  const perdu = secourir(ui.etat);
+  majJauges();
+  toast(perdu ? `Plus de courage… ${perdu.emoji} ${perdu.nom} est perdu, mais on t’aide !` : 'Plus de courage… un ami vient t’aider !');
+  return { perdu: perdu?.nom || '' };
+}
 
 // --- Utilitaires d'interface ------------------------------------------------
 
@@ -172,6 +193,17 @@ function tirerInspiration() {
   };
 }
 
+// Les objets offerts dans les dernières aventures ne reviendront pas.
+function objetsDejaVus() {
+  const vus = [];
+  for (const aventure of journal.charger().slice(0, 3)) {
+    for (const chapitre of aventure.chapitres || []) {
+      for (const objet of chapitre.objets || []) if (!vus.includes(objet)) vus.push(objet);
+    }
+  }
+  return vus.slice(0, 12);
+}
+
 function demarrer() {
   const prenom = $('#champ-prenom').value.trim() || 'Héros';
   const idee = $('#champ-idee').value.trim();
@@ -186,6 +218,7 @@ function demarrer() {
     longueur: Number(ui.reglages.longueur) || 12,
     richesse: ui.reglages.richesse,
     inspiration: tirerInspiration(),
+    objetsEvites: objetsDejaVus(),
     idee,
   });
   ui.demo = false;
@@ -206,7 +239,8 @@ function reprendre() {
   montrer('jeu');
   majJauges();
   try {
-    if (sauvegarde.dernier) rendreChapitre(sauvegarde.dernier, false);
+    if (sauvegarde.adversaire) lancerCombat();
+    else if (sauvegarde.dernier) rendreChapitre(sauvegarde.dernier, false);
     else demanderChapitre(null);
   } catch (erreur) {
     // Un chapitre enregistré illisible ne doit pas bloquer la reprise.
@@ -315,6 +349,11 @@ function revelerChoix(lire = true) {
   clearInterval(ui.chienDeGarde);
   const zone = $('#choix');
   if (!zone.classList.contains('masque')) return;
+  if (ui.combatEnAttente) {
+    ui.combatEnAttente = false;
+    lancerCombat();
+    return;
+  }
   zone.classList.remove('masque');
   if (lire) lireLesChoix();
 }
@@ -456,6 +495,13 @@ async function choisir(choix, possede, bouton) {
   if (choix.epreuve_difficulte) {
     const resultat = await faireEpreuve(choix);
     action.epreuve = { nom: choix.epreuve_nom || 'épreuve', ...resultat };
+    if (!resultat.reussi) {
+      const secours = encaisserEchec();
+      if (secours) action.secours = true;
+    } else if (choix.epreuve_difficulte >= 4) {
+      ui.etat.etoiles += 1;
+      majJauges();
+    }
   }
   demanderChapitre(action);
 }
@@ -476,22 +522,23 @@ function annoncer(texte) {
   if (ui.lecture) narrateur.direMot(texte);
 }
 
-async function conclureEpreuve(reussi, message) {
+async function conclureEpreuve(reussi, message, dansCombat = false) {
   const resultat = $('#epreuve-resultat');
   resultat.textContent = message;
   resultat.classList.add(reussi ? 'gagne' : 'rate');
   annoncer(reussi ? `Bravo ! ${message}` : `Presque ! ${message}`);
   vibrer(reussi ? 40 : 12);
   await attendre(animationsReduites ? 900 : 2200);
-  $('#overlay-epreuve').hidden = true;
+  if (!dansCombat) $('#overlay-epreuve').hidden = true;
 }
 
 // Le dé : on montre noir sur blanc ce qu'il faut faire, et on le dit à voix haute.
-function epreuveDe(choix) {
+function epreuveDe(choix, dansCombat = false) {
   return new Promise((resoudre) => {
-    ouvrirEpreuve(`Épreuve : ${choix.epreuve_nom || 'à toi de jouer'}`);
+    if (!dansCombat) ouvrirEpreuve(`Épreuve : ${choix.epreuve_nom || 'à toi de jouer'}`);
+    else { vider($('#epreuve-zone')); $('#epreuve-resultat').textContent = ''; $('#epreuve-resultat').className = 'epreuve-resultat'; }
     const bonus = bonusDe(ui.etat);
-    const seuil = choix.epreuve_difficulte;
+    const seuil = difficulteEffective(choix.epreuve_difficulte);
     const objectif = $('#epreuve-objectif');
     objectif.appendChild(el('p', { class: 'epreuve-consigne', text: `Il faut faire ${seuil} ou plus.` }));
     const rangee = el('div', { class: 'faces-gagnantes' });
@@ -514,20 +561,115 @@ function epreuveDe(choix) {
       const resultat = lancer(seuil, bonus);
       await animer(de, resultat, animationsReduites);
       const detail = `${resultat.de}${bonus ? ` + ${bonus} = ${resultat.total}` : ''} contre ${seuil}`;
-      await conclureEpreuve(resultat.reussi, resultat.reussi ? `Réussi ! ${detail}` : `Raté de peu ! ${detail}`);
+      await conclureEpreuve(resultat.reussi, resultat.reussi ? `Réussi ! ${detail}` : `Raté de peu ! ${detail}`, dansCombat);
       resoudre({ ...resultat, nom: choix.epreuve_nom || 'épreuve' });
     };
   });
 }
 
-async function epreuveJeu(choix, jeu) {
-  ouvrirEpreuve(NOMS_JEUX[jeu]);
+async function epreuveJeu(choix, jeu, dansCombat = false) {
+  if (!dansCombat) ouvrirEpreuve(NOMS_JEUX[jeu]);
   const resultat = await jouer(jeu, $('#epreuve-zone'), {
-    difficulte: choix.epreuve_difficulte,
+    difficulte: difficulteEffective(choix.epreuve_difficulte),
     narrer: (texte) => annoncer(texte),
   });
-  await conclureEpreuve(resultat.reussi, resultat.reussi ? `Gagné : ${resultat.detail}` : `Raté : ${resultat.detail}`);
+  await conclureEpreuve(
+    resultat.reussi,
+    resultat.reussi ? `Gagné : ${resultat.detail}` : `Raté : ${resultat.detail}`,
+    dansCombat,
+  );
   return { ...resultat, nom: choix.epreuve_nom || NOMS_JEUX[jeu], jeu };
+}
+
+// Une rencontre costaude se joue en plusieurs manches : chaque réussite entame
+// le courage de l'adversaire, chaque échec entame celui du héros.
+const ACTIONS_COMBAT = [
+  { texte: 'Foncer bravement', emoji: '💪', type: 'de', difficulte: 3 },
+  { texte: 'Viser juste', emoji: '🎯', type: 'adresse', difficulte: 3 },
+  { texte: 'Lui parler', emoji: '💬', type: 'malin', difficulte: 3 },
+];
+
+function enteteAdversaire(adversaire) {
+  const zone = $('#epreuve-objectif');
+  vider(zone);
+  zone.appendChild(el('div', { class: 'adversaire' }, [
+    el('span', { class: 'adversaire-emoji', text: adversaire.emoji }),
+    el('span', {}, [
+      el('b', { text: adversaire.nom }),
+      el('span', {
+        class: 'adversaire-coeurs',
+        text: '❤️'.repeat(adversaire.coeurs) + '🤍'.repeat(adversaire.coeursMax - adversaire.coeurs),
+      }),
+    ]),
+  ]));
+}
+
+function choisirActionCombat(adversaire) {
+  return new Promise((resoudre) => {
+    const zone = $('#epreuve-zone');
+    vider(zone);
+    zone.appendChild(el('p', { class: 'jeu-consigne', text: 'Comment fais-tu ?' }));
+    if (ui.lecture) narrateur.direMot('Comment fais-tu ?');
+    for (const action of ACTIONS_COMBAT) {
+      const bouton = el('button', { class: 'carte-choix' }, [
+        el('span', { class: 'emoji', text: action.emoji }),
+        el('span', { class: 'libelle', text: action.texte }),
+      ]);
+      bouton.addEventListener('click', () => { narrateur.stop(); resoudre(action); });
+      zone.appendChild(bouton);
+    }
+  });
+}
+
+async function lancerCombat() {
+  const adversaire = ui.etat.adversaire;
+  if (!adversaire) return;
+  ui.enCours = true;
+  ouvrirEpreuve(`${adversaire.nom} te barre la route !`);
+  if (ui.lecture) narrateur.direMot(`${adversaire.nom} te barre la route ! Il faudra plusieurs essais.`);
+
+  let manches = 0;
+  let secouru = false;
+  while (adversaire.coeurs > 0 && ui.etat.coeurs > 0 && manches < 8) {
+    manches += 1;
+    enteteAdversaire(adversaire);
+    const action = await choisirActionCombat(adversaire);
+    const faux = { epreuve_nom: action.texte, epreuve_difficulte: action.difficulte };
+    let resultat;
+    if (action.type === 'de') {
+      resultat = await epreuveDe(faux, true);
+    } else {
+      const jeu = action.type === 'adresse' ? piocher(['attrape', 'tape']) : piocher(['memoire', 'intrus']);
+      resultat = await epreuveJeu(faux, jeu, true);
+    }
+    if (resultat.reussi) {
+      adversaire.coeurs -= 1;
+      enteteAdversaire(adversaire);
+      await attendre(600);
+    } else if (encaisserEchec()) {
+      secouru = true;
+      break;
+    }
+  }
+
+  $('#overlay-epreuve').hidden = true;
+  const gagne = adversaire.coeurs <= 0;
+  ui.etat.adversaire = null;
+  ui.enCours = false;
+  if (gagne) {
+    ui.etat.etoiles += 2;
+    majJauges();
+  }
+  demanderChapitre({
+    resume: `Il a affronté ${adversaire.nom}.`,
+    combat: {
+      nom: adversaire.nom,
+      gagne,
+      manches,
+      detail: gagne ? 'l’enfant a tenu bon' : secouru ? 'le héros était à bout de courage' : 'l’adversaire a résisté',
+    },
+    secours: secouru,
+  });
 }
 
 function faireEpreuve(choix) {
@@ -633,6 +775,7 @@ async function demanderChapitre(action) {
     $('#titre-histoire').hidden = false;
   }
   majJauges();
+  ui.combatEnAttente = Boolean(etat.adversaire);
   const litLeTexte = ui.lecture && narrateur.disponible && !etat.termine;
   rendreChoix(chapitre, litLeTexte);
   if (litLeTexte) surveillerLaVoix();
@@ -709,6 +852,26 @@ function ouvrirResume() {
       el('span', { class: 'resume-emoji', text: emoji }),
       el('span', { text: texte }),
     ]));
+  }
+  const carte = $('#carte-lieux');
+  vider(carte);
+  const lieux = (ui.etat.lieux || []).filter((l) => l.nom);
+  if (lieux.length > 1 && !ui.etat.termine) {
+    carte.appendChild(el('h3', { text: '🗺️ Retourner faire un tour' }));
+    const grille = el('div', { class: 'grille-lieux' });
+    for (const lieu of lieux.slice().reverse()) {
+      const tuile = el('button', { class: 'tuile-lieu' }, [
+        el('span', { class: 'vignette-lieu', html: dessinerScene(lieu.decor, `${ui.etat.id}-${lieu.nom}`) }),
+        el('span', { class: 'nom-lieu', text: lieu.nom }),
+      ]);
+      tuile.addEventListener('click', () => {
+        narrateur.stop();
+        $('#modale-resume').hidden = true;
+        demanderChapitre({ resume: `Il veut retourner à ${lieu.nom}.`, balade: true });
+      });
+      grille.appendChild(tuile);
+    }
+    carte.appendChild(grille);
   }
   $('#modale-resume').hidden = false;
   narrateur.debloquer();
@@ -789,6 +952,7 @@ function construireReglages() {
   $('#champ-lire-choix').checked = ui.reglages.lireChoix;
   $('#champ-confirmer').checked = ui.reglages.confirmerChoix;
   $('#champ-epreuves').value = ui.reglages.epreuves;
+  $('#champ-douceur').value = ui.reglages.douceur;
   $('#champ-fournisseur').value = ui.reglages.fournisseurVoix;
   $('#champ-cle-google').value = ui.reglages.cleGoogle;
   majBlocsVoix();
@@ -998,6 +1162,7 @@ function brancher() {
   $('#champ-lire-choix').addEventListener('change', (e) => enregistrerReglage('lireChoix', e.target.checked));
   $('#champ-confirmer').addEventListener('change', (e) => enregistrerReglage('confirmerChoix', e.target.checked));
   $('#champ-epreuves').addEventListener('change', (e) => enregistrerReglage('epreuves', e.target.value));
+  $('#champ-douceur').addEventListener('change', (e) => enregistrerReglage('douceur', e.target.value));
   $('#champ-fournisseur').addEventListener('change', (e) => {
     enregistrerReglage('fournisseurVoix', e.target.value);
     ui.voixSignalee = false;

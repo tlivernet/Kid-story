@@ -451,6 +451,28 @@ body {
 .jeu-cible.attrapee { animation: attrape 0.3s ease forwards; }
 @keyframes attrape { to { transform: scale(1.8); opacity: 0; } }
 
+/* Rencontre costaude */
+.adversaire {
+  display: flex; align-items: center; gap: 14px; justify-content: center;
+  background: #fff3e6; border: 3px solid #f0c48a; border-radius: 20px; padding: 10px 16px; width: 100%;
+}
+.adversaire-emoji { font-size: 3rem; animation: flotte 2.2s ease-in-out infinite; }
+.adversaire b { display: block; font-size: 1.1rem; }
+.adversaire-coeurs { font-size: 1.2rem; letter-spacing: 2px; }
+#epreuve-zone .carte-choix { width: 100%; }
+
+/* Carte des lieux visités */
+.carte-lieux { width: 100%; }
+.carte-lieux h3 { margin: 12px 0 8px; font-size: 1.05rem; }
+.grille-lieux { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.tuile-lieu {
+  font: inherit; font-weight: 700; text-align: left; cursor: pointer; padding: 0; overflow: hidden;
+  background: #fff; border: 3px solid var(--creme-fonce); border-radius: 18px;
+}
+.vignette-lieu { display: block; height: 62px; }
+.vignette-lieu svg { width: 100%; height: 100%; display: block; }
+.nom-lieu { display: block; padding: 8px 10px; font-size: 0.92rem; }
+
 .resume { text-align: left; width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .resume-ligne { display: flex; gap: 10px; margin: 0; font-size: 1.1rem; line-height: 1.5; }
 .resume-emoji { font-size: 1.4rem; flex: none; }

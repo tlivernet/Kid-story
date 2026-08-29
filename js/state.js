@@ -19,6 +19,9 @@ export function nouvelEtat({
     compagnon: '',
     personnages: [],
     promesses: [],
+    lieux: [],
+    adversaire: null,
+    objetsEvites: [],
     richesse,
     inspiration,
     quete: '',
@@ -49,6 +52,9 @@ export function normaliserEtat(etat) {
     personnages: Array.isArray(etat.personnages) ? etat.personnages : [],
     promesses: Array.isArray(etat.promesses) ? etat.promesses : [],
     chapitres: Array.isArray(etat.chapitres) ? etat.chapitres : [],
+    lieux: Array.isArray(etat.lieux) ? etat.lieux : [],
+    objetsEvites: Array.isArray(etat.objetsEvites) ? etat.objetsEvites : [],
+    adversaire: etat.adversaire || null,
     historique: Array.isArray(etat.historique) ? etat.historique : [],
     richesse: etat.richesse || REGLAGES_DEFAUT.richesse,
     quete: etat.quete || '',
@@ -84,6 +90,7 @@ export function appliquerChapitre(etat, chapitre) {
   if (!Array.isArray(etat.promesses)) etat.promesses = [];
   if (!Array.isArray(etat.personnages)) etat.personnages = [];
   if (!Array.isArray(etat.chapitres)) etat.chapitres = [];
+  if (!Array.isArray(etat.lieux)) etat.lieux = [];
   const nouveaux = [];
 
   for (const objet of chapitre.sac_ajouter || []) {
@@ -115,8 +122,25 @@ export function appliquerChapitre(etat, chapitre) {
   }
   if (etat.promesses.length > MAX_GRAINES) etat.promesses = etat.promesses.slice(-MAX_GRAINES);
 
+  // Carte des lieux : elle sert à revenir se balader dans un endroit connu.
+  const nomLieu = (chapitre.lieu_nom || '').trim();
+  if (nomLieu && !etat.lieux.some((l) => l.nom.toLowerCase() === nomLieu.toLowerCase())) {
+    etat.lieux.push({ nom: nomLieu, decor: { lieu: chapitre.lieu, moment: chapitre.moment, acteurs: [], objets_decor: chapitre.objets_decor || [] }, chapitre: etat.chapitre + 1 });
+    if (etat.lieux.length > 8) etat.lieux.shift();
+  }
+
+  // Rencontre costaude annoncée par le modèle : le jeu la met en scène.
+  etat.adversaire = chapitre.adversaire_coeurs > 0 && chapitre.adversaire_nom
+    ? {
+      nom: chapitre.adversaire_nom,
+      emoji: chapitre.adversaire_emoji || '👹',
+      coeurs: chapitre.adversaire_coeurs,
+      coeursMax: chapitre.adversaire_coeurs,
+    }
+    : null;
+
   const coeursAvant = etat.coeurs;
-  etat.coeurs = Math.max(1, Math.min(3, etat.coeurs + (chapitre.coeurs_delta || 0)));
+  etat.coeurs = Math.max(0, Math.min(3, etat.coeurs + (chapitre.coeurs_delta || 0)));
   etat.etoiles += chapitre.etoiles_delta || 0;
   if (chapitre.quete) etat.quete = chapitre.quete;
   if (chapitre.memoire) etat.memoire = chapitre.memoire;
@@ -129,6 +153,7 @@ export function appliquerChapitre(etat, chapitre) {
   etat.chapitres.push({
     n: etat.chapitre,
     texte: chapitre.texte || [],
+    objets: nouveaux.map((o) => o.nom),
     decor: {
       lieu: chapitre.lieu,
       moment: chapitre.moment,
@@ -137,7 +162,9 @@ export function appliquerChapitre(etat, chapitre) {
     },
   });
 
-  const fini = Boolean(chapitre.fin_titre) || !(chapitre.choix || []).length;
+  // Une rencontre costaude remplace les choix : ce n'est pas une fin d'histoire.
+  const fini = Boolean(chapitre.fin_titre)
+    || (!(chapitre.choix || []).length && !etat.adversaire);
   if (fini) {
     etat.termine = true;
     etat.finTitre = chapitre.fin_titre || 'Bravo !';
@@ -145,6 +172,21 @@ export function appliquerChapitre(etat, chapitre) {
   }
 
   return { nouveaux, coeursGagnes: etat.coeurs - coeursAvant, fini };
+}
+
+// Le courage baisse quand une épreuve échoue : c'est la seule vraie sanction.
+export function perdreCoeur(etat) {
+  etat.coeurs = Math.max(0, etat.coeurs - 1);
+  return etat.coeurs;
+}
+
+// À zéro courage, on ne perd pas l'histoire : un coup de pouce, un objet en
+// moins, et on repart. C'est la version « livre dont on est le héros » clémente.
+export function secourir(etat) {
+  const perdu = etat.sac.length ? etat.sac.splice(Math.floor(Math.random() * etat.sac.length), 1)[0] : null;
+  etat.coeurs = 2;
+  etat.etoiles = Math.max(0, etat.etoiles - 1);
+  return perdu;
 }
 
 // On garde un historique court : le modèle a la mémoire + l'état à chaque tour.

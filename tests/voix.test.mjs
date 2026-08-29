@@ -27,15 +27,23 @@ function configurer(voixGoogle) {
   narrateur.google.simples.clear();
 }
 
-test('une voix WaveNet reçoit le SSML et le réglage de débit', async () => {
+test('une voix WaveNet reçoit du texte brut et le réglage de débit', async () => {
   configurer('fr-FR-Wavenet-C');
   const appels = espionnerFetch([{ statut: 200 }]);
   await narrateur.google.synthetiser('Bonjour Lina.');
   const { corps, entetes } = appels[0];
   assert.equal(entetes['x-goog-api-key'], 'AIza-test');
-  assert.match(corps.input.ssml, /<break time="250ms"\/>Bonjour Lina\./);
+  assert.equal(corps.input.text, 'Bonjour Lina.');
+  assert.equal(corps.input.ssml, undefined, 'plus de SSML : il cassait les apostrophes');
   assert.equal(corps.audioConfig.speakingRate, 0.9);
   assert.equal(corps.voice.languageCode, 'fr-FR');
+});
+
+test('la typographie française est simplifiée avant la synthèse', async () => {
+  configurer('fr-FR-Wavenet-C');
+  const appels = espionnerFetch([{ statut: 200 }]);
+  await narrateur.google.synthetiser('Il y a plein d’étoiles, dit-il : « viens ! »');
+  assert.equal(appels[0].corps.input.text, "Il y a plein d'étoiles, dit-il : viens !");
 });
 
 test('une voix Chirp 3 HD reçoit du texte brut, sans débit ni hauteur', async () => {
@@ -58,19 +66,19 @@ test('une famille inconnue qui refuse les options est réessayée sobrement, pui
   ]);
   await narrateur.google.synthetiser('Première phrase.');
   assert.equal(appels.length, 2, 'la requête est rejouée une fois');
-  assert.ok(appels[0].corps.input.ssml, 'premier essai avec options');
-  assert.equal(appels[1].corps.input.text, 'Première phrase.', 'second essai sans options');
+  assert.equal(appels[0].corps.audioConfig.speakingRate, 0.9, 'premier essai avec options');
+  assert.equal(appels[1].corps.audioConfig.speakingRate, undefined, 'second essai sans options');
 
   await narrateur.google.synthetiser('Deuxième phrase.');
   assert.equal(appels.length, 3, 'pas de nouvel essai raté');
-  assert.equal(appels[2].corps.input.text, 'Deuxième phrase.', 'la voix reste en mode sobre');
+  assert.equal(appels[2].corps.audioConfig.speakingRate, undefined, 'la voix reste en mode sobre');
 });
 
-test('le texte est échappé avant d’entrer dans le SSML', async () => {
+test('le texte part tel quel, sans balisage à échapper', async () => {
   configurer('fr-FR-Neural2-A');
   const appels = espionnerFetch([{ statut: 200 }]);
-  await narrateur.google.synthetiser('Il dit : « Viens ! » & sourit <fort>');
-  assert.match(appels[0].corps.input.ssml, /&amp; sourit &lt;fort&gt;/);
+  await narrateur.google.synthetiser('Il dit : viens & sourit <fort>');
+  assert.equal(appels[0].corps.input.text, 'Il dit : viens & sourit <fort>');
 });
 
 test('un extrait déjà demandé n’est pas resynthétisé', async () => {

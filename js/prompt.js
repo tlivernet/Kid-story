@@ -1,5 +1,6 @@
 // Instructions et schéma JSON envoyés à Claude.
-import { LIEUX, MOMENTS } from './config.js';
+import { LIEUX, MOMENTS, TRESORS } from './config.js';
+import { piocher } from './util.js';
 
 export const SYSTEME = `Tu es « la Plume Magique », conteuse d'histoires interactives, à la manière des livres dont on est le héros.
 Ton public : UN SEUL enfant de 6 ans, en France, qui apprend à lire. Il écoute l'histoire et la voit écrite en même temps.
@@ -55,9 +56,31 @@ GRAINES ET FLORAISONS (très important pour la cohérence)
 
 RYTHME
 - Suis la CONSIGNE D'ÉTAPE fournie à chaque tour : elle indique où en est l'histoire.
-- Environ un chapitre sur trois propose une ÉPREUVE de dé (grimper, sauter, ruser, apprivoiser, chercher).
+- Environ un chapitre sur trois propose une ÉPREUVE (grimper, sauter, ruser, apprivoiser, chercher).
 - Offre un objet utile de temps en temps (six objets maximum dans le sac). Un objet doit servir plus tard.
 - Tiens à jour la liste des personnages rencontrés (nom, emoji, manie) : c'est ta troupe, réutilise-la.
+
+TOUS LES CHEMINS NE SE VALENT PAS
+- Environ un choix sur trois doit coûter quelque chose : un détour, un objet perdu ou cassé, quelqu'un
+  qu'on réveille, une occasion manquée, du temps perdu. Sans jamais être triste ni effrayant.
+- Un choix prudent et un choix audacieux ne mènent pas au même endroit : les conséquences doivent se voir.
+- Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
+
+OBJETS (arrête de proposer toujours les mêmes)
+- Un COFFRE À TRÉSORS t'est proposé à chaque tour : pioche dedans, ou invente dans le même esprit.
+- Ne redonne jamais un objet listé comme « déjà vu ». Un objet doit être précis et un peu farfelu.
+
+RENCONTRES COSTAUDES
+- Environ une fois par aventure, un personnage barre vraiment la route : remplis adversaire_nom,
+  adversaire_emoji et adversaire_coeurs (1 à 3 selon sa force). L'enfant devra le convaincre en plusieurs
+  manches de jeu ; ne raconte pas encore l'issue, termine le chapitre au moment où il se dresse.
+- Jamais effrayant : un troll grognon, un dragon chatouilleux, une oie très têtue, un robot mal réglé.
+  On ne se bat pas pour blesser : on convainc, on amadoue, on impressionne, on fait rire.
+- Le reste du temps, adversaire_coeurs vaut 0.
+
+COURAGE
+- Le jeu gère lui-même le courage perdu quand une épreuve échoue : n'utilise coeurs_delta = -1 que si tu
+  racontes toi-même un vrai contretemps. Utilise +1 pour un moment réconfortant (repas chaud, câlin, repos).
 
 CHOIX
 - Toujours 2 ou 3 choix, très courts (2 à 6 mots), vraiment différents, tous tentants.
@@ -106,6 +129,7 @@ export const SCHEMA = {
     titre: { type: 'string', description: "titre de l'aventure au chapitre 1, sinon chaîne vide" },
     texte: { type: 'array', items: { type: 'string' }, description: 'phrases courtes, voir la consigne de longueur' },
     lieu: { type: 'string', enum: LIEUX },
+    lieu_nom: { type: 'string', description: 'nom de l’endroit, 2 à 5 mots, ex. « la clairière aux champignons »' },
     moment: { type: 'string', enum: MOMENTS },
     acteurs: { type: 'array', items: { type: 'string' }, description: '1 à 3 emojis' },
     objets_decor: { type: 'array', items: { type: 'string' }, description: '0 à 2 emojis' },
@@ -128,6 +152,9 @@ export const SCHEMA = {
     },
     promesse_plantee: { type: 'string', description: 'détail glissé qui servira plus tard, sinon chaîne vide' },
     promesse_payee: { type: 'string', description: 'graine de la liste que ce chapitre fait fleurir, sinon chaîne vide' },
+    adversaire_nom: { type: 'string', description: 'personnage qui barre la route, sinon chaîne vide' },
+    adversaire_emoji: { type: 'string' },
+    adversaire_coeurs: { type: 'integer', enum: [0, 1, 2, 3] },
     sac_ajouter: { type: 'array', items: OBJET_SCHEMA },
     sac_retirer: { type: 'array', items: { type: 'string' } },
     coeurs_delta: { type: 'integer', enum: [-1, 0, 1] },
@@ -137,9 +164,10 @@ export const SCHEMA = {
     fin_message: { type: 'string' },
   },
   required: [
-    'titre', 'texte', 'lieu', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
-    'compagnon', 'personnages', 'promesse_plantee', 'promesse_payee', 'sac_ajouter', 'sac_retirer',
-    'coeurs_delta', 'etoiles_delta', 'choix', 'fin_titre', 'fin_message',
+    'titre', 'texte', 'lieu', 'lieu_nom', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
+    'compagnon', 'personnages', 'promesse_plantee', 'promesse_payee',
+    'adversaire_nom', 'adversaire_emoji', 'adversaire_coeurs',
+    'sac_ajouter', 'sac_retirer', 'coeurs_delta', 'etoiles_delta', 'choix', 'fin_titre', 'fin_message',
   ],
   additionalProperties: false,
 };
@@ -163,6 +191,23 @@ export function etape(chapitre, longueur) {
   const position = Math.min(1, chapitre / Math.max(1, longueur - 2));
   const index = Math.min(ETAPES.length - 2, Math.max(1, Math.round(position * (ETAPES.length - 2))));
   return ETAPES[index];
+}
+
+// Quelques trésors tirés au sort, pour renouveler les objets proposés.
+export function coffre(etat, combien = 8) {
+  const evites = new Set((etat.objetsEvites || []).map((n) => n.toLowerCase()));
+  const dispo = TRESORS.filter((t) => !evites.has(t.nom.toLowerCase()));
+  const tires = [];
+  const source = dispo.length >= combien ? dispo : TRESORS;
+  while (tires.length < combien && tires.length < source.length) {
+    const tresor = piocher(source);
+    if (!tires.includes(tresor)) tires.push(tresor);
+  }
+  const lignes = [`COFFRE À TRÉSORS : ${tires.map((t) => `${t.emoji} ${t.nom}`).join(' ; ')}`];
+  if (etat.objetsEvites?.length) {
+    lignes.push(`Déjà vus dans les aventures précédentes, à ne pas reprendre : ${etat.objetsEvites.join(', ')}.`);
+  }
+  return lignes.join('\n');
 }
 
 // Bloc d'état relu par le modèle à chaque tour.
@@ -218,6 +263,7 @@ export function premierMessage(etat, idee) {
     idee ? `Idée en plus : ${idee}.` : '',
     carteInspiration(etat.inspiration),
     `ÉTAPE « ${nom} » — ${consigne}`,
+    coffre(etat),
     consigneLongueur(etat),
     'Écris le chapitre 1, puis donne 2 ou 3 choix.',
   ].filter(Boolean).join('\n');
@@ -238,7 +284,21 @@ export function messageSuivant(etat, action) {
         : "Raconte un échec drôle et sans gravité : un imprévu rigolo, puis une nouvelle possibilité. Ne bloque jamais l'histoire.",
     );
   }
-  if (etat.coeurs <= 1) {
+  if (action?.combat) {
+    const { nom, gagne, manches, detail } = action.combat;
+    lignes.push(
+      gagne
+        ? `Rencontre avec ${nom} : le héros a gagné en ${manches} manche(s) (${detail}). Raconte comment il se calme, devient utile ou s'en va en riant. Le passage est libre.`
+        : `Rencontre avec ${nom} : le héros n'a pas réussi (${detail}). Raconte un contretemps drôle : il est repoussé, doit contourner ou perdre quelque chose. L'histoire continue autrement.`,
+    );
+  }
+  if (action?.secours) {
+    lignes.push(
+      'Le héros n’a plus de courage : raconte un coup de pouce chaleureux (un ami arrive, un abri, une soupe chaude).',
+      'Quelque chose est perdu dans l’aventure, mais personne n’est blessé, et le héros repart requinqué.',
+    );
+  }
+  if (etat.coeurs <= 1 && !action?.secours) {
     lignes.push("Le héros est fatigué : offre-lui un moment doux qui lui redonne du courage (coeurs_delta = 1).");
   }
   if (etat.chapitre + 1 >= etat.longueur) {
@@ -246,7 +306,17 @@ export function messageSuivant(etat, action) {
   } else if (etat.chapitre + 2 >= etat.longueur) {
     lignes.push('L’aventure se termine bientôt : commence le dénouement.');
   }
+  if (action?.balade) {
+    lignes.push(
+      '',
+      'CHAPITRE DE BALADE : le héros revient dans un endroit déjà connu.',
+      'Deux ou trois phrases seulement, pas de grande péripétie : décris ce qui a changé depuis,',
+      'puis propose 2 ou 3 choix sur place. Ne fais pas avancer l’étape de l’histoire.',
+      'Mets adversaire_coeurs à 0.',
+    );
+    return lignes.join('\n');
+  }
   const [nom, consigne] = etape(etat.chapitre, etat.longueur);
-  lignes.push('', `ÉTAPE « ${nom} » — ${consigne}`, consigneLongueur(etat), 'Écris le chapitre suivant.');
+  lignes.push('', `ÉTAPE « ${nom} » — ${consigne}`, coffre(etat), consigneLongueur(etat), 'Écris le chapitre suivant.');
   return lignes.join('\n');
 }

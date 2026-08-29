@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.3.1',
+  version: '1.4.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -89,6 +89,91 @@ export const INSPIRATIONS = {
   tons: ['malicieux et vif', 'mystérieux et doux', 'joyeux et bavard', 'calme et rêveur'],
 };
 
+// Coffre à trésors : on en tire quelques-uns à chaque tour pour que le modèle
+// arrête de proposer toujours la même lanterne et le même sifflet.
+export const TRESORS = [
+  { nom: 'boussole qui montre ce qu’on a perdu', emoji: '🧭' },
+  { nom: 'grelot qui tinte quand un ami approche', emoji: '🔔' },
+  { nom: 'plume qui écrit toute seule', emoji: '🪶' },
+  { nom: 'coquillage qui répète les secrets', emoji: '🐚' },
+  { nom: 'bougie qui ne s’éteint jamais', emoji: '🕯️' },
+  { nom: 'miroir de poche qui dit oui ou non', emoji: '🪞' },
+  { nom: 'graine qui pousse en une minute', emoji: '🌱' },
+  { nom: 'ficelle qui se noue toute seule', emoji: '🪢' },
+  { nom: 'caillou tiède qui chauffe près du danger', emoji: '🪨' },
+  { nom: 'loupe qui montre les traces effacées', emoji: '🔍' },
+  { nom: 'cuillère qui remue toute seule', emoji: '🥄' },
+  { nom: 'parapluie qui plane un peu', emoji: '☂️' },
+  { nom: 'écharpe qui change de couleur selon l’humeur', emoji: '🧣' },
+  { nom: 'clochette qui réveille les endormis', emoji: '🛎️' },
+  { nom: 'peigne qui démêle les histoires embrouillées', emoji: '🪮' },
+  { nom: 'bocal de lucioles', emoji: '🫙' },
+  { nom: 'carte qui se dessine en marchant', emoji: '🗺️' },
+  { nom: 'gant qui attrape à distance', emoji: '🧤' },
+  { nom: 'petit tambour qui donne du courage', emoji: '🥁' },
+  { nom: 'pomme qui ne se termine jamais', emoji: '🍎' },
+  { nom: 'chapeau où l’on range trop de choses', emoji: '🎩' },
+  { nom: 'lunettes qui voient dans le noir', emoji: '🕶️' },
+  { nom: 'clé qui ouvre une porte par jour', emoji: '🗝️' },
+  { nom: 'ballon qui suit comme un chien', emoji: '🎈' },
+  { nom: 'crayon qui efface les bêtises', emoji: '✏️' },
+  { nom: 'savon qui fait des bulles solides', emoji: '🧼' },
+  { nom: 'plume de paon qui chatouille les grognons', emoji: '🪶' },
+  { nom: 'flûte qui calme les animaux fâchés', emoji: '🪈' },
+  { nom: 'bocal de miel qui adoucit les colères', emoji: '🍯' },
+  { nom: 'chaussette dépareillée porte-bonheur', emoji: '🧦' },
+  { nom: 'toupie qui indique la direction', emoji: '🌀' },
+  { nom: 'éponge qui absorbe les flaques entières', emoji: '🧽' },
+  { nom: 'ruban qui mesure le courage', emoji: '🎀' },
+  { nom: 'petite cloche à vache très bavarde', emoji: '🐄' },
+  { nom: 'noisette qui contient une surprise', emoji: '🌰' },
+  { nom: 'lampe de poche à lumière bleue', emoji: '🔦' },
+  { nom: 'carnet qui se souvient à ta place', emoji: '📓' },
+  { nom: 'ciseaux qui coupent les nœuds impossibles', emoji: '✂️' },
+  { nom: 'aimant qui attire les objets perdus', emoji: '🧲' },
+  { nom: 'brosse qui rend les animaux tout doux', emoji: '🪥' },
+  { nom: 'dé porte-bonheur en bois', emoji: '🎲' },
+  { nom: 'sifflet que seuls les oiseaux entendent', emoji: '🎵' },
+  { nom: 'panier qui garde les choses au chaud', emoji: '🧺' },
+  { nom: 'boule de neige qui ne fond pas', emoji: '❄️' },
+  { nom: 'lanterne en papier qui vole', emoji: '🏮' },
+  { nom: 'pierre plate parfaite pour les ricochets', emoji: '🥏' },
+  { nom: 'sac de graines pour amadouer les oiseaux', emoji: '🌾' },
+  { nom: 'bracelet qui pique quand on ment', emoji: '📿' },
+  { nom: 'petit balai qui nettoie en chantant', emoji: '🧹' },
+  { nom: 'bouchon qui bouche n’importe quel trou', emoji: '🧴' },
+  { nom: 'cerf-volant qui tire fort', emoji: '🪁' },
+  { nom: 'moufle qui réchauffe les gelés', emoji: '🧦' },
+  { nom: 'tasse qui se remplit de chocolat', emoji: '☕' },
+  { nom: 'ressort qui fait sauter très haut', emoji: '🌀' },
+  { nom: 'boîte à musique qui endort les gardiens', emoji: '🎶' },
+  { nom: 'échelle de corde pliée en huit', emoji: '🪜' },
+  { nom: 'feuille qui sert de barque', emoji: '🍃' },
+  { nom: 'pinceau qui peint des portes', emoji: '🖌️' },
+  { nom: 'trompette qui fait rire les tristes', emoji: '🎺' },
+  { nom: 'fourchette qui trouve la nourriture cachée', emoji: '🍴' },
+  { nom: 'bonnet qui rend invisible aux moustiques', emoji: '🧢' },
+  { nom: 'pelote de laine qui montre le chemin du retour', emoji: '🧶' },
+  { nom: 'os magique qui appelle les chiens', emoji: '🦴' },
+  { nom: 'seau qui ne se vide jamais', emoji: '🪣' },
+  { nom: 'craie qui dessine des ponts', emoji: '🖍️' },
+  { nom: 'coussin qui amortit toutes les chutes', emoji: '🛋️' },
+  { nom: 'thermomètre à bêtises', emoji: '🌡️' },
+  { nom: 'petit drapeau qui rassemble les amis', emoji: '🚩' },
+  { nom: 'boîte d’allumettes qui allume des lucioles', emoji: '🪔' },
+  { nom: 'timbre qui envoie un message n’importe où', emoji: '📮' },
+  { nom: 'roue de secours pour charrette', emoji: '🛞' },
+  { nom: 'grelot de chat très discret', emoji: '🐈' },
+  { nom: 'boomerang en bois peint', emoji: '🪃' },
+  { nom: 'louche qui goûte à ta place', emoji: '🍲' },
+  { nom: 'gomme qui efface la peur', emoji: '🩹' },
+  { nom: 'bouton doré qui ouvre les manteaux fermés', emoji: '🔘' },
+  { nom: 'ancre miniature qui tient n’importe où', emoji: '⚓' },
+  { nom: 'petite fenêtre pliable', emoji: '🪟' },
+  { nom: 'clochette d’école qui arrête les disputes', emoji: '🔔' },
+  { nom: 'guirlande qui éclaire un tunnel', emoji: '💡' },
+];
+
 export const REGLAGES_DEFAUT = {
   cle: '',
   modele: 'claude-opus-5',
@@ -104,6 +189,7 @@ export const REGLAGES_DEFAUT = {
   confirmerChoix: true,     // l'enfant écoute le choix puis confirme (il ne lit pas encore)
   lireChoix: true,          // les choix sont lus à voix haute automatiquement
   epreuves: 'melange',      // 'de', 'minijeux' ou 'melange'
+  douceur: 'normal',        // 'tendre' (aucun cœur perdu), 'normal', 'corse'
   fournisseurVoix: 'navigateur', // 'navigateur' ou 'google'
   cleGoogle: '',
   voixGoogle: 'fr-FR-Wavenet-C',

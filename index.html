@@ -191,6 +191,16 @@
             <option value="minijeux">Mini-jeux seulement</option>
           </select>
         </label>
+        <label class="ligne">Difficulté
+          <select id="champ-douceur">
+            <option value="tendre">Tendre (on ne perd jamais de cœur)</option>
+            <option value="normal">Normale</option>
+            <option value="corse">Corsée (épreuves plus dures)</option>
+          </select>
+        </label>
+        <p class="aide">Les cœurs sont le courage du héros : un cœur en moins à chaque épreuve ratée.
+          À zéro, personne ne perd l’histoire — un ami vient à la rescousse, un objet est perdu et
+          l’aventure repart.</p>
         <p class="aide">Premier appui : le choix est lu et s’allume. Deuxième appui : l’aventure continue.</p>
       </section>
 
@@ -283,6 +293,7 @@
   <div class="modale-boite">
     <h2>📜 Où en est mon histoire ?</h2>
     <div id="contenu-resume" class="resume"></div>
+    <div id="carte-lieux" class="carte-lieux"></div>
     <div class="ligne-boutons">
       <button class="btn" id="btn-ecouter-resume">🔊 Écouter</button>
       <button class="btn btn-primaire" id="btn-fermer-resume">Fermer</button>

@@ -8,6 +8,17 @@ const SILENCE = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2L
 
 // --- Fournisseur Google -----------------------------------------------------
 
+// Les moteurs de synthèse butent sur la typographie française : apostrophe
+// courbe, espaces insécables, guillemets. On leur envoie du texte simple.
+export function nettoyerPourVoix(texte) {
+  return String(texte)
+    .replace(/[\u2019\u02BC]/g, "'")   // apostrophe courbe → apostrophe droite
+    .replace(/[\u202F\u00A0\u2009]/g, ' ') // espaces insécables → espace normale
+    .replace(/[«»""]/g, '')            // guillemets : la voix marque déjà le dialogue
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Les familles récentes (Chirp 3 HD, Journey…) refusent le SSML, le débit et la
 // hauteur : leur envoyer ces champs fait échouer la requête.
 const VOIX_SANS_OPTIONS = /chirp|journey|instant/i;
@@ -38,18 +49,14 @@ class VoixGoogle {
 
   corpsRequete(texte, avecOptions) {
     const voice = { languageCode: this.voix.slice(0, 5) || 'fr-FR', name: this.voix };
-    if (!avecOptions) {
-      return { input: { text: texte }, voice, audioConfig: { audioEncoding: 'MP3' } };
+    const audioConfig = { audioEncoding: 'MP3' };
+    if (avecOptions) {
+      audioConfig.speakingRate = this.vitesse;
+      audioConfig.pitch = 1;
     }
-    // Un court silence de tête évite que le premier mot soit rogné.
-    const ssml = `<speak><break time="250ms"/>${texte
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')}</speak>`;
-    return {
-      input: { ssml },
-      voice,
-      audioConfig: { audioEncoding: 'MP3', speakingRate: this.vitesse, pitch: 1 },
-    };
+    // Texte brut plutôt que SSML : le balisage faisait détacher l'apostrophe
+    // française (« d'étoiles » lu « d » puis « étoiles »).
+    return { input: { text: nettoyerPourVoix(texte) }, voice, audioConfig };
   }
 
   async demander(texte, avecOptions) {

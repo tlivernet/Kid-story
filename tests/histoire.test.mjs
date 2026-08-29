@@ -1,7 +1,7 @@
 // Tests de l'état de l'aventure : sac, bible des personnages, graines narratives, arc.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nouvelEtat, appliquerChapitre, normaliserEtat } from '../js/state.js';
+import { nouvelEtat, appliquerChapitre, normaliserEtat, perdreCoeur, secourir } from '../js/state.js';
 import { etape, blocEtat } from '../js/prompt.js';
 
 const base = () => nouvelEtat({
@@ -11,7 +11,8 @@ const base = () => nouvelEtat({
 const chapitre = (extra = {}) => ({
   titre: '', texte: ['Une phrase.'], lieu: 'foret', moment: 'jour', acteurs: ['🦸‍♀️'], objets_decor: [],
   quete: 'trouver l’œuf', memoire: 'Lina cherche l’œuf.', compagnon: '', personnages: [],
-  promesse_plantee: '', promesse_payee: '', sac_ajouter: [], sac_retirer: [],
+  promesse_plantee: '', promesse_payee: '', lieu_nom: '', adversaire_nom: '', adversaire_emoji: '',
+  adversaire_coeurs: 0, sac_ajouter: [], sac_retirer: [],
   coeurs_delta: 0, etoiles_delta: 0, choix: [{ texte: 'Avancer', emoji: '👟', objet_requis: '', epreuve_nom: '', epreuve_difficulte: 0 }],
   fin_titre: '', fin_message: '', ...extra,
 });
@@ -56,12 +57,52 @@ test('la troupe est remplacée par la version la plus récente', () => {
   assert.equal(etat.personnages.length, 2);
 });
 
-test('les cœurs restent entre 1 et 3 : l’enfant ne peut pas perdre', () => {
+test('le courage descend jusqu’à zéro mais jamais plus bas', () => {
   const etat = base();
-  for (let i = 0; i < 5; i += 1) appliquerChapitre(etat, chapitre({ coeurs_delta: -1 }));
-  assert.equal(etat.coeurs, 1);
+  assert.equal(perdreCoeur(etat), 2);
+  assert.equal(perdreCoeur(etat), 1);
+  assert.equal(perdreCoeur(etat), 0);
+  assert.equal(perdreCoeur(etat), 0, 'pas de courage négatif');
   for (let i = 0; i < 5; i += 1) appliquerChapitre(etat, chapitre({ coeurs_delta: 1 }));
   assert.equal(etat.coeurs, 3);
+});
+
+test('à zéro courage, on est secouru : un objet et une étoile en moins, pas de fin', () => {
+  const etat = base();
+  etat.etoiles = 2;
+  appliquerChapitre(etat, chapitre({ sac_ajouter: [{ nom: 'Lanterne', emoji: '🏮', pouvoir: 'éclaire' }] }));
+  etat.coeurs = 0;
+  const perdu = secourir(etat);
+  assert.equal(perdu.nom, 'Lanterne');
+  assert.equal(etat.sac.length, 0);
+  assert.equal(etat.coeurs, 2, 'on repart avec du courage');
+  assert.equal(etat.etoiles, 1);
+  assert.equal(etat.termine, false, 'l’aventure continue');
+});
+
+test('un chapitre sans choix mais avec un adversaire ne termine pas l’histoire', () => {
+  const etat = base();
+  const bilan = appliquerChapitre(etat, chapitre({
+    choix: [], adversaire_nom: 'Groumf', adversaire_emoji: '🧌', adversaire_coeurs: 2,
+  }));
+  assert.equal(bilan.fini, false);
+  assert.equal(etat.termine, false);
+});
+
+test('une rencontre costaude est mémorisée puis oubliée', () => {
+  const etat = base();
+  appliquerChapitre(etat, chapitre({ adversaire_nom: 'Groumf le troll', adversaire_emoji: '👹', adversaire_coeurs: 2 }));
+  assert.equal(etat.adversaire.coeurs, 2);
+  appliquerChapitre(etat, chapitre({ adversaire_coeurs: 0 }));
+  assert.equal(etat.adversaire, null);
+});
+
+test('les lieux visités alimentent la carte, sans doublon', () => {
+  const etat = base();
+  appliquerChapitre(etat, chapitre({ lieu_nom: 'la clairière aux champignons' }));
+  appliquerChapitre(etat, chapitre({ lieu_nom: 'La Clairière aux champignons' }));
+  appliquerChapitre(etat, chapitre({ lieu_nom: 'le pont de pierre', lieu: 'montagne' }));
+  assert.deepEqual(etat.lieux.map((l) => l.nom), ['la clairière aux champignons', 'le pont de pierre']);
 });
 
 test('un chapitre sans choix termine l’aventure', () => {

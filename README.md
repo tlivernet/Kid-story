@@ -22,7 +22,7 @@ et s'installe sur le téléphone ou la tablette comme une vraie application.
 | Résumé | Un bouton 📜 rappelle à tout moment où en est l'histoire : chapitre, mission, compagnons, sac, ce qui s'est passé — lu à voix haute, sans appel à l'API. |
 | Richesse du récit | Arc en neuf étapes (ouverture → rencontre → complication → coup dur → idée maligne → dénouement), **graines narratives** plantées puis payées, troupe de personnages avec leurs manies, un détail sensoriel par chapitre. |
 | Illustrations | Claude ne génère pas d'images. L'application **dessine elle-même** la scène en SVG (28 décors, jour/soir/nuit) à partir du lieu renvoyé par le modèle, avec les personnages en emojis animés. C'est instantané, joli et ça marche hors ligne. |
-| Jeu | Sac de quête (6 objets max), cœurs de courage, étoiles, compagnons, choix qui exigent un objet, épreuves au dé à 6 faces (+1 si un compagnon accompagne le héros). |
+| Jeu | Sac de quête (6 objets max), **cœurs de courage**, étoiles, compagnons, choix qui exigent un objet, épreuves, **rencontres costaudes** en plusieurs manches, **carte des lieux visités** pour revenir se balader. |
 | Hors ligne | Un service worker met l'app en cache et un **mode démo** fabrique des histoires sur l'appareil, sans clé API. |
 
 ### Ce qui donne de la richesse au récit
@@ -41,6 +41,12 @@ Deux règles de style comptent autant que le reste : la **première phrase de ch
 de l'enfant vient de produire** (on ne peut pas relire en arrière quand on écoute), et le texte enchaîne ses
 phrases avec des mots de liaison au lieu de les hacher — c'est plus facile à suivre, et moins bébé.
 
+### Des objets qui ne se répètent pas
+Le modèle, laissé libre, propose toujours la même lanterne et le même sifflet. L'application lui envoie donc à
+chaque tour **huit trésors tirés au sort** dans une réserve de 80 (une boussole qui montre ce qu'on a perdu, un
+caillou tiède qui chauffe près du danger, une pelote qui montre le chemin du retour…) et la liste des objets
+**déjà offerts dans les trois dernières aventures**, à ne pas reprendre.
+
 ### Deux parties sur le même thème ne se ressemblent pas
 Au démarrage, l'application tire une **carte d'inspiration** : une situation de départ, un compagnon, un objet
 insolite, un retournement à préparer et un ton, parmi plus de 13 000 combinaisons. Les débuts déjà utilisés
@@ -48,6 +54,27 @@ dans les six dernières aventures sont écartés du tirage. Le retournement est 
 pour qu'il l'amène au bon moment. Sans cela, le même thème produit systématiquement la même ouverture : les
 paramètres d'échantillonnage (`temperature`) n'existent plus sur les modèles récents, la variété doit donc
 venir du prompt.
+
+### Le courage sert vraiment à quelque chose
+Les trois cœurs sont le courage du héros. **Une épreuve ratée coûte un cœur** — c'est la seule vraie sanction,
+et elle est calculée par l'application, pas par le modèle, pour que l'enfant voie le lien.
+À zéro cœur, **l'histoire ne s'arrête pas** : un ami vient à la rescousse, un objet du sac est perdu, une étoile
+s'envole, et l'aventure repart avec deux cœurs. C'est la version clémente du « livre dont on est le héros » :
+on perd quelque chose, jamais la partie. Le réglage *Difficulté* propose **Tendre** (aucun cœur perdu),
+**Normale** ou **Corsée** (épreuves d'un cran plus dures).
+
+### Rencontres costaudes
+Environ une fois par aventure, le modèle fait se dresser un adversaire (`adversaire_coeurs` de 1 à 3) — un troll
+grognon, une oie têtue, un dragon chatouilleux, jamais rien d'effrayant. L'application prend alors la main et
+met en scène un affrontement en plusieurs manches : à chaque manche l'enfant choisit **Foncer**, **Viser juste**
+ou **Lui parler**, ce qui déclenche un dé ou un mini-jeu. Chaque réussite entame le courage de l'adversaire,
+chaque échec celui du héros. Le résultat est renvoyé au modèle, qui raconte la suite — on ne blesse personne,
+on convainc, on amadoue, on fait rire.
+
+### Se balader
+Chaque chapitre nomme son décor (`lieu_nom`). Le bouton 📜 liste les endroits déjà visités : en toucher un
+demande un **chapitre de balade** court (2-3 phrases, pas de nouvelle péripétie) pour y retourner, comme quand
+on feuillette en arrière dans un livre-jeu.
 
 ### Détails qui comptent sur une tablette d'enfant
 - **L'écran reste allumé** pendant l'aventure (Wake Lock), y compris après un passage en arrière-plan.
