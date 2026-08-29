@@ -106,6 +106,63 @@ test('un objet ne peut apparaître qu’un chapitre sur trois', async () => {
   assert.equal(momentDObjet({ chapitre: 4, sac: [] }), true, 'sac vide : on peut redonner un objet');
 });
 
+// Manquer d'un objet est la mécanique du genre : elle doit tomber assez souvent
+// pour que l'enfant comprenne à quoi sert son sac.
+test('une porte fermée tombe un chapitre sur trois, jamais en même temps qu’un cadeau', async () => {
+  const { momentDePorte, momentDObjet } = await import('../js/prompt.js');
+  const etat = (chapitre) => ({ chapitre, sac: [{ nom: 'Clé' }] });
+  assert.equal(momentDePorte(etat(0)), false, 'pas de porte avant que le sac existe');
+  assert.equal(momentDePorte(etat(2)), false);
+  assert.equal(momentDePorte(etat(3)), true);
+  assert.equal(momentDePorte(etat(6)), true);
+  assert.equal(momentDePorte(etat(9)), true);
+  const portes = [...Array(12).keys()].filter((c) => momentDePorte(etat(c)));
+  assert.equal(portes.length, 3, `douze chapitres devraient poser trois portes (${portes})`);
+  for (const chapitre of portes) {
+    assert.equal(momentDObjet(etat(chapitre)), false, `chapitre ${chapitre} : cadeau et porte le même tour`);
+  }
+});
+
+test('le message annonce la porte fermée et réclame la conséquence d’un choix audacieux', async () => {
+  const { messageSuivant } = await import('../js/prompt.js');
+  const base = {
+    heros: { prenom: 'Lina', avatar: '🦊' }, theme: 'Dragons', longueur: 12,
+    coeurs: 3, etoiles: 1, sac: [{ nom: 'Clé', emoji: '🗝️', pouvoir: 'ouvre' }],
+    personnages: [], promesses: [], objetsEvites: [], quete: 'x', memoire: 'y', lieux: [],
+  };
+  const avecPorte = messageSuivant({ ...base, chapitre: 3 }, { resume: 'r' });
+  assert.match(avecPorte, /PORTE FERMÉE/, 'le chapitre 3 doit demander une porte fermée');
+  const sansPorte = messageSuivant({ ...base, chapitre: 4 }, { resume: 'r' });
+  assert.match(sansPorte, /Pas de porte fermée/);
+
+  const rate = messageSuivant({ ...base, chapitre: 4 }, { resume: 'r', risque: 'coute' });
+  assert.match(rate, /coeurs_delta = -1/, 'un choix audacieux raté doit coûter pour de bon');
+  assert.match(rate, /pas de cadeau de consolation/);
+  const gagne = messageSuivant({ ...base, chapitre: 4 }, { resume: 'r', risque: 'paye' });
+  assert.match(gagne, /vraie avance/);
+});
+
+test('le mode démo pose lui aussi des portes et un choix audacieux', async () => {
+  const { chapitreDemo } = await import('../js/demo.js');
+  const etat = {
+    // Le chapitre 3 du mode démo est la rencontre costaude, qui n'a pas de choix :
+    // la première porte tombe donc au chapitre 6.
+    id: 'demo-1', chapitre: 6, longueur: 12, themeId: 'pirates', realiste: false,
+    heros: { prenom: 'Lina', avatar: '🦊' }, sac: [], etoiles: 0, coeurs: 3,
+    quete: 'retrouver le trésor', memoire: '', compagnon: '', lieu: 'plage',
+  };
+  const chapitre = chapitreDemo(etat, { resume: 'r' });
+  const audacieux = chapitre.choix.filter((c) => c.risque);
+  assert.equal(audacieux.length, 1, 'un seul choix audacieux par liste');
+  const ferme = chapitre.choix.find((c) => c.objet_requis && !etat.sac.some((o) => o.nom === c.objet_requis));
+  assert.ok(ferme, 'le chapitre 6 doit proposer un choix qui demande un objet absent du sac');
+
+  const paye = chapitreDemo({ ...etat, chapitre: 4 }, { resume: 'r', risque: 'paye' });
+  assert.equal(paye.etoiles_delta, 1, 'l’audace qui paie rapporte une étoile');
+  const coute = chapitreDemo({ ...etat, chapitre: 4 }, { resume: 'r', risque: 'coute' });
+  assert.equal(coute.coeurs_delta, -1, 'l’audace qui rate coûte un cœur');
+});
+
 test('sans coffre, le message interdit explicitement les objets', async () => {
   const { messageSuivant } = await import('../js/prompt.js');
   const etat = {

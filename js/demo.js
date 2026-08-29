@@ -1,6 +1,7 @@
 // Mode démo / hors-ligne : une aventure fabriquée sur l'appareil, sans clé API.
 // Même format de chapitre que la Plume Magique, en beaucoup plus simple.
 import { THEMES } from './config.js';
+import { momentDePorte } from './prompt.js';
 import { piocher, rng } from './util.js';
 
 const COMPAGNONS = [
@@ -84,10 +85,34 @@ const PERIPETIES = [
 ];
 
 function debutSelonAction(action, h) {
-  if (!action?.epreuve) return [];
-  return action.epreuve.reussi
+  const debut = [];
+  if (action?.risque === 'coute') {
+    debut.push('Aïe ! Le chemin audacieux ne passait pas.', 'Tu perds un cœur, mais tu repars quand même.');
+  } else if (action?.risque === 'paye') {
+    debut.push('Quel courage ! Ton audace ouvre un raccourci.', 'Tu gagnes une étoile.');
+  }
+  if (!action?.epreuve) return debut;
+  return debut.concat(action.epreuve.reussi
     ? [`Bravo ${h}, tu as réussi !`, 'Ton cœur fait boum de fierté.']
-    : ['Oups ! Ça n’a pas marché.', 'Tu te relèves en riant. Ce n’est pas grave.'];
+    : ['Oups ! Ça n’a pas marché.', 'Tu te relèves en riant. Ce n’est pas grave.']);
+}
+
+// Le sac ne sert que si l'on manque parfois de l'objet : le mode démo pose donc
+// lui aussi des portes fermées, au même rythme que la Plume Magique.
+function poserLesPortes(choix, etat, r) {
+  if (!choix.length) return choix;
+  const liste = choix.map((c) => ({ objet_requis: '', risque: false, ...c }));
+  const audacieux = liste.reduce((a, b) => ((b.epreuve_difficulte || 0) > (a.epreuve_difficulte || 0) ? b : a));
+  audacieux.risque = true;
+  const manquant = OBJETS.find((o) => !etat.sac.some((s) => s.nom === o.nom));
+  if (momentDePorte(etat) && manquant) {
+    const ferme = liste.find((c) => c !== audacieux) || liste[0];
+    ferme.objet_requis = manquant.nom;
+  } else if (etat.sac.length && r() > 0.5) {
+    const ouvert = liste.find((c) => c !== audacieux) || liste[0];
+    ouvert.objet_requis = etat.sac[0].nom;
+  }
+  return liste;
 }
 
 export function chapitreDemo(etat, action) {
@@ -129,8 +154,8 @@ export function chapitreDemo(etat, action) {
       coeurs_delta: 0,
       etoiles_delta: 1,
       choix: [
-        { texte: 'Partir tout de suite', emoji: '👟', objet_requis: '', epreuve_nom: '', epreuve_difficulte: 0 },
-        { texte: 'Préparer un pique-nique', emoji: '🧺', objet_requis: '', epreuve_nom: '', epreuve_difficulte: 0 },
+        { texte: 'Partir tout de suite', emoji: '👟', objet_requis: '', epreuve_nom: '', epreuve_difficulte: 0, risque: true },
+        { texte: 'Préparer un pique-nique', emoji: '🧺', objet_requis: '', epreuve_nom: '', epreuve_difficulte: 0, risque: false },
       ],
       fin_titre: '',
       fin_message: '',
@@ -189,9 +214,9 @@ export function chapitreDemo(etat, action) {
     adversaire_coeurs: adversaire?.coeurs || 0,
     sac_ajouter: donneObjet && objet ? [objet] : [],
     sac_retirer: [],
-    coeurs_delta: action?.epreuve && !action.epreuve.reussi ? -1 : 0,
-    etoiles_delta: action?.epreuve?.reussi ? 1 : 0,
-    choix: adversaire ? [] : scene.choix.map((c) => ({ objet_requis: '', ...c })),
+    coeurs_delta: (action?.epreuve && !action.epreuve.reussi) || action?.risque === 'coute' ? -1 : 0,
+    etoiles_delta: action?.epreuve?.reussi || action?.risque === 'paye' ? 1 : 0,
+    choix: adversaire ? [] : poserLesPortes(scene.choix, etat, r),
     fin_titre: '',
     fin_message: '',
   };

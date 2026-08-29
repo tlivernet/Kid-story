@@ -102,14 +102,10 @@
       </div>
       <button class="btn-icone" id="btn-outils" aria-label="Sac, résumé et voix" aria-haspopup="true" aria-expanded="false">
         <svg viewBox="0 0 24 24" class="plein" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg>
-        <span class="pastille" id="pastille-sac" hidden>0</span>
       </button>
       <!-- Les trois outils tiennent dans un seul menu : le bandeau ne garde que
            ce qui doit rester visible pendant l'histoire. -->
       <div class="menu-outils" id="menu-outils" hidden>
-        <button class="ligne-outil" id="btn-sac">
-          <span class="emoji">🎒</span><span class="libelle">Mon sac de quête</span><span class="compte" id="compte-sac">0</span>
-        </button>
         <button class="ligne-outil" id="btn-resume">
           <span class="emoji">📜</span><span class="libelle">Où en est mon histoire ?</span>
         </button>
@@ -121,6 +117,11 @@
 
     <div class="planche">
       <div class="scene" id="scene"></div>
+      <!-- Le sac reste sous les yeux : c'est la mécanique du livre, pas un tiroir. -->
+      <div class="rail-sac">
+        <button class="rail-titre" id="btn-sac" aria-label="Ouvrir mon sac de quête">🎒</button>
+        <div class="rail-objets" id="rail-objets"></div>
+      </div>
     </div>
     <h2 class="titre-histoire" id="titre-histoire" hidden></h2>
 
@@ -225,6 +226,11 @@
         <label class="ligne interrupteur">Lire les choix à voix haute
           <input id="champ-lire-choix" type="checkbox">
         </label>
+        <label class="ligne interrupteur">Présenter les écrans et les cartes à voix haute
+          <input id="champ-lire-interface" type="checkbox">
+        </label>
+        <p class="aide">Chaque écran dit où l’on est et ce qu’il faut toucher ; les thèmes, les objets du sac
+          et les suites proposées à la fin d’une aventure se font entendre.</p>
         <label class="ligne interrupteur">Toucher deux fois pour valider un choix
           <input id="champ-confirmer" type="checkbox">
         </label>

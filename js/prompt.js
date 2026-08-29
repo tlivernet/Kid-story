@@ -66,8 +66,12 @@ RYTHME
 - Tiens à jour la liste des personnages rencontrés (nom, emoji, manie) : c'est ta troupe, réutilise-la.
 
 TOUS LES CHEMINS NE SE VALENT PAS
-- Environ un choix sur trois doit coûter quelque chose : un détour, un objet perdu ou cassé, quelqu'un
-  qu'on réveille, une occasion manquée, du temps perdu. Sans jamais être triste ni effrayant.
+- Dans chaque liste, marque « risque » à true pour UN choix, et un seul : celui qui est visiblement le plus
+  audacieux. Les autres sont à false. Un choix risqué peut rapporter gros, mais il rate une fois sur deux.
+- Quand le message du tour t'annonce que l'enfant a pris le choix risqué et qu'il a mal tourné, la
+  conséquence doit être VRAIE et se voir dans le chapitre : un cœur perdu (coeurs_delta = -1), un objet
+  cassé ou laissé derrière (sac_retirer), un ami qui s'éloigne, un chemin qu'il faut refaire.
+  N'annule jamais la conséquence dans le même chapitre, ne la remplace pas par un cadeau de consolation.
 - Un choix prudent et un choix audacieux ne mènent pas au même endroit : les conséquences doivent se voir.
 - Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
 
@@ -97,7 +101,12 @@ CHOIX
 - L'enfant NE SAIT PAS ENCORE LIRE : les choix sont lus à voix haute. Écris-les comme on les dit,
   avec un verbe d'action au début, et rends-les faciles à distinguer à l'oreille (pas deux choix qui se ressemblent).
 - Varie leur nature : agir, parler à quelqu'un, observer, utiliser un objet, prendre un risque.
-- « objet_requis » : mets le nom exact d'un objet du sac seulement si le héros le possède déjà, sinon "".
+- « objet_requis » : le nom exact d'un objet, que le héros le possède DÉJÀ OU NON.
+  Manquer d'un objet est le sel de ce genre de livre : quand le message du tour demande UNE PORTE FERMÉE,
+  un des choix exige un objet que le héros n'a pas encore, et le texte du chapitre dit clairement lequel
+  et pourquoi il servirait. L'enfant l'apprend en touchant la carte, cherche ailleurs, et revient plus tard.
+  Ce n'est jamais une punition, jamais la seule issue : les autres choix restent ouverts.
+  Hors de ce cas, objet_requis nomme un objet réellement dans le sac, ou reste "".
 - « epreuve_nom » + « epreuve_difficulte » (2 à 5) pour un choix risqué : l'enfant lancera un dé à 6 faces.
   Difficulté 2 = facile, 5 = costaud. Sinon epreuve_nom vaut "" et epreuve_difficulte vaut 0.
 - Si le chapitre termine l'histoire, renvoie une liste de choix vide et remplis fin_titre et fin_message.
@@ -115,8 +124,9 @@ const CHOIX_SCHEMA = {
     objet_requis: { type: 'string', description: "nom exact d'un objet du sac, sinon chaîne vide" },
     epreuve_nom: { type: 'string', description: "nom court de l'épreuve de dé, sinon chaîne vide" },
     epreuve_difficulte: { type: 'integer', enum: [0, 2, 3, 4, 5] },
+    risque: { type: 'boolean', description: 'true pour le choix le plus audacieux de la liste, un seul' },
   },
-  required: ['texte', 'emoji', 'objet_requis', 'epreuve_nom', 'epreuve_difficulte'],
+  required: ['texte', 'emoji', 'objet_requis', 'epreuve_nom', 'epreuve_difficulte', 'risque'],
   additionalProperties: false,
 };
 
@@ -209,6 +219,13 @@ export function etape(chapitre, longueur) {
 export function momentDEpreuve(etat) {
   if (!Number.isFinite(etat.derniereEpreuve)) return true;
   return etat.chapitre - etat.derniereEpreuve >= 2;
+}
+
+// Une porte fermée : un chapitre sur trois, un choix demande un objet que le
+// héros n'a pas. Jamais le même tour qu'un cadeau, sinon l'objet arrive et
+// repart aussitôt, et la mécanique ne se voit pas.
+export function momentDePorte(etat) {
+  return etat.chapitre >= 3 && etat.chapitre % 3 === 0;
 }
 
 export function momentDObjet(etat) {
@@ -335,6 +352,19 @@ export function messageSuivant(etat, action) {
         : `Rencontre avec ${nom} : le héros n'a pas réussi (${detail}). Raconte un contretemps drôle : il est repoussé, doit contourner ou perdre quelque chose. L'histoire continue autrement.`,
     );
   }
+  if (action?.risque === 'coute') {
+    lignes.push(
+      'L’enfant a pris le choix AUDACIEUX et il tourne mal : fais-le payer pour de bon dans ce chapitre.',
+      'Choisis UNE conséquence et raconte-la : un cœur perdu (coeurs_delta = -1), un objet cassé ou laissé',
+      'derrière (sac_retirer), un ami qui s’éloigne, ou un chemin à refaire. Rien de triste ni d’effrayant,',
+      'mais rien d’annulé non plus : pas de cadeau de consolation dans le même chapitre.',
+    );
+  } else if (action?.risque === 'paye') {
+    lignes.push(
+      'L’enfant a pris le choix AUDACIEUX et il paie : donne-lui une vraie avance —',
+      'un raccourci, un secret révélé, un ami gagné, ou etoiles_delta = 1. Dis bien que c’est son audace.',
+    );
+  }
   if (action?.secours) {
     lignes.push(
       'Le héros n’a plus de courage : raconte un coup de pouce chaleureux (un ami arrive, un abri, une soupe chaude).',
@@ -365,6 +395,9 @@ export function messageSuivant(etat, action) {
     `ÉTAPE « ${nom} » — ${consigne}`,
     momentDObjet(etat) ? coffre(etat) : 'AUCUN OBJET dans ce chapitre : sac_ajouter reste vide, et le texte ne parle pas d’un nouvel objet.',
     momentDEpreuve(etat) ? '' : 'PAS D’ÉPREUVE ce tour-ci : epreuve_nom vide et epreuve_difficulte à 0 pour tous les choix.',
+    momentDePorte(etat)
+      ? 'UNE PORTE FERMÉE ce tour-ci : un des choix demande un objet que le héros n’a PAS dans son sac. Le texte dit lequel et à quoi il servirait ; les autres choix restent ouverts.'
+      : 'Pas de porte fermée : objet_requis ne nomme que des objets réellement dans le sac, ou reste vide.',
     consigneLongueur(etat),
     'Écris le chapitre suivant.',
   );

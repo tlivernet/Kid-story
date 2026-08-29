@@ -61,7 +61,29 @@ function encaisserEchec() {
 
 // --- Utilitaires d'interface ------------------------------------------------
 
-function montrer(nom) {
+// Chaque écran se présente à voix haute : l'enfant ne lit pas encore, il ne
+// doit jamais avoir à deviner où il est ni ce qu'on attend de lui.
+const ANNONCES = {
+  accueil: () => [
+    'Le Livre Magique.',
+    $('#btn-continuer').hidden
+      ? 'Touche la grande touche violette pour commencer une aventure.'
+      : 'Touche la touche violette pour une nouvelle aventure, ou celle du dessous pour continuer ton histoire.',
+  ],
+  theme: () => ['Quelle histoire aujourd’hui ?', 'Touche le monde qui te plaît.'],
+  heros: () => ['Qui est le héros ?', 'Choisis ton personnage, puis touche la grande touche « C’est parti ».'],
+  carnet: () => ['Ton carnet d’aventures.', 'Touche une histoire pour l’écouter.'],
+};
+
+function annoncerEcran(nom, entete) {
+  if (!ui.lecture || !ui.reglages.lireInterface) return;
+  const phrases = [entete, ...(ANNONCES[nom]?.() || [])].filter(Boolean);
+  if (!phrases.length) return;
+  narrateur.debloquer();
+  narrateur.lire(phrases, {});
+}
+
+function montrer(nom, entete) {
   ui.ecran = nom;
   annulerValidation();
   if (nom === 'jeu') garderEcranAllume(); else laisserEcranDormir();
@@ -69,6 +91,7 @@ function montrer(nom) {
   document.querySelectorAll('.ecran').forEach((e) => e.classList.remove('actif'));
   $(`#ecran-${nom}`).classList.add('actif');
   $(`#ecran-${nom}`).scrollTop = 0;
+  annoncerEcran(nom, entete);
 }
 
 // L'écran d'une tablette s'éteint au bout de trente secondes sans toucher :
@@ -199,7 +222,7 @@ function construireThemes() {
       ui.theme = choisi;
       $('#bloc-idee').hidden = theme.id !== 'idee';
       construireAvatars();
-      montrer('heros');
+      montrer('heros', `${choisi.nom} !`);
       $('#champ-prenom').focus();
     });
     grille.appendChild(carte);
@@ -495,10 +518,35 @@ function majJauges() {
   $('#coeurs').setAttribute('aria-label', `${pleins} cœurs de courage sur 3`);
   $('#etoiles').innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${TRACE_ETOILE}"/></svg><b>${etat.etoiles}</b>`;
   $('#etoiles').setAttribute('aria-label', `${etat.etoiles} étoiles`);
-  const pastille = $('#pastille-sac');
-  pastille.textContent = etat.sac.length;
-  pastille.hidden = etat.sac.length === 0;
-  $('#compte-sac').textContent = etat.sac.length;
+  majRailSac();
+}
+
+// Le sac est affiché en permanence : l'enfant voit ce qu'il transporte, et
+// touche un objet pour s'entendre rappeler à quoi il sert.
+function majRailSac() {
+  const rail = $('#rail-objets');
+  const sac = ui.etat?.sac || [];
+  const connus = new Set([...rail.querySelectorAll('.objet-rail')].map((n) => n.dataset.nom));
+  vider(rail);
+  if (!sac.length) {
+    rail.appendChild(el('span', { class: 'rail-vide', text: 'Ton sac est vide' }));
+    return;
+  }
+  for (const objet of sac) {
+    const puce = el('button', { class: 'objet-rail', 'data-nom': objet.nom }, [
+      el('span', { class: 'emoji', text: objet.emoji || '🎁' }),
+      el('span', { class: 'nom', text: objet.nom }),
+    ]);
+    if (connus.size && !connus.has(objet.nom)) puce.classList.add('neuf');
+    puce.addEventListener('click', () => direObjet(objet));
+    rail.appendChild(puce);
+  }
+}
+
+function direObjet(objet) {
+  const phrase = objet.pouvoir ? `${objet.nom} : ${objet.pouvoir}` : objet.nom;
+  toast(`${objet.emoji || '🎁'} ${phrase}`);
+  if (ui.lecture) { narrateur.debloquer(); narrateur.direMot(phrase); }
 }
 
 // Le titre de l'histoire sert aussi de repère de progression.
@@ -564,15 +612,43 @@ function rendreChoix(chapitre, masquer = false) {
     const bouton = el('button', { class: classes.join(' '), 'data-texte': choix.texte }, [
       el('span', { class: 'numero', text: String(rang + 1) }),
       el('span', { class: 'emoji', text: choix.emoji || '👉' }),
-      el('span', { class: 'libelle', text: choix.texte }),
+      el('span', { class: 'carte-texte' }, [el('span', { class: 'libelle', text: choix.texte })]),
     ]);
-    if (choix.objet_requis) bouton.appendChild(el('span', { class: 'badge', text: `🎒 ${choix.objet_requis}` }));
-    else if (choix.epreuve_difficulte) bouton.appendChild(el('span', { class: 'badge', text: '🎲' }));
     bouton.appendChild(el('span', { class: 'validation', text: '✅' }));
+    // Le badge vient après la coche : il passe ainsi sur sa propre ligne et
+    // dispose de toute la largeur de la carte, quel que soit le nom de l'objet.
+    const badge = badgeDuChoix(choix, possede);
+    if (badge) bouton.appendChild(badge);
     bouton.appendChild(el('span', { class: 'jauge-validation' }));
     bouton.addEventListener('click', () => choisir(choix, possede, bouton));
     zone.appendChild(bouton);
   }
+}
+
+// Ce qu'un choix demande doit se voir sans savoir lire : un dé pour une
+// épreuve, l'objet lui-même quand on l'a, un cadenas quand il manque.
+function badgeDuChoix(choix, possede) {
+  if (choix.objet_requis) {
+    const objet = ui.etat.sac.find((o) => o.nom.toLowerCase() === String(choix.objet_requis).toLowerCase());
+    return possede
+      ? el('span', { class: 'badge badge-objet' }, [
+        el('span', { class: 'emoji', text: objet?.emoji || '🎒' }),
+        el('span', { class: 'mot', text: choix.objet_requis }),
+      ])
+      // Le cadenas dit « fermé », le nom dit « quoi » : pas de phrase à lire,
+      // elle serait tronquée sur un téléphone. La voix, elle, la dit en entier.
+      : el('span', { class: 'badge badge-manque' }, [
+        el('span', { class: 'emoji', text: '🔒' }),
+        el('span', { class: 'mot', text: choix.objet_requis }),
+      ]);
+  }
+  if (choix.epreuve_difficulte) {
+    return el('span', { class: 'badge badge-epreuve' }, [
+      el('span', { class: 'emoji', text: '🎲' }),
+      el('span', { class: 'mot', text: 'épreuve' }),
+    ]);
+  }
+  return null;
 }
 
 // L'enfant touche une tuile : elle s'allume, se fait relire, et une jauge se
@@ -626,6 +702,11 @@ async function choisir(choix, possede, bouton) {
 
   const action = { resume: `Il a choisi : « ${choix.texte} »`, epreuve: null };
   if (choix.objet_requis) action.resume += ` en utilisant ${choix.objet_requis}.`;
+  // Un choix audacieux sans épreuve se joue quand même : une fois sur deux il
+  // coûte quelque chose. Sinon tous les chemins se valent, et l'enfant le sent.
+  if (choix.risque && !choix.epreuve_difficulte) {
+    action.risque = Math.random() < 0.5 ? 'paye' : 'coute';
+  }
 
   if (choix.epreuve_difficulte) {
     ui.etat.derniereEpreuve = ui.etat.chapitre;
@@ -1070,7 +1151,12 @@ function montrerFin() {
   $('#fin-message').textContent = etat.finMessage || '';
   $('#fin-score').textContent = `⭐ ${etat.etoiles} étoiles · 📖 ${etat.chapitre} chapitres`;
   montrer('fin');
-  if (ui.lecture) narrateur.lire([etat.finTitre || 'Bravo !', etat.finMessage || ''].filter(Boolean), {});
+  if (ui.lecture) {
+    const suites = ui.reglages.lireInterface
+      ? ['Tu peux commencer une autre aventure, continuer celle-ci quand même, ou ouvrir ton carnet.']
+      : [];
+    narrateur.lire([etat.finTitre || 'Bravo !', etat.finMessage || '', ...suites].filter(Boolean), {});
+  }
 }
 
 // « Où en est mon histoire ? » — reconstitué localement, sans appel à l'API.
@@ -1204,6 +1290,7 @@ function construireReglages() {
   $('#champ-longueur').value = String(ui.reglages.longueur);
   $('#champ-richesse').value = ui.reglages.richesse;
   $('#champ-lire-choix').checked = ui.reglages.lireChoix;
+  $('#champ-lire-interface').checked = ui.reglages.lireInterface;
   $('#champ-confirmer').checked = ui.reglages.confirmerChoix;
   $('#champ-epreuves').value = ui.reglages.epreuves;
   $('#champ-jeux-lecture').checked = ui.reglages.jeuxLecture;
@@ -1355,7 +1442,7 @@ function brancher() {
     if (e.target.closest('#menu-outils') || e.target.closest('#btn-outils')) return;
     menuOutils(false);
   });
-  $('#btn-sac').addEventListener('click', () => { menuOutils(false); ouvrirSac(); });
+  $('#btn-sac').addEventListener('click', ouvrirSac);
   $('#btn-resume').addEventListener('click', () => { menuOutils(false); ouvrirResume(); });
   $('#btn-fermer-resume').addEventListener('click', () => { narrateur.stop(); $('#modale-resume').hidden = true; });
   $('#btn-ecouter-resume').addEventListener('click', () => {
@@ -1438,6 +1525,7 @@ function brancher() {
   $('#champ-modele').addEventListener('change', (e) => enregistrerReglage('modele', e.target.value));
   $('#champ-richesse').addEventListener('change', (e) => enregistrerReglage('richesse', e.target.value));
   $('#champ-lire-choix').addEventListener('change', (e) => enregistrerReglage('lireChoix', e.target.checked));
+  $('#champ-lire-interface').addEventListener('change', (e) => enregistrerReglage('lireInterface', e.target.checked));
   $('#champ-confirmer').addEventListener('change', (e) => enregistrerReglage('confirmerChoix', e.target.checked));
   $('#champ-epreuves').addEventListener('change', (e) => enregistrerReglage('epreuves', e.target.value));
   $('#champ-jeux-lecture').addEventListener('change', (e) => enregistrerReglage('jeuxLecture', e.target.checked));

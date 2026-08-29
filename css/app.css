@@ -340,11 +340,44 @@ body {
 .scene {
   position: relative;
   width: 100%;
-  height: clamp(130px, 20vh, 195px);
+  height: clamp(110px, 16vh, 170px);
   background: #cfe9ff;
   overflow: hidden;
 }
 .scene svg { width: 100%; height: 100%; display: block; animation: fondu 0.5s ease; }
+
+/* Le sac, sous l'illustration et dans le même cadre : l'enfant voit en
+   permanence ce qu'il transporte, sans avoir à ouvrir quoi que ce soit. */
+.rail-sac {
+  display: flex; align-items: stretch; gap: 8px;
+  height: 58px; padding: 6px 8px;
+  background: var(--creme); border-top: 3px solid var(--creme-fonce);
+}
+.rail-titre {
+  flex: none; width: 44px; border-radius: 14px; cursor: pointer;
+  border: 2px solid var(--creme-fonce); background: #fff; color: var(--encre);
+  font-size: 1.5rem; display: grid; place-items: center;
+}
+.rail-titre:active { transform: scale(0.94); }
+.rail-objets {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
+}
+.rail-objets::-webkit-scrollbar { display: none; }
+.objet-rail {
+  flex: none; display: flex; align-items: center; gap: 7px;
+  font: inherit; font-size: 0.95rem; font-weight: 800; cursor: pointer;
+  padding: 6px 12px 6px 8px; border-radius: 999px;
+  border: 2px solid var(--creme-fonce); background: #fff; color: var(--encre);
+  max-width: 190px;
+}
+.objet-rail .emoji { font-size: 1.35rem; line-height: 1; }
+.objet-rail .nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.objet-rail:active { transform: scale(0.95); }
+.objet-rail.neuf { animation: arrive 0.5s ease; }
+@keyframes arrive { 0% { transform: scale(0.3) rotate(-12deg); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.rail-vide { font-size: 0.92rem; font-weight: 700; color: var(--encre-doux); padding-left: 4px; }
 @keyframes fondu { from { opacity: 0; } to { opacity: 1; } }
 
 .acteur { animation: flotte 2.6s ease-in-out infinite; transform-origin: center; }
@@ -403,7 +436,7 @@ body {
   background: var(--creme);
 }
 .carte-choix {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
   font: inherit; font-size: calc(1.15rem * var(--taille-texte)); font-weight: 700; text-align: left;
   background: #fff; border: 3px solid var(--creme-fonce); border-radius: var(--rayon);
   padding: 14px 16px; cursor: pointer; box-shadow: var(--ombre);
@@ -444,10 +477,26 @@ body {
   box-shadow: 0 0 0 4px var(--couleur-choix, var(--violet)) inset, var(--ombre);
 }
 .carte-choix.choisi .validation { opacity: 1; animation: flotte 1.6s ease-in-out infinite; }
-.carte-choix .libelle { flex: 1; }
-.carte-choix .badge { font-size: 0.8rem; font-weight: 800; background: var(--creme-fonce); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.carte-choix .carte-texte { flex: 1; min-width: 0; }
+.carte-choix .libelle { display: block; }
+.carte-choix .badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.92rem; font-weight: 800; line-height: 1.2;
+  border-radius: 999px; padding: 5px 12px 5px 8px;
+  border: 2px solid var(--creme-fonce); background: var(--creme); color: var(--encre);
+  flex: 0 0 auto; max-width: 100%;
+}
+.carte-choix .badge .emoji { font-size: 1.25rem; }
+.carte-choix .badge .mot { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Ces trois modificateurs doivent battre la règle générale ci-dessus :
+   même poids de sélecteur, donc qualifiés par .carte-choix eux aussi. */
+.carte-choix .badge-epreuve { background: #fff2d6; border-color: #e8b84b; color: #6b4a00; }
+.carte-choix .badge-objet { background: #e3f4ea; border-color: #3fae6a; color: #1e5c36; }
+.carte-choix .badge-manque { background: #fdeae7; border-color: #e0574f; color: #8c2f2a; }
 .carte-choix.epreuve { border-color: #f6d488; background: #fffaf0; }
-.carte-choix.bloque { opacity: 0.55; }
+/* Un choix verrouillé reste lisible et tentant : ce n'est pas une punition,
+   c'est une porte dont l'enfant apprend qu'il lui manque la clé. */
+.carte-choix.bloque { border-style: dashed; }
 .carte-choix.secoue { animation: secoue 0.4s ease; }
 @keyframes secoue { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 
@@ -707,7 +756,14 @@ body {
   .btn-lecture-principal { width: 76px; height: 76px; }
   .btn-lecture-principal svg, .btn-lecture-principal svg.plein { width: 32px; height: 32px; }
   .planche { margin: 0 24px; border-width: 5px; border-radius: 30px; }
-  .scene { height: clamp(200px, 24vh, 320px); }
+  .scene { height: clamp(190px, 21vh, 300px); }
+  .rail-sac { height: 72px; padding: 8px 10px; gap: 10px; }
+  .rail-titre { width: 56px; border-radius: 17px; font-size: 1.8rem; }
+  .objet-rail { font-size: 1.15rem; padding: 8px 16px 8px 11px; max-width: 260px; }
+  .objet-rail .emoji { font-size: 1.6rem; }
+  .rail-vide { font-size: 1.1rem; }
+  .carte-choix .badge { font-size: 1.05rem; padding: 7px 15px 7px 10px; }
+  .carte-choix .badge .emoji { font-size: 1.5rem; }
 
   .titre-histoire { margin: 18px 24px 0; font-size: 1.05rem; }
   .zone-histoire { padding: 20px 24px 18px; gap: 16px; }

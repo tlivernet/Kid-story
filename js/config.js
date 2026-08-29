@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.11.1',
+  version: '1.12.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -476,6 +476,7 @@ export const REGLAGES_DEFAUT = {
   fallback: true,           // secours automatique côté serveur
   confirmerChoix: true,     // l'enfant écoute le choix puis confirme (il ne lit pas encore)
   lireChoix: true,          // les choix sont lus à voix haute automatiquement
+  lireInterface: true,      // les écrans et les cartes se présentent à voix haute
   epreuves: 'melange',      // 'de', 'minijeux' ou 'melange'
   jeuxLecture: true,        // ajoute les épreuves de lecture (niveau CP)
   douceur: 'normal',        // 'tendre' (aucun cœur perdu), 'normal', 'corse'

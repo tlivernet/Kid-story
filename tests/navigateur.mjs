@@ -256,7 +256,7 @@ for (let tour = 0; tour < 25 && !combatVu; tour += 1) {
   const vue = await etatEcran();
   if (vue.combat) { combatVu = true; break; }
   if (vue.epreuve) { await jouerEpreuve(); continue; }
-  await page.click('#choix .carte-choix');
+  await page.click('#choix .carte-choix:not(.bloque)');
   await page.waitForTimeout(3800);
 }
 verifier(combatVu, 'une rencontre costaude finit par barrer la route');
@@ -274,7 +274,42 @@ for (let manche = 0; manche < 20; manche += 1) {
 await page.waitForTimeout(1500);
 verifier(await page.isHidden('#overlay-epreuve'), 'le combat se termine et rend la main à l’histoire');
 
+// --- Le sac, visible en permanence, et les portes fermées ------------------
 await page.waitForSelector('#choix:not(.masque) .carte-choix', { timeout: 40000 });
+const sacVu = await page.$$eval('.objet-rail .nom', (n) => n.map((x) => x.textContent));
+verifier(sacVu.length > 0, `le sac reste affiché sous l’illustration (${sacVu.join(', ') || 'vide'})`);
+
+const badgeDe = await page.$$eval('#choix .badge-epreuve', (n) => n.length);
+verifier(badgeDe >= 0, `les choix à épreuve portent un dé visible (${badgeDe} sur cet écran)`);
+
+let porteVue = null;
+for (let tour = 0; tour < 20 && !porteVue; tour += 1) {
+  await attendreAction();
+  const vue = await etatEcran();
+  if (vue.epreuve) { await jouerEpreuve(); continue; }
+  porteVue = await page.$eval('#choix .carte-choix.bloque .badge-manque .mot', (n) => n.textContent.trim()).catch(() => null);
+  if (porteVue) break;
+  if (!await page.$('#choix .carte-choix:not(.bloque)')) break;
+  await page.click('#choix .carte-choix:not(.bloque)');
+  await page.waitForTimeout(3800);
+}
+verifier(Boolean(porteVue), `un choix demande un objet qui manque au sac (${porteVue || 'jamais rencontré'})`);
+if (porteVue) {
+  const avant = (await page.$$('#choix .carte-choix')).length;
+  await page.click('#choix .carte-choix.bloque');
+  await page.waitForTimeout(400);
+  const dit = await page.textContent('#toast');
+  verifier(/il te faut/i.test(dit || ''), `toucher la porte dit ce qui manque (« ${(dit || '').trim()} »)`);
+  const apres = (await page.$$('#choix .carte-choix')).length;
+  verifier(apres === avant, 'une porte fermée ne fait pas avancer l’histoire');
+}
+
+// Toucher un objet du sac le fait annoncer.
+await page.click('.objet-rail');
+await page.waitForTimeout(300);
+const ditObjet = await page.textContent('#toast');
+verifier(Boolean((ditObjet || '').trim()), `toucher un objet rappelle à quoi il sert (« ${(ditObjet || '').trim()} »)`);
+
 await page.click('#btn-outils');
 await page.click('#btn-resume');
 await page.waitForTimeout(400);
