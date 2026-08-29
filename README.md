@@ -161,6 +161,11 @@ Les voix intégrées aux navigateurs sont souvent robotiques, surtout sur tablet
    choisir une voix française (les voix `Wavenet`, `Neural2` et `Chirp3-HD` sont les plus naturelles),
    puis `🔊 Essayer la voix`.
 
+> Le texte envoyé à la voix est retouché pour l'oreille seulement — l'affichage garde l'original :
+> l'apostrophe droite devient l'apostrophe française (sans quoi « c'est » est lu « c », « est »), les mots
+> tout en majuscules sont remis en minuscules (« LUI » était épelé lettre par lettre) et les guillemets
+> français sont retirés.
+
 > Les familles récentes (`Chirp3-HD`, `Journey`) sont les plus belles mais refusent le SSML, le réglage de
 > vitesse et la hauteur : l'application adapte sa requête à la voix choisie, et si une famille inconnue
 > rejette ces champs, elle rejoue la demande sans eux et s'en souvient. Le curseur de vitesse reste sans
@@ -206,6 +211,7 @@ npm i -D playwright && npx playwright install chromium
 npx http-server -p 8123 -c-1 &
 npm run test:navigateur   # parcours complet, mini-jeux, combat, carte des lieux
 npm run test:api          # pannes du modèle rejouées avec une API simulée
+npm run test:surlignage   # surlignage de la phrase et du mot lus
 ```
 
 Aucune dépendance à installer : tout est en JavaScript natif (modules ES), sans build.
@@ -216,7 +222,8 @@ css/app.css           thème clair et sombre, grosses cibles tactiles
 js/api.js             appel Claude en streaming + lecture partielle du JSON
 js/prompt.js          consignes de narration et schéma JSON du chapitre
 js/scene.js           moteur d'illustration SVG (décors, météo, personnages)
-js/tts.js             voix du navigateur, surlignage, contournements iOS/Chrome
+js/tts.js             voix du navigateur, contournements iOS/Chrome
+js/surlignage.js      phrase et mot surlignés pendant la lecture
 js/voix.js            narrateur unifié : navigateur ou Google Cloud, avec repli automatique
 js/state.js           état de l'aventure, sac, mémoire, historique
 js/minijeux.js        épreuves jouables sans savoir lire (mémoire, attrape, intrus)

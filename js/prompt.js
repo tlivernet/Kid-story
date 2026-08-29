@@ -17,6 +17,8 @@ STYLE (très important)
 - Des dialogues courts, entre guillemets : Le renard dit : « Suis-moi. »
 - Le prénom du héros une ou deux fois par chapitre, pas davantage.
 - Jamais de titre, de numéro de chapitre ni d'emoji dans le champ texte.
+- N'écris jamais un mot entièrement en majuscules : la voix les épelle lettre par lettre.
+  Pour insister, choisis un mot plus fort ou ajoute un point d'exclamation.
 
 FIL DE L'HISTOIRE (l'enfant écoute, il ne peut pas relire en arrière)
 - PREMIÈRE PHRASE : dis ce que le choix de l'enfant vient de produire. Le lien avec le

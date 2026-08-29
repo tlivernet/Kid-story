@@ -5,6 +5,7 @@ import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHe
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
 import { dessinerScene } from './scene.js';
+import { marquerPhrase, marquerMot, effacerTout } from './surlignage.js';
 import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
 import { typeEpreuve, jouer, NOMS_JEUX } from './minijeux.js';
@@ -287,26 +288,15 @@ const rappelsLecture = {
     ui.lectureDemarree = true;
     ui.phraseCourante = index;
     ui.dernierSignalVoix = Date.now();
-    document.querySelectorAll('.phrase').forEach((p) => {
-      const active = Number(p.dataset.index) === index;
-      p.classList.toggle('lue', active);
-      if (active) p.scrollIntoView({ block: 'nearest' });
-    });
+    marquerPhrase(index)?.scrollIntoView({ block: 'nearest' });
   },
   onMot: (index, debut) => {
     ui.dernierSignalVoix = Date.now();
     if (!ui.reglages.motParMot) return;
-    const phrase = $(`.phrase[data-index="${index}"]`);
-    if (!phrase) return;
-    phrase.querySelectorAll('.mot').forEach((m) => {
-      const d = Number(m.dataset.debut);
-      const f = Number(m.dataset.fin);
-      m.classList.toggle('actif', debut >= d && debut < f);
-    });
+    marquerMot(index, debut);
   },
   onFin: () => {
-    document.querySelectorAll('.phrase').forEach((p) => p.classList.remove('lue'));
-    document.querySelectorAll('.mot.actif').forEach((m) => m.classList.remove('actif'));
+    effacerTout();
     revelerChoix();
   },
   onErreur: (message) => {

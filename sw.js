@@ -1,5 +1,5 @@
 // Service worker : rend l'application utilisable hors ligne (mode démo).
-const CACHE = 'livre-magique-v10';
+const CACHE = 'livre-magique-v11';
 
 const FICHIERS = [
   './',
@@ -15,6 +15,7 @@ const FICHIERS = [
   './js/prompt.js',
   './js/scene.js',
   './js/state.js',
+  './js/surlignage.js',
   './js/storage.js',
   './js/tts.js',
   './js/util.js',

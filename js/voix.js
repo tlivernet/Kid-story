@@ -1,23 +1,12 @@
 // Narrateur unifié : voix du navigateur (gratuite) ou voix de synthèse Google Cloud
 // (bien plus jolie). Même interface dans les deux cas, bascule automatique en cas de panne.
 import { conteur } from './tts.js';
-import { decouperMots } from './util.js';
+import { decouperMots, texteParle } from './util.js';
 
 const URL_GOOGLE = 'https://texttospeech.googleapis.com/v1';
 const SILENCE = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIIEVCSiJrDCQBTcu3UrAIwUdkRgQbFAZC1CQEwTJ9mjRvBA4UOLD8nKVOWfh+UlK3z/177OXrfOdKl7pyn3Xf//WreyTRUoAWgBgkOAGbZHBgG1OF6zM82DWbZaUmMBptgQhGjsyYqc9ae9XFz280948NMBWInljyzsNRFLPWdnZGWrddDsjK1unuSrVN9jJsK8KuQtQCtMBjCEtImISdNKJOopIpBFpNSMbIHCSRpRR5iakjTiyzLhchUUBwCgyKiweBv/7UsQbg8isVNoMPT2AAAA0gAAABEVEfmqUlKPQAAdBS5Pn3z8//v//0S8f/oL2yZ3D8Rt8BEC/4CAAAAAAAAAAAAA=';
 
 // --- Fournisseur Google -----------------------------------------------------
-
-// Les moteurs de synthèse butent sur la typographie française : apostrophe
-// courbe, espaces insécables, guillemets. On leur envoie du texte simple.
-export function nettoyerPourVoix(texte) {
-  return String(texte)
-    .replace(/[\u2019\u02BC]/g, "'")   // apostrophe courbe → apostrophe droite
-    .replace(/[\u202F\u00A0\u2009]/g, ' ') // espaces insécables → espace normale
-    .replace(/[«»""]/g, '')            // guillemets : la voix marque déjà le dialogue
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 // Les familles récentes (Chirp 3 HD, Journey…) refusent le SSML, le débit et la
 // hauteur : leur envoyer ces champs fait échouer la requête.
@@ -56,7 +45,7 @@ class VoixGoogle {
     }
     // Texte brut plutôt que SSML : le balisage faisait détacher l'apostrophe
     // française (« d'étoiles » lu « d » puis « étoiles »).
-    return { input: { text: nettoyerPourVoix(texte) }, voice, audioConfig };
+    return { input: { text: texteParle(texte) }, voice, audioConfig };
   }
 
   async demander(texte, avecOptions) {

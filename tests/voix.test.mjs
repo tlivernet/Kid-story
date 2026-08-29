@@ -39,11 +39,11 @@ test('une voix WaveNet reçoit du texte brut et le réglage de débit', async ()
   assert.equal(corps.voice.languageCode, 'fr-FR');
 });
 
-test('la typographie française est simplifiée avant la synthèse', async () => {
+test('le texte est préparé pour l’oreille avant la synthèse', async () => {
   configurer('fr-FR-Wavenet-C');
   const appels = espionnerFetch([{ statut: 200 }]);
-  await narrateur.google.synthetiser('Il y a plein d’étoiles, dit-il : « viens ! »');
-  assert.equal(appels[0].corps.input.text, "Il y a plein d'étoiles, dit-il : viens !");
+  await narrateur.google.synthetiser("Il y a plein d'étoiles, dit-il : « viens ! »");
+  assert.equal(appels[0].corps.input.text, 'Il y a plein d’étoiles, dit-il : viens !');
 });
 
 test('une voix Chirp 3 HD reçoit du texte brut, sans débit ni hauteur', async () => {

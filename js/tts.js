@@ -1,14 +1,7 @@
 // Lecture à voix haute (Web Speech API) : file de phrases, surlignage du mot lu,
 // et petits contournements pour iOS et Chrome.
 
-// Même nettoyage pour la voix du navigateur : certains moteurs détachent aussi
-// l'apostrophe courbe.
-function pourVoix(texte) {
-  return String(texte)
-    .replace(/[\u2019\u02BC]/g, "'")
-    .replace(/[\u202F\u00A0\u2009]/g, ' ')
-    .replace(/[«»]/g, '');
-}
+import { texteParle } from './util.js';
 
 export class Conteur {
   constructor() {
@@ -123,7 +116,7 @@ export class Conteur {
       return;
     }
     this.enCours = true;
-    const u = new SpeechSynthesisUtterance(pourVoix(suivant.texte));
+    const u = new SpeechSynthesisUtterance(texteParle(suivant.texte));
     u.lang = 'fr-FR';
     if (this.voixChoisie) u.voice = this.voixChoisie;
     u.rate = this.vitesse;
@@ -190,7 +183,7 @@ export class Conteur {
   direMot(mot, onFin) {
     if (!this.disponible || !mot) { onFin?.(); return; }
     this.stop();
-    const u = new SpeechSynthesisUtterance(pourVoix(mot));
+    const u = new SpeechSynthesisUtterance(texteParle(mot));
     u.lang = 'fr-FR';
     if (this.voixChoisie) u.voice = this.voixChoisie;
     u.rate = Math.min(this.vitesse, 0.85);

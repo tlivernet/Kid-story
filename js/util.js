@@ -62,6 +62,23 @@ export function decouperMots(phrase) {
   }));
 }
 
+// Texte préparé pour la synthèse vocale. L'affichage, lui, garde la version
+// d'origine : ces retouches ne servent qu'à l'oreille.
+export function texteParle(texte) {
+  return String(texte)
+    // Élision : avec l'apostrophe droite, les moteurs détachent la lettre
+    // (« c'est » lu « c », « est »). L'apostrophe française typographique est
+    // celle sur laquelle les voix françaises sont entraînées.
+    .replace(/['\u02BC\u2018]/g, '\u2019')
+    // Un mot tout en majuscules est épelé lettre par lettre : LUI devient Lui.
+    .replace(/\p{Lu}{2,}/gu, (mot) => mot[0] + mot.slice(1).toLowerCase())
+    // Espaces insécables et guillemets français perturbent le découpage.
+    .replace(/[\u202F\u00A0\u2009]/g, ' ')
+    .replace(/[«»]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function vibrer(ms = 12) {
   try { if (navigator.vibrate) navigator.vibrate(ms); } catch { /* ignoré */ }
 }
