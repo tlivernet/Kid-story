@@ -686,6 +686,56 @@ body {
   animation: apparait 0.2s ease;
 }
 
+/* --- Tablette --------------------------------------------------------------
+   L'écran est deux fois plus grand : c'est le texte qui grossit, pas la largeur
+   de ligne. Elle reste autour de trente caractères, la mesure qui aide à lire
+   en CP. Les deux conditions écartent le téléphone couché, où la hauteur
+   manque. */
+@media (min-width: 700px) and (min-height: 700px) {
+  .barre-jeu { padding: 16px 24px; }
+  .btn-icone { width: 52px; height: 52px; }
+  .btn-icone svg, .btn-lecture svg { width: 26px; height: 26px; }
+  .jauges { height: 52px; padding: 0 18px; gap: 12px; }
+  .coeurs svg { width: 25px; height: 25px; }
+  .etoiles { font-size: 1.25rem; }
+  .etoiles svg { width: 23px; height: 23px; }
+  .separateur-jauge { height: 24px; }
+  .menu-outils { top: 86px; right: 24px; width: min(360px, calc(100% - 48px)); }
+  .ligne-outil { font-size: 1.1rem; padding: 14px; }
+  .ligne-outil .emoji { font-size: 1.7rem; }
+  .btn-lecture { width: 56px; height: 56px; }
+  .btn-lecture-principal { width: 76px; height: 76px; }
+  .btn-lecture-principal svg, .btn-lecture-principal svg.plein { width: 32px; height: 32px; }
+  .planche { margin: 0 24px; border-width: 5px; border-radius: 30px; }
+  .scene { height: clamp(200px, 24vh, 320px); }
+
+  .titre-histoire { margin: 18px 24px 0; font-size: 1.05rem; }
+  .zone-histoire { padding: 20px 24px 18px; gap: 16px; }
+  .texte-histoire { font-size: calc(1.85rem * var(--taille-texte)); max-width: 32ch; }
+  .phrase { padding: 4px 12px; margin-bottom: 10px; border-left-width: 5px; }
+
+  .choix { padding: 8px 24px 14px; gap: 14px; }
+  .carte-choix { padding: 16px 20px 18px; gap: 18px; }
+  .carte-choix .libelle { font-size: calc(1.45rem * var(--taille-texte)); }
+  .carte-choix .numero { width: 42px; height: 42px; font-size: 1.4rem; }
+  #choix .carte-choix .emoji { width: 60px; height: 60px; border-radius: 19px; font-size: 2.3rem; }
+  .carte-choix .jauge-validation { height: 12px; }
+
+  .barre-lecture { padding: 14px 24px calc(18px + env(safe-area-inset-bottom)); gap: 16px; }
+  .astuce { font-size: 0.95rem; }
+
+  /* Les épreuves suivent : un mot à lire de 1,6 rem se perd sur une tablette. */
+  .modale-boite, .epreuve-boite { width: min(580px, 100%); padding: 26px; gap: 16px; }
+  .epreuve-titre { font-size: 1.6rem; }
+  .epreuve-consigne, .jeu-consigne { font-size: 1.45rem; }
+  .jeu-mot { font-size: 2rem; padding: 18px 12px; }
+  .jeu-lire { font-size: 2.1rem; padding: 16px 20px; }
+  .jeu-case { font-size: 2.7rem; padding: 16px 4px; }
+  .jeu-tambour { font-size: 6rem; }
+  .epreuve-resultat { font-size: 1.4rem; }
+  .objet-sac b { font-size: 1.25rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

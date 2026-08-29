@@ -87,7 +87,27 @@ test('les composants boutons fixent leur couleur de texte', () => {
   }
 });
 
+// Une règle peut légitimement être réécrite dans un @media (tablette, thème
+// sombre) : on ne compte donc que le corps principal de la feuille.
+function horsMedia(feuille) {
+  let sortie = '';
+  for (let i = 0; i < feuille.length; i += 1) {
+    if (!feuille.startsWith('@media', i)) { sortie += feuille[i]; continue; }
+    let profondeur = 0;
+    let j = feuille.indexOf('{', i);
+    for (; j < feuille.length; j += 1) {
+      if (feuille[j] === '{') profondeur += 1;
+      else if (feuille[j] === '}' && (profondeur -= 1) === 0) break;
+    }
+    i = j;
+  }
+  return sortie;
+}
+
 test('la feuille de style ne contient pas de bloc dupliqué', () => {
-  assert.equal((css.match(/@keyframes frappe/g) || []).length, 1);
-  assert.equal((css.match(/\.jeu-tambour \{/g) || []).length, 1);
+  const principal = horsMedia(css);
+  assert.equal((principal.match(/@keyframes frappe/g) || []).length, 1);
+  assert.equal((principal.match(/\.jeu-tambour \{/g) || []).length, 1);
+  // Le garde-fou doit rester utile : le @media tablette réécrit bien la règle.
+  assert.ok((css.match(/\.jeu-tambour \{/g) || []).length > 1);
 });
