@@ -45,7 +45,12 @@ phrases avec des mots de liaison au lieu de les hacher — c'est plus facile à 
 Le modèle, laissé libre, propose toujours la même lanterne et le même sifflet. L'application lui envoie donc à
 chaque tour **huit trésors tirés au sort** dans une réserve de 80 (une boussole qui montre ce qu'on a perdu, un
 caillou tiède qui chauffe près du danger, une pelote qui montre le chemin du retour…) et la liste des objets
-**déjà offerts dans les trois dernières aventures**, à ne pas reprendre.
+**déjà offerts précédemment**, à ne pas reprendre.
+
+Cette mémoire est écrite **dès qu'un objet est offert**, pas à la fin de l'aventure : la plupart des parties
+d'un enfant de six ans s'arrêtent en cours de route, et une mémoire alimentée seulement par les aventures
+terminées serait restée vide. Il en va de même pour les situations de départ, retenues dès le premier chapitre.
+Le bouton « Tout effacer » des réglages remet cette mémoire à zéro.
 
 ### Deux parties sur le même thème ne se ressemblent pas
 Au démarrage, l'application tire une **carte d'inspiration** : une situation de départ, un compagnon, un objet

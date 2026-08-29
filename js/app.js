@@ -1,7 +1,7 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
 import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS } from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre, piocher } from './util.js';
-import { reglages as storeReglages, partie, journal, heros as storeHeros } from './storage.js';
+import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
 import { dessinerScene } from './scene.js';
@@ -182,7 +182,7 @@ function construireAvatars() {
 // Deux aventures sur le même thème ne doivent pas se ressembler : on tire une
 // carte d'inspiration, en évitant les débuts déjà vus récemment.
 function tirerInspiration() {
-  const vus = journal.charger().map((a) => a.inspiration?.debut).filter(Boolean).slice(0, 6);
+  const vus = souvenirs.charger().debuts;
   const debuts = INSPIRATIONS.debuts.filter((d) => !vus.includes(d));
   return {
     debut: piocher(debuts.length ? debuts : INSPIRATIONS.debuts),
@@ -193,15 +193,9 @@ function tirerInspiration() {
   };
 }
 
-// Les objets offerts dans les dernières aventures ne reviendront pas.
+// Les objets déjà offerts, y compris dans les aventures abandonnées en route.
 function objetsDejaVus() {
-  const vus = [];
-  for (const aventure of journal.charger().slice(0, 3)) {
-    for (const chapitre of aventure.chapitres || []) {
-      for (const objet of chapitre.objets || []) if (!vus.includes(objet)) vus.push(objet);
-    }
-  }
-  return vus.slice(0, 12);
+  return souvenirs.charger().objets.slice(-12);
 }
 
 function demarrer() {
@@ -221,6 +215,7 @@ function demarrer() {
     objetsEvites: objetsDejaVus(),
     idee,
   });
+  souvenirs.ajouterDebut(ui.etat.inspiration?.debut);
   ui.demo = false;
   narrateur.debloquer();
   montrer('jeu');
@@ -780,6 +775,11 @@ async function demanderChapitre(action) {
   rendreChoix(chapitre, litLeTexte);
   if (litLeTexte) surveillerLaVoix();
 
+  if (bilan.nouveaux.length) {
+    // Mémoire longue : cet objet ne sera plus proposé dans les prochaines parties.
+    souvenirs.ajouterObjets(bilan.nouveaux.map((o) => o.nom));
+    etat.objetsEvites = objetsDejaVus();
+  }
   for (const objet of bilan.nouveaux) {
     toast(`${objet.emoji} ${objet.nom} rejoint ton sac !`);
   }
@@ -1209,6 +1209,7 @@ function brancher() {
       .forEach((k) => localStorage.removeItem(k));
     ui.reglages = storeReglages.charger();
     ui.etat = null;
+    souvenirs.effacer();
     appliquerReglages();
     construireReglages();
     majAccueil();

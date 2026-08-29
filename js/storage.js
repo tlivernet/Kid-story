@@ -47,6 +47,36 @@ export const journal = {
   effacer: () => localStorage.removeItem(PREFIXE + 'journal'),
 };
 
+// Mémoire longue, indépendante du carnet : le carnet n'enregistre qu'une
+// aventure terminée, or la plupart s'arrêtent en cours de route. Sans cela,
+// les objets et les débuts déjà vus revenaient sans arrêt.
+const SOUVENIRS_VIDES = { objets: [], debuts: [] };
+
+export const souvenirs = {
+  charger() {
+    return { ...SOUVENIRS_VIDES, ...lire('souvenirs', {}) };
+  },
+  ajouterObjets(noms = []) {
+    const memoire = this.charger();
+    for (const nom of noms) {
+      if (!nom) continue;
+      const propre = String(nom).trim();
+      if (!memoire.objets.some((o) => o.toLowerCase() === propre.toLowerCase())) memoire.objets.push(propre);
+    }
+    memoire.objets = memoire.objets.slice(-40);
+    ecrire('souvenirs', memoire);
+    return memoire.objets;
+  },
+  ajouterDebut(debut) {
+    if (!debut) return;
+    const memoire = this.charger();
+    if (!memoire.debuts.includes(debut)) memoire.debuts.push(debut);
+    memoire.debuts = memoire.debuts.slice(-8);
+    ecrire('souvenirs', memoire);
+  },
+  effacer: () => localStorage.removeItem(PREFIXE + 'souvenirs'),
+};
+
 export const heros = {
   charger: () => lire('heros', { prenom: '', avatar: '🦸' }),
   enregistrer: (h) => ecrire('heros', h),
