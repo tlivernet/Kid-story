@@ -3,6 +3,7 @@
 :root {
   --violet: #5b3fa8;
   --violet-clair: #7b5ed6;
+  --violet-texte: #5b3fa8;   /* violet lisible sur fond clair */
   --creme: #fdf6e8;
   --creme-fonce: #f4e6cd;
   --encre: #2f2545;
@@ -129,7 +130,7 @@ body {
   font-size: clamp(2.6rem, 11vw, 4rem);
   line-height: 0.95;
   margin: 0 0 6px;
-  color: var(--violet);
+  color: var(--violet-texte);
   text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(91, 63, 168, 0.18);
 }
 .titre-app span { color: var(--rose); }
@@ -202,14 +203,14 @@ body {
 .rangee-teintes { display: flex; gap: 8px; flex-wrap: wrap; }
 .teinte {
   font-size: 1.6rem; padding: 6px 8px; border-radius: 14px; cursor: pointer;
-  border: 3px solid var(--creme-fonce); background: #fff; line-height: 1;
+  border: 3px solid var(--creme-fonce); background: #fff; color: var(--encre); line-height: 1;
 }
-.teinte.choisi { border-color: var(--violet); background: #efe9ff; }
+.teinte.choisi { border-color: var(--violet-texte); background: #efe9ff; }
 .avatar {
   font-size: 2rem; padding: 10px; border-radius: 16px;
-  border: 3px solid var(--creme-fonce); background: #fff; cursor: pointer;
+  border: 3px solid var(--creme-fonce); background: #fff; color: var(--encre); cursor: pointer;
 }
-.avatar.choisi { border-color: var(--violet); background: #efe9ff; transform: scale(1.05); }
+.avatar.choisi { border-color: var(--violet-texte); background: #efe9ff; transform: scale(1.05); }
 
 /* --- Jeu ------------------------------------------------------------------- */
 
@@ -241,7 +242,7 @@ body {
   scroll-behavior: smooth;
 }
 
-.titre-histoire { margin: 0; font-size: 1.5rem; color: var(--violet); text-align: center; }
+.titre-histoire { margin: 0; font-size: 1.5rem; color: var(--violet-texte); text-align: center; }
 
 .texte-histoire {
   font-size: calc(1.35rem * var(--taille-texte));
@@ -251,7 +252,7 @@ body {
   margin: 0 auto;
 }
 .phrase { display: block; margin-bottom: 10px; padding: 4px 6px; border-radius: 12px; transition: background 0.2s ease; animation: apparait 0.3s ease; }
-.phrase.lue { background: #fff3cf; }
+.phrase.lue { background: #fff3cf; color: #2f2545; }
 .mot { cursor: pointer; border-radius: 8px; padding: 0 1px; }
 .mot:active { background: #ffe08a; }
 .mot.actif { background: var(--or); box-shadow: 0 2px 0 #e0a92a; }
@@ -303,7 +304,7 @@ body {
 @keyframes remplir { from { width: 0; } to { width: 100%; } }
 
 /* Le choix énoncé à voix haute s'allume, celui que l'enfant a touché attend sa confirmation. */
-.carte-choix.enonce { background: #fff6da; transform: scale(1.02); }
+.carte-choix.enonce { background: #fff6da; color: #2f2545; transform: scale(1.02); }
 .carte-choix.choisi {
   border-color: var(--couleur-choix, var(--violet));
   background: #fffaf0;
@@ -334,7 +335,7 @@ body {
 #ecran-fin { justify-content: center; align-items: center; text-align: center; }
 .fin-contenu { padding: 24px; display: flex; flex-direction: column; gap: 14px; align-items: center; width: min(480px, 100%); }
 .fin-emoji { font-size: 5rem; animation: flotte 2.4s ease-in-out infinite; }
-#fin-titre { font-size: 2rem; margin: 0; color: var(--violet); }
+#fin-titre { font-size: 2rem; margin: 0; color: var(--violet-texte); }
 .fin-score { font-size: 1.3rem; font-weight: 800; color: #b8860b; }
 
 /* --- Carnet ---------------------------------------------------------------- */
@@ -343,7 +344,7 @@ body {
 .carnet-vide { color: var(--encre-doux); text-align: center; padding: 40px 10px; }
 .aventure { border: none; }
 .aventure summary {
-  font-size: 1.15rem; font-weight: 800; color: var(--violet);
+  font-size: 1.15rem; font-weight: 800; color: var(--violet-texte);
   padding: 12px 14px; background: #fff; border: 3px solid var(--creme-fonce);
   border-radius: var(--rayon); cursor: pointer; margin-bottom: 12px; list-style: none;
 }
@@ -359,9 +360,9 @@ body {
 .carte-carnet .vignette { height: 150px; }
 .carte-carnet .vignette svg { width: 100%; height: 100%; display: block; }
 .carte-carnet .contenu { padding: 12px 14px; }
-.carte-carnet h3 { margin: 0 0 6px; font-size: 1rem; color: var(--violet); }
+.carte-carnet h3 { margin: 0 0 6px; font-size: 1rem; color: var(--violet-texte); }
 .carte-carnet p { margin: 0; font-size: 1.05rem; }
-.carte-carnet .choix-fait { margin-top: 8px; font-size: 0.95rem; font-weight: 700; color: var(--violet); }
+.carte-carnet .choix-fait { margin-top: 8px; font-size: 0.95rem; font-weight: 700; color: var(--violet-texte); }
 
 /* --- Réglages -------------------------------------------------------------- */
 
@@ -412,7 +413,7 @@ body {
 
 .epreuve-boite { gap: 12px; }
 .epreuve-titre { font-size: 1.4rem; font-weight: 800; margin: 0; }
-.epreuve-consigne { font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--violet); }
+.epreuve-consigne { font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--violet-texte); }
 .epreuve-bonus { margin: 0; font-weight: 700; color: var(--vert); }
 .epreuve-zone { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .epreuve-resultat { font-size: 1.2rem; font-weight: 800; margin: 0; min-height: 1.6em; }
@@ -428,18 +429,19 @@ body {
 
 /* Mini-jeux */
 .jeu-consigne { font-size: 1.1rem; font-weight: 700; margin: 0; }
-.jeu-jauge { font-size: 1.5rem; letter-spacing: 4px; margin: 0; color: var(--violet); font-weight: 800; }
+.jeu-jauge { font-size: 1.5rem; letter-spacing: 4px; margin: 0; color: var(--violet-texte); font-weight: 800; }
 .jeu-grille { display: grid; gap: 10px; width: 100%; }
 .jeu-grille-3 { grid-template-columns: repeat(3, 1fr); }
 .jeu-grille-4 { grid-template-columns: repeat(4, 1fr); }
 .jeu-case {
   font-size: 2.2rem; padding: 12px 4px; border-radius: 18px; cursor: pointer;
-  border: 3px solid var(--creme-fonce); background: #fff; transition: transform 0.12s ease, background 0.12s ease;
+  border: 3px solid var(--creme-fonce); background: #fff; color: var(--encre);
+  transition: transform 0.12s ease, background 0.12s ease;
 }
 .jeu-case:active { transform: scale(0.94); }
-.jeu-case.allume { background: var(--or); transform: scale(1.12); box-shadow: 0 0 0 4px #e0a92a inset; }
-.jeu-case.trouve { background: #d7f5e0; box-shadow: 0 0 0 4px var(--vert) inset; }
-.jeu-case.rate { background: #ffe6e4; }
+.jeu-case.allume { background: var(--or); color: #2f2545; transform: scale(1.12); box-shadow: 0 0 0 4px #e0a92a inset; }
+.jeu-case.trouve { background: #d7f5e0; color: #2f2545; box-shadow: 0 0 0 4px var(--vert) inset; }
+.jeu-case.rate { background: #ffe6e4; color: #2f2545; }
 .jeu-couleur-1 { border-color: #3f7fd6; }
 .jeu-couleur-2 { border-color: #e8862f; }
 .jeu-couleur-3 { border-color: #3fae6a; }
@@ -451,7 +453,7 @@ body {
 .jeu-barre span { display: block; height: 100%; width: 100%; background: var(--rose); }
 .jeu-tambour {
   font-size: 5rem; line-height: 1; padding: 18px 26px; border-radius: 30px;
-  border: 4px solid var(--creme-fonce); background: #fff; cursor: pointer;
+  border: 4px solid var(--creme-fonce); background: #fff; color: var(--encre); cursor: pointer;
 }
 .jeu-tambour:disabled { opacity: 0.5; }
 .jeu-tambour.frappe { animation: frappe 0.12s ease; }
@@ -467,7 +469,7 @@ body {
 .jeu-corde-lien { letter-spacing: -2px; color: #b08a5a; }
 
 /* Compte juste */
-.jeu-compte { display: flex; gap: 10px; justify-content: center; font-size: 2rem; color: var(--violet); }
+.jeu-compte { display: flex; gap: 10px; justify-content: center; font-size: 2rem; color: var(--violet-texte); }
 .pastille-compte { transition: transform 0.15s ease; }
 
 .jeu-cible.guepe { filter: drop-shadow(0 0 6px #ffcf5e); }
@@ -477,13 +479,14 @@ body {
 .jeu-mots { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .jeu-mot {
   font: inherit; font-size: 1.6rem; font-weight: 800; padding: 14px 10px; border-radius: 18px;
-  border: 3px solid var(--creme-fonce); background: #fff; cursor: pointer; letter-spacing: 0.02em;
+  border: 3px solid var(--creme-fonce); background: #fff; color: var(--encre);
+  cursor: pointer; letter-spacing: 0.02em;
 }
-.jeu-mot.trouve { background: #d7f5e0; box-shadow: 0 0 0 4px var(--vert) inset; }
-.jeu-mot.rate { background: #ffe6e4; opacity: 0.7; }
+.jeu-mot.trouve { background: #d7f5e0; color: #2f2545; box-shadow: 0 0 0 4px var(--vert) inset; }
+.jeu-mot.rate { background: #ffe6e4; color: #2f2545; opacity: 0.8; }
 .jeu-lire {
   font-size: 1.7rem; font-weight: 800; margin: 0; padding: 12px 16px; border-radius: 16px;
-  background: #fff6da; border: 3px dashed #e0c06a;
+  background: #fff6da; color: #2f2545; border: 3px dashed #e0c06a;
 }
 .jeu-rappel { font-size: 0.95rem; padding: 8px 14px; }
 
@@ -525,7 +528,7 @@ body {
 .grille-lieux { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .tuile-lieu {
   font: inherit; font-weight: 700; text-align: left; cursor: pointer; padding: 0; overflow: hidden;
-  background: #fff; border: 3px solid var(--creme-fonce); border-radius: 18px;
+  background: #fff; color: var(--encre); border: 3px solid var(--creme-fonce); border-radius: 18px;
 }
 .vignette-lieu { display: block; height: 62px; }
 .vignette-lieu svg { width: 100%; height: 100%; display: block; }
@@ -561,27 +564,19 @@ body {
     --encre-doux: #b9aed6;
     --ombre: 0 10px 24px rgba(0, 0, 0, 0.4);
     --voile: rgba(34, 28, 51, 0.86);
+    --violet-texte: #cbb8ff;   /* même rôle, lisible sur fond sombre */
   }
   body { background: var(--creme); }
   .btn, .btn-rond, .carte-theme, .carte, .carte-choix, .objet-sac, .champ-gros, .carte-carnet, .ligne select, .aventure summary, .jeu-case, .teinte { background: #2c2444; color: var(--encre); }
-  .jeu-barre {
-  width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
-  background: var(--creme-fonce);
-}
-.jeu-barre span { display: block; height: 100%; width: 100%; background: var(--rose); }
-.jeu-tambour {
-  font-size: 5rem; line-height: 1; padding: 18px 26px; border-radius: 30px;
-  border: 4px solid var(--creme-fonce); background: #fff; cursor: pointer;
-}
-.jeu-tambour:disabled { opacity: 0.5; }
-.jeu-tambour.frappe { animation: frappe 0.12s ease; }
-@keyframes frappe { 50% { transform: scale(0.88) rotate(-4deg); } }
+  .jeu-terrain { background: #2a2340; }
+  .jeu-tambour, .jeu-mot, .tuile-lieu { background: #2c2444; color: var(--encre); }
+  .jeu-case.allume { background: var(--or); color: #2b2140; }
+  .jeu-case.trouve, .jeu-mot.trouve { background: #245239; color: var(--encre); }
+  .jeu-case.rate, .jeu-mot.rate { background: #4d2a2a; color: var(--encre); }
+  .jeu-lire { color: var(--encre); }
+  .phrase.lue { color: var(--encre); }
+  .carte-choix.enonce { color: var(--encre); }
 
-.jeu-terrain { background: #2a2340; }
-  .jeu-case.allume { background: var(--or); }
-  .jeu-case.trouve { background: #2e5a3e; }
-  .jeu-case.rate { background: #5a2e2e; }
-  .aventure summary { color: #d9c9ff; }
   .btn-primaire { background: var(--violet-clair); }
   .titre-app { text-shadow: 3px 3px 0 #17122a; }
   .phrase.lue { background: #4a3a1f; }

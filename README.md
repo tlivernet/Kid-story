@@ -82,6 +82,13 @@ pour qu'il l'amène au bon moment. Sans cela, le même thème produit systémati
 paramètres d'échantillonnage (`temperature`) n'existent plus sur les modèles récents, la variété doit donc
 venir du prompt.
 
+### Contraste vérifié, pas supposé
+Les contrastes texte/fond sont mesurés par un test (`tests/contraste.test.mjs`) selon la formule WCAG, dans
+les deux thèmes : 4,5:1 pour le texte courant, 3:1 pour le grand texte. Le test lit les variables de couleur
+directement dans la feuille de style, donc changer une couleur pour une valeur illisible fait échouer la
+suite. Il vérifie aussi que les composants à base de `<button>` fixent leur couleur de texte : sans cela ils
+retombent sur la couleur système, noire, et disparaissent dès que le fond passe en sombre.
+
 ### Un héros auquel on ressemble
 Les avatars sont groupés — **C'est moi** (enfant, garçon, fille…), **Métiers de la vraie vie** (pompier,
 policier, vétérinaire, boulanger, fermier, mécanicien, maître d'école, détective, astronaute, pilote…),
