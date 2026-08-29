@@ -166,6 +166,10 @@ export class Conteur {
     if (this.synth?.paused) this.synth.resume();
   }
 
+  get occupe() {
+    return Boolean(this.enCours || this.file.length || this.synth?.speaking || this.synth?.pending);
+  }
+
   get enPause() {
     return Boolean(this.synth?.paused);
   }

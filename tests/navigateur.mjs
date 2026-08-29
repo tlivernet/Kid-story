@@ -137,8 +137,23 @@ const etatEcran = () => page.evaluate(() => ({
   actions: document.querySelectorAll('#epreuve-zone .carte-choix').length,
 }));
 
+let deVerifie = false;
 async function jouerEpreuve() {
   if (await page.isVisible('#btn-lancer-de')) {
+    // Le seuil annoncé doit tenir compte du bonus : sinon l'enfant lit
+    // « il faut 3 », fait 2, et gagne quand même.
+    if (!deVerifie) {
+      deVerifie = true;
+      const de = await page.evaluate(() => ({
+        consigne: document.querySelector('.epreuve-consigne')?.textContent || '',
+        gagnantes: document.querySelectorAll('.faces-gagnantes .face.gagnante').length,
+      }));
+      const seuil = Number((de.consigne.match(/(\d+)/) || [])[1]);
+      verifier(
+        Number.isFinite(seuil) && de.gagnantes === 7 - seuil,
+        `le dé annonce le vrai seuil : « ${de.consigne.trim()} » et ${de.gagnantes} faces gagnantes`,
+      );
+    }
     await page.click('#btn-lancer-de');
     await page.waitForTimeout(2800);
     return;
@@ -191,6 +206,8 @@ await page.waitForTimeout(400);
 const lieux = (await page.$$('#carte-lieux .tuile-lieu')).length;
 verifier(lieux >= 2, `la carte propose de retourner dans un lieu connu (${lieux} lieux)`);
 await page.click('#btn-fermer-resume');
+
+verifier(deVerifie, 'une épreuve de dé a bien été rencontrée pendant le parcours');
 
 verifier(erreursJs.length === 0, `aucune erreur JavaScript${erreursJs.length ? ` (${erreursJs.join(' | ')})` : ''}`);
 await navigateur.close();

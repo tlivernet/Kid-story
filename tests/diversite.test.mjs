@@ -94,3 +94,38 @@ test('les listes d’inspiration sont assez fournies', () => {
     assert.equal(new Set(liste).size, liste.length, `${nom} contient un doublon`);
   }
 });
+
+test('un objet ne peut apparaître qu’un chapitre sur trois', async () => {
+  const { momentDObjet } = await import('../js/prompt.js');
+  const avecSac = (chapitre) => ({ chapitre, sac: [{ nom: 'Clé' }] });
+  assert.equal(momentDObjet(avecSac(0)), true, 'le premier chapitre pose le décor');
+  assert.equal(momentDObjet(avecSac(1)), false);
+  assert.equal(momentDObjet(avecSac(2)), true);
+  assert.equal(momentDObjet(avecSac(3)), false);
+  assert.equal(momentDObjet(avecSac(4)), false);
+  assert.equal(momentDObjet({ chapitre: 4, sac: [] }), true, 'sac vide : on peut redonner un objet');
+});
+
+test('sans coffre, le message interdit explicitement les objets', async () => {
+  const { messageSuivant } = await import('../js/prompt.js');
+  const etat = {
+    heros: { prenom: 'Lina', avatar: '🦊' }, theme: 'Dragons', chapitre: 3, longueur: 12,
+    coeurs: 3, etoiles: 1, sac: [{ nom: 'Clé', emoji: '🗝️', pouvoir: 'ouvre' }],
+    personnages: [], promesses: [], objetsEvites: [], quete: 'x', memoire: 'y', lieux: [],
+  };
+  const message = messageSuivant(etat, { resume: 'Il a choisi : « Avancer »' });
+  assert.match(message, /AUCUN OBJET dans ce chapitre/);
+  assert.ok(!message.includes('COFFRE À TRÉSORS'), 'pas de coffre ce tour-ci');
+
+  const avecCoffre = messageSuivant({ ...etat, chapitre: 2 }, { resume: 'x' });
+  assert.match(avecCoffre, /COFFRE À TRÉSORS/);
+});
+
+test('chaque famille de voix Google est reconnue et située en prix', async () => {
+  const { familleVoix } = await import('../js/config.js');
+  assert.equal(familleVoix('fr-FR-Neural2-A').conseillee, true);
+  assert.equal(familleVoix('fr-FR-Wavenet-C').conseillee, true);
+  assert.equal(familleVoix('fr-FR-Chirp3-HD-Achernar').nom, 'Chirp 3 HD');
+  assert.equal(familleVoix('fr-FR-Studio-A').cout, 'nettement la plus chère');
+  assert.equal(familleVoix('fr-FR-Inconnue-9').nom, 'Autre', 'une famille future ne casse rien');
+});

@@ -17,7 +17,7 @@ et s'installe sur le téléphone ou la tablette comme une vraie application.
 | Cohérence | Le modèle tient un carnet de mémoire (3 à 5 faits) réécrit à chaque chapitre, et reçoit l'état du jeu complet (sac, quête, compagnon, cœurs) à chaque tour. L'historique envoyé reste court : c'est rapide et peu coûteux. |
 | Lecture à voix haute | Deux voix au choix : celle du navigateur (gratuite, hors ligne) ou **Google Cloud Text-to-Speech** (bien plus jolie). Phrase en cours surlignée, mot en cours surligné, et **l'enfant peut toucher n'importe quel mot pour l'entendre**. |
 | Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji**. Un appui sélectionne la tuile, la fait relire, puis **une jauge se remplit en trois secondes** avant que l'aventure continue : toucher une autre tuile change d'avis, retoucher la même part tout de suite. Les choix n'apparaissent qu'**après la lecture du chapitre** (bouton ⏭️ pour les afficher tout de suite). |
-| Épreuves | Un **dé** qui montre noir sur blanc ce qu'il faut obtenir (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou quatre **mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus, tape vite. Leur difficulté suit celle que le modèle a fixée pour l'épreuve. Réglable : dé seul, mini-jeux seuls, ou mélange. |
+| Épreuves | Un **dé** qui annonce ce qu'il faut vraiment obtenir, bonus du compagnon déjà déduit (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou quatre **mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus, tape vite. Leur difficulté suit celle que le modèle a fixée pour l'épreuve. Réglable : dé seul, mini-jeux seuls, ou mélange. |
 | Écran qui reste allumé | Un verrou d'écran (Wake Lock) est pris pendant l'aventure et repris au retour en avant-plan : la tablette ne s'éteint plus au milieu d'un chapitre. |
 | Résumé | Un bouton 📜 rappelle à tout moment où en est l'histoire : chapitre, mission, compagnons, sac, ce qui s'est passé — lu à voix haute, sans appel à l'API. |
 | Richesse du récit | Arc en neuf étapes (ouverture → rencontre → complication → coup dur → idée maligne → dénouement), **graines narratives** plantées puis payées, troupe de personnages avec leurs manies, un détail sensoriel par chapitre. |
@@ -40,6 +40,12 @@ suit sans peine des chapitres plus fournis.
 Deux règles de style comptent autant que le reste : la **première phrase de chaque chapitre dit ce que le choix
 de l'enfant vient de produire** (on ne peut pas relire en arrière quand on écoute), et le texte enchaîne ses
 phrases avec des mots de liaison au lieu de les hacher — c'est plus facile à suivre, et moins bébé.
+
+### Des objets rares, pas un gadget par chapitre
+Un objet ne peut apparaître qu'**un chapitre sur trois** (ou si le sac est vide) : c'est l'application qui
+décide et qui joint le coffre au message. Les autres tours, la consigne est explicite — aucun objet, ni
+offert ni même mentionné. Le prompt rappelle que l'intérêt d'un chapitre vient des personnages et des
+situations, pas d'un nouvel accessoire, et demande **trois choix** chaque fois que c'est possible.
 
 ### Des objets qui ne se répètent pas
 Le modèle, laissé libre, propose toujours la même lanterne et le même sifflet. L'application lui envoie donc à
@@ -159,6 +165,21 @@ Les voix intégrées aux navigateurs sont souvent robotiques, surtout sur tablet
 - Puis choisir la voix dans `Réglages → Voix et lecture`.
 
 **b) Utiliser Google Cloud Text-to-Speech** (qualité nettement supérieure)
+
+L'écran de réglages classe les voix par famille, les conseillées d'abord, avec leur position en prix :
+
+| Famille | Qualité | Réglage de vitesse | Coût |
+|---|---|---|---|
+| ⭐ **Neural2**, **WaveNet** | très naturelle | oui | tarif intermédiaire, 1 M de caractères gratuits par mois (WaveNet) |
+| **Chirp 3 HD** | la plus expressive | non | plus chère |
+| **Standard** | un peu robotique | oui | la moins chère, 4 M de caractères gratuits par mois |
+| **Studio** | qualité studio | oui | nettement la plus chère — inutile ici |
+
+Une aventure de 12 chapitres pèse environ **3 000 caractères**, soit à peu près **330 aventures par mois**
+dans le palier gratuit WaveNet. Les tarifs exacts par million de caractères figurent sur la
+[page tarifaire de Google](https://cloud.google.com/text-to-speech/pricing) ; l'application ne les affiche
+pas pour ne pas citer des chiffres périmés.
+
 1. Console Google Cloud → activer l'API **Cloud Text-to-Speech** → créer une **clé API**.
 2. **Restreindre la clé** : « Restrictions liées aux applications → Sites Web » avec
    `https://<utilisateur>.github.io/*`, et « Restrictions relatives aux API → Cloud Text-to-Speech ».

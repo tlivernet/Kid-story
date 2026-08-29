@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.5.0',
+  version: '1.6.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -201,6 +201,24 @@ export const TRESORS = [
   { nom: 'guirlande qui éclaire un tunnel', emoji: '💡' },
 ];
 
+// Familles de voix Google : qualité, réglages acceptés et ordre de coût.
+// Les tarifs exacts changent — l'écran renvoie à la page officielle — mais les
+// paliers gratuits mensuels sont stables : 4 M de caractères pour les voix
+// Standard, 1 M pour les WaveNet.
+export const FAMILLES_VOIX = [
+  { cle: /neural2/i, nom: 'Neural2', note: 'très naturelle, vitesse réglable', cout: 'tarif intermédiaire', rang: 0, conseillee: true },
+  { cle: /wavenet/i, nom: 'WaveNet', note: 'naturelle, vitesse réglable, 1 M de caractères gratuits par mois', cout: 'tarif intermédiaire', rang: 1, conseillee: true },
+  { cle: /chirp3?-?hd|chirp/i, nom: 'Chirp 3 HD', note: 'la plus expressive, mais vitesse non réglable', cout: 'plus chère', rang: 2 },
+  { cle: /polyglot|news/i, nom: 'Polyglot / News', note: 'naturelle, voix de présentateur', cout: 'tarif intermédiaire', rang: 3 },
+  { cle: /studio/i, nom: 'Studio', note: 'qualité studio, réservée aux longs enregistrements', cout: 'nettement la plus chère', rang: 5 },
+  { cle: /standard/i, nom: 'Standard', note: 'un peu robotique, 4 M de caractères gratuits par mois', cout: 'la moins chère', rang: 4 },
+];
+
+export function familleVoix(nom) {
+  return FAMILLES_VOIX.find((f) => f.cle.test(nom))
+    || { nom: 'Autre', note: '', cout: 'tarif inconnu', rang: 6 };
+}
+
 export const REGLAGES_DEFAUT = {
   cle: '',
   modele: 'claude-opus-5',
@@ -219,5 +237,5 @@ export const REGLAGES_DEFAUT = {
   douceur: 'normal',        // 'tendre' (aucun cœur perdu), 'normal', 'corse'
   fournisseurVoix: 'navigateur', // 'navigateur' ou 'google'
   cleGoogle: '',
-  voixGoogle: 'fr-FR-Wavenet-C',
+  voixGoogle: 'fr-FR-Neural2-A',
 };

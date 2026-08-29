@@ -236,6 +236,23 @@
           <p class="statut" id="statut-google"></p>
           <p class="aide">Activez l’API Cloud Text-to-Speech, créez une clé, puis <b>restreignez-la à votre site</b>
             (restriction par référent HTTP) : c’est fait pour être utilisé depuis un navigateur.</p>
+          <details class="aide">
+            <summary>Quelle voix choisir, et combien ça coûte ?</summary>
+            <p>Une aventure de 12 chapitres représente environ <b>3 000 caractères</b>, soit à peu près
+              <b>330 aventures par mois</b> dans le palier gratuit des voix WaveNet (1 million de caractères),
+              et bien plus avec les voix Standard (4 millions).</p>
+            <ul>
+              <li><b>⭐ Neural2 et WaveNet</b> — naturelles, vitesse réglable, tarif intermédiaire, palier
+                gratuit : le bon choix pour cet usage.</li>
+              <li><b>Chirp 3 HD</b> — la plus expressive, mais plus chère et la vitesse n’est pas réglable.</li>
+              <li><b>Standard</b> — la moins chère et le plus gros palier gratuit, mais nettement robotique.</li>
+              <li><b>Studio</b> — nettement la plus chère, pensée pour des enregistrements professionnels :
+                à éviter ici.</li>
+            </ul>
+            <p>Les tarifs exacts par million de caractères sont sur la
+              <a href="https://cloud.google.com/text-to-speech/pricing" target="_blank" rel="noopener">page
+              tarifaire de Google</a> ; pensez à fixer un budget d’alerte sur le projet.</p>
+          </details>
         </div>
         <label class="ligne">Vitesse <span id="valeur-vitesse">0.95</span>
           <input id="champ-vitesse" type="range" min="0.6" max="1.3" step="0.05">

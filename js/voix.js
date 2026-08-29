@@ -330,6 +330,13 @@ export class Narrateur {
   get disponible() {
     return this.actifGoogle || conteur.disponible;
   }
+
+  // La voix est-elle encore au travail ? Sert au filet de sécurité de l'écran
+  // de jeu, qui ne doit pas conclure à une panne pendant une lecture normale.
+  get occupe() {
+    if (this.actifGoogle) return this.enLecture || this.file.length > 0;
+    return conteur.occupe;
+  }
 }
 
 export const narrateur = new Narrateur();

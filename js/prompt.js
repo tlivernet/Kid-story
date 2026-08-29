@@ -24,6 +24,9 @@ FIL DE L'HISTOIRE (l'enfant écoute, il ne peut pas relire en arrière)
 - PREMIÈRE PHRASE : dis ce que le choix de l'enfant vient de produire. Le lien avec le
   chapitre précédent doit être évident dès le premier mot.
 - Une seule chose importante par chapitre. Jamais deux péripéties à la fois.
+- Le chapitre découle du choix de l'enfant : on doit comprendre pourquoi on se retrouve là.
+- Une graine peut être une phrase entendue, un bruit, une habitude d'un personnage : ce n'est pas
+  forcément un objet.
 - Appelle toujours les personnages par le même nom et le même emoji.
 - Termine sur une phrase qui donne envie de choisir la suite.
 
@@ -68,10 +71,13 @@ TOUS LES CHEMINS NE SE VALENT PAS
 - Un choix prudent et un choix audacieux ne mènent pas au même endroit : les conséquences doivent se voir.
 - Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
 
-OBJETS (arrête de proposer toujours les mêmes)
-- Un COFFRE À TRÉSORS t'est proposé à chaque tour : choisis dedans, c'est obligatoire. Tu peux adapter
-  le nom à ton histoire, mais pas offrir un objet d'une autre nature.
-- Ne redonne jamais un objet listé comme « déjà vu », ni sa variante à peine reformulée.
+OBJETS (rares, et seulement quand le jeu l'autorise)
+- Un objet ne s'offre QUE si le message du tour contient un COFFRE À TRÉSORS. Sinon, sac_ajouter reste vide
+  et l'histoire n'invente aucun objet magique : ni trouvé, ni offert, ni aperçu.
+- Quand le coffre est là, choisis dedans (tu peux adapter le nom), jamais un objet d'une autre nature,
+  et jamais un objet listé comme « déjà vu » ni sa variante reformulée.
+- L'intérêt d'un chapitre vient des personnages, de ce qu'ils veulent et de ce qui leur arrive —
+  pas d'un nouvel accessoire farfelu. Un objet doit résoudre un problème posé plus tôt, sinon il n'a rien à faire là.
 
 RENCONTRES COSTAUDES
 - Environ une fois par aventure, un personnage barre vraiment la route : remplis adversaire_nom,
@@ -86,7 +92,8 @@ COURAGE
   racontes toi-même un vrai contretemps. Utilise +1 pour un moment réconfortant (repas chaud, câlin, repos).
 
 CHOIX
-- Toujours 2 ou 3 choix, très courts (2 à 6 mots), vraiment différents, tous tentants.
+- Trois choix chaque fois que c'est possible, deux au minimum : très courts (2 à 6 mots), vraiment
+  différents, tous tentants.
 - L'enfant NE SAIT PAS ENCORE LIRE : les choix sont lus à voix haute. Écris-les comme on les dit,
   avec un verbe d'action au début, et rends-les faciles à distinguer à l'oreille (pas deux choix qui se ressemblent).
 - Varie leur nature : agir, parler à quelqu'un, observer, utiliser un objet, prendre un risque.
@@ -194,6 +201,14 @@ export function etape(chapitre, longueur) {
   const position = Math.min(1, chapitre / Math.max(1, longueur - 2));
   const index = Math.min(ETAPES.length - 2, Math.max(1, Math.round(position * (ETAPES.length - 2))));
   return ETAPES[index];
+}
+
+// Un objet ne peut apparaître qu'un chapitre sur trois (ou si le sac est vide) :
+// sinon chaque paragraphe tourne autour d'un nouvel accessoire.
+export function momentDObjet(etat) {
+  if (!etat.chapitre) return true;
+  if (!etat.sac?.length) return true;
+  return etat.chapitre % 3 === 2;
 }
 
 // Quelques trésors tirés au sort, pour renouveler les objets proposés.
@@ -321,7 +336,13 @@ export function messageSuivant(etat, action) {
     return lignes.join('\n');
   }
   const [nom, consigne] = etape(etat.chapitre, etat.longueur);
-  lignes.push('', `ÉTAPE « ${nom} » — ${consigne}`, coffre(etat), consigneLongueur(etat), 'Écris le chapitre suivant.');
+  lignes.push(
+    '',
+    `ÉTAPE « ${nom} » — ${consigne}`,
+    momentDObjet(etat) ? coffre(etat) : 'AUCUN OBJET dans ce chapitre : sac_ajouter reste vide, et le texte ne parle pas d’un nouvel objet.',
+    consigneLongueur(etat),
+    'Écris le chapitre suivant.',
+  );
   if (action?.correction) lignes.push('', `ATTENTION : ${action.correction}`);
   return lignes.join('\n');
 }

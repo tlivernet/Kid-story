@@ -1,5 +1,5 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
-import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS } from './config.js';
+import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS, familleVoix } from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre, piocher } from './util.js';
 import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
@@ -330,10 +330,14 @@ function surveillerLaVoix() {
   ui.dernierSignalVoix = Date.now();
   ui.chienDeGarde = setInterval(() => {
     if (!$('#choix').classList.contains('masque')) { clearInterval(ui.chienDeGarde); return; }
-    if (narrateur.enPause) { ui.dernierSignalVoix = Date.now(); return; }
+    // Tant que la voix travaille (extrait en cours, phrase en attente), on
+    // ne considère pas qu'elle est morte.
+    if (narrateur.enPause || narrateur.occupe) { ui.dernierSignalVoix = Date.now(); return; }
     const silence = Date.now() - ui.dernierSignalVoix;
     // Si la voix a déjà fonctionné, les choix doivent quand même être énoncés.
-    if (silence > (ui.lectureDemarree ? 9000 : 3000)) revelerChoix(ui.lectureDemarree);
+    // Une voix de synthèse en ligne peut mettre quelques secondes avant le
+    // premier son : on ne conclut pas trop vite à la panne.
+    if (silence > (ui.lectureDemarree ? 9000 : 6000)) revelerChoix(ui.lectureDemarree);
   }, 1000);
 }
 
@@ -341,7 +345,12 @@ function surveillerLaVoix() {
 function revelerChoix(lire = true) {
   clearInterval(ui.chienDeGarde);
   const zone = $('#choix');
-  if (!zone.classList.contains('masque')) return;
+  if (!zone.classList.contains('masque')) {
+    // Les choix étaient déjà visibles (défilement, filet de sécurité) : ils
+    // doivent quand même être énoncés, une fois.
+    if (lire && !ui.choixEnonces) lireLesChoix();
+    return;
+  }
   if (ui.combatEnAttente) {
     ui.combatEnAttente = false;
     lancerCombat();
@@ -356,6 +365,7 @@ function lireLesChoix() {
   if (!ui.lecture || !ui.reglages.lireChoix) return;
   const cartes = document.querySelectorAll('#choix .carte-choix');
   if (!cartes.length || ui.etat?.termine) return;
+  ui.choixEnonces = true;
   const phrases = ['Que fais-tu ?'];
   const numeros = ['Un', 'Deux', 'Trois'];
   cartes.forEach((carte, i) => phrases.push(`${numeros[i] || i + 1} : ${carte.dataset.texte}.`));
@@ -401,6 +411,7 @@ function majJauges() {
 
 function rendreChoix(chapitre, masquer = false) {
   const zone = $('#choix');
+  ui.choixEnonces = false;
   vider(zone);
   zone.classList.toggle('masque', masquer);
   if (ui.etat.termine) {
@@ -517,17 +528,26 @@ function ouvrirEpreuve(titre) {
   return overlay;
 }
 
+// Annonce parlée dont on peut attendre la fin : enchaîner trop vite coupait la
+// voix au milieu du résultat de l'épreuve.
 function annoncer(texte) {
-  if (ui.lecture) narrateur.direMot(texte);
+  if (!ui.lecture) return Promise.resolve();
+  return new Promise((resoudre) => {
+    let fini = false;
+    const terminer = () => { if (!fini) { fini = true; resoudre(); } };
+    setTimeout(terminer, 6000); // filet si la voix ne rend pas la main
+    narrateur.direMot(texte, terminer);
+  });
 }
 
 async function conclureEpreuve(reussi, message, dansCombat = false) {
   const resultat = $('#epreuve-resultat');
   resultat.textContent = message;
   resultat.classList.add(reussi ? 'gagne' : 'rate');
-  annoncer(reussi ? `Bravo ! ${message}` : `Presque ! ${message}`);
   vibrer(reussi ? 40 : 12);
-  await attendre(animationsReduites ? 900 : 2200);
+  // On laisse la phrase se terminer avant de passer à la suite.
+  await annoncer(reussi ? `Bravo ! ${message}` : `Presque ! ${message}`);
+  await attendre(animationsReduites ? 400 : 900);
   if (!dansCombat) $('#overlay-epreuve').hidden = true;
 }
 
@@ -535,32 +555,45 @@ async function conclureEpreuve(reussi, message, dansCombat = false) {
 function epreuveDe(choix, dansCombat = false) {
   return new Promise((resoudre) => {
     if (!dansCombat) ouvrirEpreuve(`Épreuve : ${choix.epreuve_nom || 'à toi de jouer'}`);
-    else { vider($('#epreuve-zone')); $('#epreuve-resultat').textContent = ''; $('#epreuve-resultat').className = 'epreuve-resultat'; }
+    const zone = $('#epreuve-zone');
+    vider(zone);
+    $('#epreuve-resultat').textContent = '';
+    $('#epreuve-resultat').className = 'epreuve-resultat';
+
     const bonus = bonusDe(ui.etat);
     const seuil = difficulteEffective(choix.epreuve_difficulte);
-    const objectif = $('#epreuve-objectif');
-    objectif.appendChild(el('p', { class: 'epreuve-consigne', text: `Il faut faire ${seuil} ou plus.` }));
+    // Ce que l'enfant doit lire sur le dé, bonus déjà déduit : sinon il voit
+    // « il faut 3 », fait 2, et gagne quand même.
+    const aObtenir = Math.max(1, seuil - bonus);
+
+    // L'objectif est affiché avec le dé, y compris pendant un combat où
+    // l'en-tête est occupé par l'adversaire.
+    zone.appendChild(el('p', { class: 'epreuve-consigne', text: `Il faut faire ${aObtenir} ou plus.` }));
     const rangee = el('div', { class: 'faces-gagnantes' });
     for (let face = 1; face <= 6; face += 1) {
       rangee.appendChild(el('span', {
-        class: `face ${face + bonus >= seuil ? 'gagnante' : 'perdante'}`,
+        class: `face ${face >= aObtenir ? 'gagnante' : 'perdante'}`,
         html: faceDe(face),
       }));
     }
-    objectif.appendChild(rangee);
-    if (bonus) objectif.appendChild(el('p', { class: 'epreuve-bonus', text: `+${bonus} parce qu’un ami t’accompagne 🤝` }));
+    zone.appendChild(rangee);
+    if (bonus) {
+      zone.appendChild(el('p', { class: 'epreuve-bonus', text: `Ton ami t’aide : tu as besoin de ${bonus} de moins 🤝` }));
+    }
     const de = el('div', { class: 'de', html: faceDe(6) });
-    $('#epreuve-zone').appendChild(de);
+    zone.appendChild(de);
     $('#btn-lancer-de').hidden = false;
 
-    annoncer(`Il faut faire ${seuil} ou plus. Lance le dé !`);
+    annoncer(`Il faut faire ${aObtenir} ou plus. Lance le dé !`);
 
     $('#btn-lancer-de').onclick = async () => {
       $('#btn-lancer-de').hidden = true;
       const resultat = lancer(seuil, bonus);
       await animer(de, resultat, animationsReduites);
-      const detail = `${resultat.de}${bonus ? ` + ${bonus} = ${resultat.total}` : ''} contre ${seuil}`;
-      await conclureEpreuve(resultat.reussi, resultat.reussi ? `Réussi ! ${detail}` : `Raté de peu ! ${detail}`, dansCombat);
+      const message = resultat.reussi
+        ? `Tu as fait ${resultat.de}, il fallait ${aObtenir}. Réussi !`
+        : `Tu as fait ${resultat.de}, il fallait ${aObtenir}. Raté de peu !`;
+      await conclureEpreuve(resultat.reussi, message, dansCombat);
       resoudre({ ...resultat, nom: choix.epreuve_nom || 'épreuve' });
     };
   });
@@ -1081,14 +1114,29 @@ async function chargerVoixGoogle() {
     const voix = await narrateur.listerVoixGoogle(cle);
     const select = $('#champ-voix-google');
     vider(select);
+    // Regroupées par famille, les conseillées d'abord, avec l'ordre de coût.
+    const familles = new Map();
     for (const v of voix) {
-      const genre = v.genre === 'FEMALE' ? 'femme' : v.genre === 'MALE' ? 'homme' : 'neutre';
-      select.appendChild(el('option', { value: v.nom, text: `${v.nom} (${genre})` }));
+      const famille = familleVoix(v.nom);
+      if (!familles.has(famille.nom)) familles.set(famille.nom, { famille, voix: [] });
+      familles.get(famille.nom).voix.push(v);
     }
-    select.value = voix.some((v) => v.nom === ui.reglages.voixGoogle) ? ui.reglages.voixGoogle : voix[0]?.nom || '';
+    const triees = [...familles.values()].sort((a, b) => a.famille.rang - b.famille.rang);
+    for (const { famille, voix: liste } of triees) {
+      const groupe = el('optgroup', {
+        label: `${famille.conseillee ? '⭐ ' : ''}${famille.nom} — ${famille.cout}${famille.note ? ` · ${famille.note}` : ''}`,
+      });
+      for (const v of liste) {
+        const genre = v.genre === 'FEMALE' ? 'femme' : v.genre === 'MALE' ? 'homme' : 'neutre';
+        groupe.appendChild(el('option', { value: v.nom, text: `${v.nom} (${genre})` }));
+      }
+      select.appendChild(groupe);
+    }
+    const conseillee = triees[0]?.voix[0]?.nom || voix[0]?.nom || '';
+    select.value = voix.some((v) => v.nom === ui.reglages.voixGoogle) ? ui.reglages.voixGoogle : conseillee;
     enregistrerReglage('voixGoogle', select.value);
     noterVoixGoogle();
-    statut.textContent = `✅ ${voix.length} voix françaises disponibles. Essaie-les avec le bouton plus bas.`;
+    statut.textContent = `✅ ${voix.length} voix françaises. Les ⭐ sont le meilleur compromis qualité / prix ; essaie-les avec le bouton plus bas.`;
     statut.className = 'statut ok';
   } catch (erreur) {
     statut.textContent = `❌ ${erreur.message}`;
