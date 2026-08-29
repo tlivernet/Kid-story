@@ -182,7 +182,9 @@ body {
   color: var(--violet-texte);
   text-shadow: 3px 3px 0 #fff, 6px 6px 0 rgba(91, 63, 168, 0.18);
 }
-.titre-app span { color: var(--rose); }
+/* Le rose de marque ne tient que 2,46 sur la crème : la version foncée passe
+   le seuil des grands titres. */
+.titre-app span { color: #e6355f; }
 .sous-titre { margin: 0 0 26px; font-size: 1.15rem; color: var(--encre-doux); font-weight: 600; }
 .accueil-bas { margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .accueil-bas .btn-discret {
@@ -454,11 +456,11 @@ body {
 .carte-choix .numero {
   font-size: 1.15rem; font-weight: 900; color: #fff;
   width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none;
-  background: var(--couleur-choix, var(--violet));
+  background: var(--couleur-numero, var(--violet));
 }
-.carte-choix.choix-1 { --couleur-choix: #3f7fd6; --voile-choix: #e4eefb; }
-.carte-choix.choix-2 { --couleur-choix: #e8862f; --voile-choix: #fceee0; }
-.carte-choix.choix-3 { --couleur-choix: #3fae6a; --voile-choix: #e3f4ea; }
+.carte-choix.choix-1 { --couleur-choix: #3f7fd6; --couleur-numero: #2b5ea8; --voile-choix: #e4eefb; }
+.carte-choix.choix-2 { --couleur-choix: #e8862f; --couleur-numero: #a55a0c; --voile-choix: #fceee0; }
+.carte-choix.choix-3 { --couleur-choix: #3fae6a; --couleur-numero: #277244; --voile-choix: #e3f4ea; }
 .carte-choix { border-left: 10px solid var(--couleur-choix, var(--creme-fonce)); }
 .carte-choix { position: relative; overflow: hidden; }
 .carte-choix .validation { font-size: 1.6rem; opacity: 0; transition: opacity 0.15s ease; }
@@ -820,6 +822,13 @@ body {
   .carte-theme .haut { background: rgba(255, 255, 255, 0.07); }
   .accueil-bas .btn-discret { border-color: rgba(185, 174, 214, 0.3); }
   #choix .carte-choix .emoji { background: rgba(255, 255, 255, 0.09); }
+  .rail-sac { background: var(--creme); border-top-color: var(--creme-fonce); }
+  .rail-titre, .objet-rail { background: #2c2444; color: var(--encre); }
+  /* Le mot à lire des jeux de lecture : fond crème resté clair sous un texte
+     devenu clair, soit 1,05 — invisible. C'est le jeu où l'enfant lit seul. */
+  .jeu-lire { background: #46391f; border-color: #8a6f36; }
+  .adversaire { background: #3a2f22; border-color: #7a6340; }
+  .teinte.choisi, .avatar.choisi { background: #3f3363; }
   .jeu-terrain { background: #2a2340; }
   .jeu-tambour, .jeu-mot, .tuile-lieu { background: #2c2444; color: var(--encre); }
   .jeu-case.allume { background: var(--or); color: #2b2140; }
@@ -829,7 +838,7 @@ body {
   .phrase.lue { color: var(--encre); }
   .carte-choix.enonce { color: var(--encre); }
 
-  .btn-primaire, .btn-lecture-principal { background: var(--violet-clair); }
+  .btn-primaire, .btn-lecture-principal { background: var(--violet); }
   .titre-app { text-shadow: 3px 3px 0 #17122a; }
   .mot.actif { background: var(--or); color: #2b2140; }
   .erreur { background: #4a2724; border-color: #7a3f39; color: #ffd9d5; }

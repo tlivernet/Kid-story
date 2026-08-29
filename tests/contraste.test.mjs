@@ -1,4 +1,11 @@
 // Contraste des textes sur leur fond, mesuré selon la formule WCAG.
+//
+// ATTENTION : ce test compare des couples de couleurs écrits à la main. Il ne
+// voit pas ce que le navigateur peint réellement, et il a déjà laissé passer un
+// fond clair resté clair en thème sombre sous un texte devenu clair (le mot à
+// lire de « lis et trouve », mesuré à 1,05 dans l'application). L'autorité sur
+// le rendu, c'est tests/contraste-navigateur.mjs, qui ouvre chaque écran et
+// chaque mini-jeu dans les deux thèmes. Ici on ne garde que les jetons.
 // En thème sombre, le mot correct d'un jeu de lecture s'affichait à 1,03 :
 // texte clair sur fond vert pâle, donc invisible.
 import test from 'node:test';

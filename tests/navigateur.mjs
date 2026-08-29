@@ -203,6 +203,32 @@ await page.waitForSelector('#epreuve-zone .jeu-case');
 const nbCases = (await page.$$('#epreuve-zone .jeu-case')).length;
 verifier(nbCases === 16, `trouve l’intrus devient difficile : ${nbCases} cases au niveau 5`);
 
+// --- Régressions d'enchaînement des mini-jeux ------------------------------
+// Le jeu ne doit pas démarrer avant que la consigne ait fini d'être dite : le
+// chronomètre de « trouve l'intrus » partait pendant la lecture, sur onze
+// secondes la voix en mangeait quatre.
+const departIntrus = await page.evaluate(async () => {
+  const m = await import('./js/minijeux.js');
+  document.querySelector('#overlay-epreuve').hidden = false;
+  const zone = document.querySelector('#epreuve-zone');
+  zone.replaceChildren();
+  const debut = Date.now();
+  let auMoment = null;
+  m.jouer('intrus', zone, {
+    difficulte: 4,
+    narrer: () => new Promise((r) => setTimeout(r, 1200)),
+  });
+  await new Promise((r) => setTimeout(r, 1000));
+  auMoment = zone.querySelectorAll('.jeu-case').length;
+  await new Promise((r) => setTimeout(r, 1200));
+  return { pendantLaConsigne: auMoment, apres: zone.querySelectorAll('.jeu-case').length, ms: Date.now() - debut };
+});
+verifier(
+  departIntrus.pendantLaConsigne === 0 && departIntrus.apres > 0,
+  `le jeu attend la fin de la consigne (${departIntrus.pendantLaConsigne} case pendant, ${departIntrus.apres} après)`,
+);
+await page.evaluate(() => { document.querySelector('#overlay-epreuve').hidden = true; });
+
 // --- Rencontre costaude et carte des lieux ---------------------------------
 const etatEcran = () => page.evaluate(() => ({
   combat: Boolean(document.querySelector('#epreuve-objectif .adversaire')),
@@ -250,12 +276,39 @@ await page.click('.grille-themes .carte-theme >> nth=0');
 await page.fill('#champ-prenom', 'Lina');
 await page.click('#btn-demarrer');
 
+// Régression : tant qu'une épreuve est à l'écran, un second appui sur un choix
+// (ou le repli de la jauge de validation) ne doit pas en lancer une deuxième.
+// Le titre ne suffit pas à détecter la rechute : le second appui peut relancer
+// la MÊME épreuve, avec le même titre. On surveille donc la reconstruction de
+// la zone, que seule une nouvelle épreuve provoque.
+let doubleAppuiVerifie = false;
+
 let combatVu = false;
 for (let tour = 0; tour < 25 && !combatVu; tour += 1) {
   await attendreAction();
   const vue = await etatEcran();
   if (vue.combat) { combatVu = true; break; }
-  if (vue.epreuve) { await jouerEpreuve(); continue; }
+  if (vue.epreuve) {
+    if (!doubleAppuiVerifie) {
+      doubleAppuiVerifie = true;
+      // On reproduit la situation exacte : la carte porte encore « choisi », comme
+      // après le repli de 2,5 s de selectionner, et un appui la valide donc
+      // directement au lieu de simplement la relire.
+      const reconstruites = await page.evaluate(async () => {
+        let mutations = 0;
+        const observateur = new MutationObserver(() => { mutations += 1; });
+        observateur.observe(document.querySelector('#epreuve-zone'), { childList: true });
+        const carte = document.querySelector('#choix .carte-choix:not(.bloque)');
+        if (carte) { carte.classList.add('choisi'); carte.click(); }
+        await new Promise((r) => setTimeout(r, 800));
+        observateur.disconnect();
+        return mutations;
+      });
+      verifier(reconstruites === 0, `un second appui ne lance pas une épreuve par-dessus l’autre (${reconstruites} reconstruction(s) de la zone)`);
+    }
+    await jouerEpreuve();
+    continue;
+  }
   await page.click('#choix .carte-choix:not(.bloque)');
   await page.waitForTimeout(3800);
 }

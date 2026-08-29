@@ -26,6 +26,7 @@ const ui = {
   lecture: true,
   demo: false,
   enCours: false,
+  epreuveEnCours: false,   // une épreuve occupe l'écran : rien d'autre ne démarre
   requete: null,
   ecran: 'accueil',
   phrasesAffichees: 0,
@@ -681,7 +682,10 @@ function annulerValidation() {
 }
 
 async function choisir(choix, possede, bouton) {
-  if (ui.enCours) return;
+  // Sans ce garde-fou, un second appui — ou le repli de 2,5 s de selectionner —
+  // lançait une deuxième épreuve par-dessus celle qui était encore en cours,
+  // puis deux chapitres à la suite. `enCours` ne couvrait que la requête.
+  if (ui.enCours || ui.epreuveEnCours) return;
   narrateur.debloquer();
   if (possede && ui.reglages.confirmerChoix && !bouton.classList.contains('choisi')) {
     selectionner(choix, bouton);
@@ -699,6 +703,9 @@ async function choisir(choix, possede, bouton) {
   }
   vibrer(18);
   narrateur.stop();
+  // Coupe la jauge ET son repli : plus aucune validation en attente ne peut
+  // se déclencher pendant que l'épreuve est à l'écran.
+  annulerValidation();
 
   const action = { resume: `Il a choisi : « ${choix.texte} »`, epreuve: null };
   if (choix.objet_requis) action.resume += ` en utilisant ${choix.objet_requis}.`;
@@ -709,15 +716,20 @@ async function choisir(choix, possede, bouton) {
   }
 
   if (choix.epreuve_difficulte) {
-    ui.etat.derniereEpreuve = ui.etat.chapitre;
-    const resultat = await faireEpreuve(choix);
-    action.epreuve = { nom: choix.epreuve_nom || 'épreuve', ...resultat };
-    if (!resultat.reussi) {
-      const secours = encaisserEchec();
-      if (secours) action.secours = true;
-    } else if (choix.epreuve_difficulte >= 4) {
-      ui.etat.etoiles += 1;
-      majJauges();
+    ui.epreuveEnCours = true;
+    try {
+      ui.etat.derniereEpreuve = ui.etat.chapitre;
+      const resultat = await faireEpreuve(choix);
+      action.epreuve = { nom: choix.epreuve_nom || 'épreuve', ...resultat };
+      if (!resultat.reussi) {
+        const secours = encaisserEchec();
+        if (secours) action.secours = true;
+      } else if (choix.epreuve_difficulte >= 4) {
+        ui.etat.etoiles += 1;
+        majJauges();
+      }
+    } finally {
+      ui.epreuveEnCours = false;
     }
   }
   demanderChapitre(action);
@@ -859,6 +871,7 @@ function choisirActionCombat(adversaire) {
   return new Promise((resoudre) => {
     const zone = $('#epreuve-zone');
     vider(zone);
+    delete zone.dataset.choisi;
     zone.appendChild(el('p', { class: 'jeu-consigne', text: 'Comment fais-tu ?' }));
     const cartes = [];
     ACTIONS_COMBAT.forEach((action, rang) => {
@@ -867,7 +880,12 @@ function choisirActionCombat(adversaire) {
         el('span', { class: 'emoji', text: action.emoji }),
         el('span', { class: 'libelle', text: action.texte }),
       ]);
-      bouton.addEventListener('click', () => { narrateur.stop(); resoudre(action); });
+      bouton.addEventListener('click', () => {
+        if (zone.dataset.choisi) return;
+        zone.dataset.choisi = '1';
+        narrateur.stop();
+        resoudre(action);
+      });
       zone.appendChild(bouton);
       cartes.push(bouton);
     });
@@ -887,7 +905,8 @@ function choisirActionCombat(adversaire) {
 
 async function lancerCombat() {
   const adversaire = ui.etat.adversaire;
-  if (!adversaire) return;
+  if (!adversaire || ui.epreuveEnCours) return;
+  ui.epreuveEnCours = true;
   ui.enCours = true;
   ouvrirEpreuve(`${adversaire.nom} te barre la route !`);
   if (ui.lecture) narrateur.direMot(`${adversaire.nom} te barre la route ! Il faudra plusieurs essais.`);
@@ -921,6 +940,7 @@ async function lancerCombat() {
   const gagne = adversaire.coeurs <= 0;
   ui.etat.adversaire = null;
   ui.enCours = false;
+  ui.epreuveEnCours = false;
   if (gagne) {
     ui.etat.etoiles += 2;
     majJauges();

@@ -37,8 +37,7 @@ async function memoire(zone, { difficulte, narrer, surDemonstration }) {
   const jauge = el('p', { class: 'jeu-jauge', text: '•'.repeat(longueur) });
   zone.appendChild(jauge);
 
-  narrer?.(consigne);
-  await attendre(1800);
+  await Promise.all([narrer?.(consigne), attendre(700)]);
 
   for (const symbole of suite) {
     const bouton = boutons[symboles.indexOf(symbole)];
@@ -52,14 +51,16 @@ async function memoire(zone, { difficulte, narrer, surDemonstration }) {
 
   return new Promise((resoudre) => {
     let position = 0;
+    let fini = false;
     boutons.forEach((bouton, i) => {
       bouton.disabled = false;
       bouton.addEventListener('click', async () => {
-        if (bouton.disabled) return;
+        if (fini || bouton.disabled) return;
         bouton.classList.add('allume');
         vibrer(12);
         setTimeout(() => bouton.classList.remove('allume'), 220);
         if (symboles[i] !== suite[position]) {
+          fini = true;
           boutons.forEach((b) => { b.disabled = true; });
           resoudre({ reussi: false, detail: 'la suite s’est mélangée' });
           return;
@@ -67,6 +68,7 @@ async function memoire(zone, { difficulte, narrer, surDemonstration }) {
         position += 1;
         jauge.textContent = '★'.repeat(position) + '•'.repeat(longueur - position);
         if (position === suite.length) {
+          fini = true;
           boutons.forEach((b) => { b.disabled = true; });
           await attendre(300);
           resoudre({ reussi: true, detail: 'la suite entière retrouvée' });
@@ -91,8 +93,7 @@ async function attrape(zone, { difficulte, narrer }) {
   const compteur = el('p', { class: 'jeu-jauge', text: `0 / ${objectif}` });
   zone.appendChild(compteur);
 
-  narrer?.(consigne);
-  await attendre(1600);
+  await Promise.all([narrer?.(consigne), attendre(700)]);
 
   let attrapes = 0;
   for (let i = 0; i < apparitions; i += 1) {
@@ -140,7 +141,7 @@ async function intrus(zone, { difficulte, narrer }) {
   zone.appendChild(grille);
   const barre = secondes ? el('div', { class: 'jeu-barre' }, [el('span', {})]) : null;
   if (barre) zone.appendChild(barre);
-  narrer?.(consigne);
+  await Promise.all([narrer?.(consigne), attendre(700)]);
 
   return new Promise((resoudre) => {
     let fini = false;
@@ -201,8 +202,7 @@ async function tape(zone, { difficulte, narrer }) {
   const barre = el('div', { class: 'jeu-barre' }, [el('span', {})]);
   zone.appendChild(barre);
 
-  narrer?.(consigne);
-  await attendre(2200);
+  await Promise.all([narrer?.(consigne), attendre(800)]);
 
   return new Promise((resoudre) => {
     let coups = 0;
@@ -263,8 +263,7 @@ async function corde(zone, { difficulte, narrer }) {
   const barre = el('div', { class: 'jeu-barre' }, [el('span', {})]);
   zone.appendChild(barre);
 
-  narrer?.(consigne);
-  await attendre(2000);
+  await Promise.all([narrer?.(consigne), attendre(700)]);
 
   return new Promise((resoudre) => {
     let position = 0; // de -100 (perdu) à +100 (gagné)
@@ -326,8 +325,7 @@ async function taupes(zone, { difficulte, narrer }) {
   const compteur = el('p', { class: 'jeu-jauge', text: `0 / ${objectif}` });
   zone.appendChild(compteur);
 
-  narrer?.(consigne);
-  await attendre(2400);
+  await Promise.all([narrer?.(consigne), attendre(800)]);
 
   let touches = 0;
   let piques = 0;
@@ -370,8 +368,7 @@ async function compter(zone, { difficulte, narrer }) {
   const bouton = el('button', { class: 'jeu-tambour', text: '👏', disabled: 'disabled' });
   zone.appendChild(bouton);
 
-  narrer?.(consigne);
-  await attendre(2400);
+  await Promise.all([narrer?.(consigne), attendre(800)]);
 
   return new Promise((resoudre) => {
     let coups = 0;
@@ -461,10 +458,13 @@ function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel }
 
   return new Promise((resoudre) => {
     let essais = 0;
+    let fini = false;
     for (const proposition of melanger(propositions)) {
       const carte = el('button', { class: 'jeu-mot', text: proposition });
       carte.addEventListener('click', async () => {
+        if (fini) return;
         if (proposition === bonne) {
+          fini = true;
           carte.classList.add('trouve');
           vibrer(30);
           await attendre(600);
@@ -475,6 +475,7 @@ function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel }
         carte.classList.add('rate');
         vibrer(10);
         if (essais >= 2) {
+          fini = true;
           grille.querySelectorAll('.jeu-mot').forEach((c) => {
             if (c.textContent === bonne) c.classList.add('trouve');
           });
@@ -542,10 +543,13 @@ async function lireEtFaire(zone, { difficulte, narrer }) {
 
   return new Promise((resoudre) => {
     let essais = 0;
+    let fini = false;
     for (const entree of melanger(choisis)) {
       const carte = el('button', { class: 'jeu-case', text: entree.emoji });
       carte.addEventListener('click', async () => {
+        if (fini) return;
         if (entree.mot === cible.mot) {
+          fini = true;
           carte.classList.add('trouve');
           vibrer(30);
           await attendre(600);
@@ -556,6 +560,7 @@ async function lireEtFaire(zone, { difficulte, narrer }) {
         carte.classList.add('rate');
         vibrer(10);
         if (essais >= 2) {
+          fini = true;
           await attendre(700);
           resoudre({ reussi: false, detail: `c'était ${cible.mot}` });
         }

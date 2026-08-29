@@ -14,3 +14,27 @@ jobs:
         with:
           node-version: 22
       - run: node --test tests/*.test.mjs
+
+  navigateur:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i -D playwright && npx playwright install --with-deps chromium
+      # Un serveur lancé dans une étape ne survit pas proprement à la suivante :
+      # on sert le dossier et on joue les suites dans la même étape.
+      - name: Suites navigateur
+        run: |
+          python3 -m http.server 8123 --directory . > /dev/null 2>&1 &
+          for _ in $(seq 1 20); do
+            curl -sf -o /dev/null http://127.0.0.1:8123/index.html && break
+            sleep 1
+          done
+          # L'audit de contraste mesure le rendu réel : c'est lui qui attrape un
+          # fond clair resté clair en thème sombre, que les jetons ne voient pas.
+          node tests/contraste-navigateur.mjs
+          node tests/surlignage.mjs
+          node tests/api-simulee.mjs
+          node tests/navigateur.mjs
