@@ -25,14 +25,35 @@ const ui = {
 };
 
 const animationsReduites = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DELAI_VALIDATION = 3000; // temps laissé pour changer d'avis avant de valider
 
 // --- Utilitaires d'interface ------------------------------------------------
 
 function montrer(nom) {
+  ui.ecran = nom;
+  annulerValidation();
+  if (nom === 'jeu') garderEcranAllume(); else laisserEcranDormir();
   if (nom !== 'jeu') narrateur.stop();
   document.querySelectorAll('.ecran').forEach((e) => e.classList.remove('actif'));
   $(`#ecran-${nom}`).classList.add('actif');
   $(`#ecran-${nom}`).scrollTop = 0;
+}
+
+// L'écran d'une tablette s'éteint au bout de trente secondes sans toucher :
+// pendant la lecture, cela coupait l'histoire en plein milieu.
+async function garderEcranAllume() {
+  try {
+    if (!('wakeLock' in navigator) || ui.verrouEcran) return;
+    ui.verrouEcran = await navigator.wakeLock.request('screen');
+    ui.verrouEcran.addEventListener('release', () => { ui.verrouEcran = null; });
+  } catch {
+    // Verrou refusé (onglet en arrière-plan, navigateur sans l'API) : sans gravité.
+  }
+}
+
+function laisserEcranDormir() {
+  try { ui.verrouEcran?.release(); } catch { /* déjà relâché */ }
+  ui.verrouEcran = null;
 }
 
 let toastTimer = null;
@@ -175,8 +196,10 @@ function elementPhrase(texte, index) {
       });
       mot.addEventListener('click', (e) => {
         e.stopPropagation();
-        narrateur.direMot(morceau.mot || morceau.brut);
+        if (ui.doigtGlisse) return; // c'était un défilement, pas un appui
         vibrer(8);
+        const reprise = ui.phraseCourante ?? index;
+        narrateur.direMot(morceau.mot || morceau.brut, () => reprendreLecture(reprise));
       });
       phrase.appendChild(mot);
     }
@@ -188,6 +211,7 @@ function elementPhrase(texte, index) {
 function ajouterPhrase(texte, index) {
   const zone = $('#texte-histoire');
   if (zone.querySelector(`[data-index="${index}"]`)) return;
+  ui.phrasesCourantes[index] = texte;
   zone.appendChild(elementPhrase(texte, index));
   ui.phrasesAffichees = Math.max(ui.phrasesAffichees, index + 1);
 }
@@ -195,6 +219,7 @@ function ajouterPhrase(texte, index) {
 const rappelsLecture = {
   onPhrase: (index) => {
     ui.lectureDemarree = true;
+    ui.phraseCourante = index;
     ui.dernierSignalVoix = Date.now();
     document.querySelectorAll('.phrase').forEach((p) => {
       const active = Number(p.dataset.index) === index;
@@ -225,6 +250,19 @@ const rappelsLecture = {
   },
 };
 
+// Après avoir dit un mot touché, l'histoire repart de la phrase en cours.
+function reprendreLecture(depuis) {
+  if (!ui.lecture || !$('#choix').classList.contains('masque')) return;
+  const phrases = ui.phrasesCourantes;
+  if (!phrases.length || depuis >= phrases.length) return;
+  narrateur.ouvrir(rappelsLecture);
+  for (let i = depuis; i < phrases.length; i += 1) {
+    if (phrases[i]) narrateur.enfiler(phrases[i], i);
+  }
+  narrateur.fermer();
+  surveillerLaVoix();
+}
+
 // Filet de sécurité : si la voix ne démarre jamais (aucune voix installée) ou
 // se bloque en route, les choix apparaissent quand même.
 function surveillerLaVoix() {
@@ -234,7 +272,8 @@ function surveillerLaVoix() {
     if (!$('#choix').classList.contains('masque')) { clearInterval(ui.chienDeGarde); return; }
     if (narrateur.enPause) { ui.dernierSignalVoix = Date.now(); return; }
     const silence = Date.now() - ui.dernierSignalVoix;
-    if (silence > (ui.lectureDemarree ? 9000 : 3000)) revelerChoix(false);
+    // Si la voix a déjà fonctionné, les choix doivent quand même être énoncés.
+    if (silence > (ui.lectureDemarree ? 9000 : 3000)) revelerChoix(ui.lectureDemarree);
   }, 1000);
 }
 
@@ -323,22 +362,50 @@ function rendreChoix(chapitre, masquer = false) {
     if (choix.objet_requis) bouton.appendChild(el('span', { class: 'badge', text: `🎒 ${choix.objet_requis}` }));
     else if (choix.epreuve_difficulte) bouton.appendChild(el('span', { class: 'badge', text: '🎲' }));
     bouton.appendChild(el('span', { class: 'validation', text: '✅' }));
+    bouton.appendChild(el('span', { class: 'jauge-validation' }));
     bouton.addEventListener('click', () => choisir(choix, possede, bouton));
     zone.appendChild(bouton);
   }
+}
+
+// L'enfant touche une tuile : elle s'allume, se fait relire, et une jauge se
+// remplit. Au bout de trois secondes l'aventure continue toute seule ; un
+// nouvel appui sur la même tuile va plus vite, un appui ailleurs change d'avis.
+function selectionner(choix, bouton) {
+  annulerValidation();
+  bouton.classList.add('choisi');
+  vibrer(10);
+  const lancerJauge = () => {
+    if (!bouton.classList.contains('choisi') || bouton.classList.contains('compte')) return;
+    bouton.classList.add('compte');
+    ui.minuteurValidation = setTimeout(() => choisir(choix, true, bouton), DELAI_VALIDATION);
+  };
+  if (ui.lecture) {
+    narrateur.direMot(choix.texte, lancerJauge);
+    // Si la voix ne rend jamais la main, la jauge part quand même.
+    setTimeout(lancerJauge, 2500);
+  } else {
+    lancerJauge();
+  }
+}
+
+function annulerValidation() {
+  clearTimeout(ui.minuteurValidation);
+  ui.minuteurValidation = null;
+  document.querySelectorAll('#choix .carte-choix').forEach((c) => {
+    c.classList.remove('choisi', 'compte');
+  });
 }
 
 async function choisir(choix, possede, bouton) {
   if (ui.enCours) return;
   narrateur.debloquer();
   if (possede && ui.reglages.confirmerChoix && !bouton.classList.contains('choisi')) {
-    // Premier appui : on lit le choix et on l'allume. Deuxième appui : on y va.
-    document.querySelectorAll('#choix .carte-choix').forEach((c) => c.classList.remove('choisi'));
-    bouton.classList.add('choisi');
-    vibrer(10);
-    if (ui.lecture) narrateur.direMot(choix.texte);
+    selectionner(choix, bouton);
     return;
   }
+  clearTimeout(ui.minuteurValidation);
+  ui.minuteurValidation = null;
   if (!possede) {
     bouton.classList.add('secoue');
     setTimeout(() => bouton.classList.remove('secoue'), 450);
@@ -441,6 +508,7 @@ function faireEpreuve(choix) {
 async function demanderChapitre(action) {
   const etat = ui.etat;
   ui.enCours = true;
+  annulerValidation();
   ui.phrasesAffichees = 0;
   vider($('#texte-histoire'));
   vider($('#choix'));
@@ -453,6 +521,8 @@ async function demanderChapitre(action) {
 
   const message = etat.chapitre === 0 ? premierMessage(etat, etat.idee) : messageSuivant(etat, action);
   ui.lectureDemarree = false;
+  ui.phraseCourante = 0;
+  ui.phrasesCourantes = [];
   if (ui.lecture) narrateur.ouvrir(rappelsLecture);
 
   const surPhrase = (phrase, index) => {
@@ -805,6 +875,11 @@ function brancher() {
   $('#modale-resume').addEventListener('click', (e) => {
     if (e.target.id === 'modale-resume') { narrateur.stop(); $('#modale-resume').hidden = true; }
   });
+  // Un défilement du doigt ne doit pas être pris pour un appui sur un mot.
+  const zoneTexte = $('.zone-histoire');
+  zoneTexte.addEventListener('touchstart', () => { ui.doigtGlisse = false; }, { passive: true });
+  zoneTexte.addEventListener('touchmove', () => { ui.doigtGlisse = true; }, { passive: true });
+
   $('#btn-passer').addEventListener('click', () => {
     narrateur.stop();
     revelerChoix();
@@ -938,7 +1013,11 @@ function brancher() {
     $('#btn-installer').hidden = true;
   });
 
-  document.addEventListener('visibilitychange', () => { if (document.hidden) narrateur.pause(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { narrateur.pause(); return; }
+    // Le verrou d'écran est perdu dès que l'application passe en arrière-plan.
+    if (ui.ecran === 'jeu') garderEcranAllume();
+  });
   window.speechSynthesis?.addEventListener?.('voiceschanged', construireVoix);
 }
 

@@ -16,8 +16,9 @@ et s'installe sur le téléphone ou la tablette comme une vraie application.
 | Histoire | API Claude (`/v1/messages`) appelée **directement depuis le navigateur**, en streaming, avec **sorties structurées** (`output_config.format`) : chaque chapitre est un JSON validé (texte, décor, objets, choix, dé, fin). |
 | Cohérence | Le modèle tient un carnet de mémoire (3 à 5 faits) réécrit à chaque chapitre, et reçoit l'état du jeu complet (sac, quête, compagnon, cœurs) à chaque tour. L'historique envoyé reste court : c'est rapide et peu coûteux. |
 | Lecture à voix haute | Deux voix au choix : celle du navigateur (gratuite, hors ligne) ou **Google Cloud Text-to-Speech** (bien plus jolie). Phrase en cours surlignée, mot en cours surligné, et **l'enfant peut toucher n'importe quel mot pour l'entendre**. |
-| Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji** ; un premier appui le relit, un second valide. Ils n'apparaissent qu'**après la lecture du chapitre**, pour ne pas voler la place au texte (bouton ⏭️ pour les afficher tout de suite). |
-| Épreuves | Un **dé** qui montre noir sur blanc ce qu'il faut obtenir (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou trois **mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus. Réglable : dé seul, mini-jeux seuls, ou mélange. |
+| Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji**. Un appui sélectionne la tuile, la fait relire, puis **une jauge se remplit en trois secondes** avant que l'aventure continue : toucher une autre tuile change d'avis, retoucher la même part tout de suite. Les choix n'apparaissent qu'**après la lecture du chapitre** (bouton ⏭️ pour les afficher tout de suite). |
+| Épreuves | Un **dé** qui montre noir sur blanc ce qu'il faut obtenir (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou quatre **mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus, tape vite. Leur difficulté suit celle que le modèle a fixée pour l'épreuve. Réglable : dé seul, mini-jeux seuls, ou mélange. |
+| Écran qui reste allumé | Un verrou d'écran (Wake Lock) est pris pendant l'aventure et repris au retour en avant-plan : la tablette ne s'éteint plus au milieu d'un chapitre. |
 | Résumé | Un bouton 📜 rappelle à tout moment où en est l'histoire : chapitre, mission, compagnons, sac, ce qui s'est passé — lu à voix haute, sans appel à l'API. |
 | Richesse du récit | Arc en neuf étapes (ouverture → rencontre → complication → coup dur → idée maligne → dénouement), **graines narratives** plantées puis payées, troupe de personnages avec leurs manies, un détail sensoriel par chapitre. |
 | Illustrations | Claude ne génère pas d'images. L'application **dessine elle-même** la scène en SVG (28 décors, jour/soir/nuit) à partir du lieu renvoyé par le modèle, avec les personnages en emojis animés. C'est instantané, joli et ça marche hors ligne. |
@@ -47,6 +48,12 @@ dans les six dernières aventures sont écartés du tirage. Le retournement est 
 pour qu'il l'amène au bon moment. Sans cela, le même thème produit systématiquement la même ouverture : les
 paramètres d'échantillonnage (`temperature`) n'existent plus sur les modèles récents, la variété doit donc
 venir du prompt.
+
+### Détails qui comptent sur une tablette d'enfant
+- **L'écran reste allumé** pendant l'aventure (Wake Lock), y compris après un passage en arrière-plan.
+- **Toucher un mot** le fait répéter, puis **l'histoire repart de la phrase en cours** au lieu de s'arrêter là.
+- Un **défilement du doigt** n'est plus pris pour un appui sur un mot.
+- Si la voix se bloque, un chien de garde révèle les choix — et les énonce quand même si la voix fonctionne.
 
 ### Sécurité de l'histoire
 Le prompt système interdit la violence, la mort, la peur, les séparations tristes : les « méchants » sont maladroits

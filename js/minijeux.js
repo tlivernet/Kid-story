@@ -4,9 +4,15 @@ import { el, vider, attendre, piocher, vibrer } from './util.js';
 
 const SYMBOLES = ['🍎', '⭐', '🐸', '🔔', '🌸', '🎈'];
 
+// Les paires du bas de liste se ressemblent beaucoup : elles servent aux
+// difficultés élevées.
 const PAIRES_INTRUS = [
-  ['🍎', '🍏'], ['⭐', '🌟'], ['🐶', '🐺'], ['😺', '😸'], ['🌘', '🌒'],
-  ['🐢', '🐸'], ['🍋', '🍐'], ['🐝', '🐞'], ['🧢', '👒'], ['🌲', '🌳'],
+  ['🍎', '🍏'], ['🐶', '🐺'], ['🐢', '🐸'], ['🍋', '🍐'], ['🐝', '🐞'],
+  ['🧢', '👒'], ['🌲', '🌳'], ['🚗', '🚙'], ['🐰', '🐇'], ['🦊', '🐕'],
+];
+const PAIRES_SUBTILES = [
+  ['⭐', '🌟'], ['😺', '😸'], ['🌘', '🌒'], ['😀', '😃'], ['🔵', '🔷'],
+  ['🌕', '🌝'], ['🍀', '☘️'], ['💛', '🟡'], ['🥔', '🥥'], ['😐', '😑'],
 ];
 
 const AMIS = ['🦊', '🦉', '🐭', '🐰', '🐻', '🐱'];
@@ -14,7 +20,7 @@ const AMIS = ['🦊', '🦉', '🐭', '🐰', '🐻', '🐱'];
 // --- Mémoire : répéter la suite lumineuse --------------------------------
 
 async function memoire(zone, { difficulte, narrer, surDemonstration }) {
-  const longueur = Math.min(5, 2 + Math.round(difficulte / 2));
+  const longueur = Math.min(5, 1 + difficulte);
   const symboles = SYMBOLES.slice(0, 4);
   const suite = Array.from({ length: longueur }, () => piocher(symboles));
 
@@ -72,9 +78,9 @@ async function memoire(zone, { difficulte, narrer, surDemonstration }) {
 // --- Attrape : toucher les amis qui passent -------------------------------
 
 async function attrape(zone, { difficulte, narrer }) {
-  const objectif = Math.max(3, difficulte + 1);
+  const objectif = Math.max(3, difficulte + 2);
   const apparitions = objectif + 2;
-  const duree = 1500 - difficulte * 120;
+  const duree = 1350 - difficulte * 150;
 
   vider(zone);
   const consigne = `Attrape les amis qui passent. Il en faut ${objectif}.`;
@@ -118,49 +124,131 @@ async function attrape(zone, { difficulte, narrer }) {
 // --- Intrus : trouver celui qui n'est pas comme les autres -----------------
 
 async function intrus(zone, { difficulte, narrer }) {
-  const cases = difficulte <= 2 ? 6 : difficulte === 3 ? 9 : 12;
-  const [commun, different] = piocher(PAIRES_INTRUS);
+  const cases = difficulte <= 2 ? 9 : difficulte === 3 ? 12 : 16;
+  const [commun, different] = piocher(difficulte >= 4 ? PAIRES_SUBTILES : PAIRES_INTRUS);
   const cible = Math.floor(Math.random() * cases);
+  const secondes = difficulte <= 2 ? 0 : 14 - difficulte;
+  const essaisMax = difficulte <= 2 ? 2 : 1;
 
   vider(zone);
-  const consigne = 'Touche l’image qui n’est pas comme les autres.';
+  const consigne = secondes
+    ? `Touche vite l’image qui n’est pas comme les autres. Tu as ${secondes} secondes.`
+    : 'Touche l’image qui n’est pas comme les autres.';
   zone.appendChild(el('p', { class: 'jeu-consigne', text: consigne }));
-  const grille = el('div', { class: `jeu-grille jeu-grille-${cases <= 6 ? 3 : 4}` });
+  const grille = el('div', { class: `jeu-grille jeu-grille-${cases <= 9 ? 3 : 4}` });
   zone.appendChild(grille);
+  const barre = secondes ? el('div', { class: 'jeu-barre' }, [el('span', {})]) : null;
+  if (barre) zone.appendChild(barre);
   narrer?.(consigne);
 
   return new Promise((resoudre) => {
+    let fini = false;
+    const terminer = async (reussi, detail) => {
+      if (fini) return;
+      fini = true;
+      clearInterval(minuteur);
+      grille.querySelectorAll('button').forEach((b, k) => { if (k === cible) b.classList.add('trouve'); });
+      await attendre(reussi ? 500 : 900);
+      resoudre({ reussi, detail });
+    };
+
+    let minuteur = null;
+    if (secondes) {
+      const debut = Date.now();
+      barre.firstChild.style.transition = `width ${secondes}s linear`;
+      requestAnimationFrame(() => { barre.firstChild.style.width = '0%'; });
+      minuteur = setInterval(() => {
+        if (Date.now() - debut >= secondes * 1000) terminer(false, 'le temps est passé trop vite');
+      }, 200);
+    }
+
     let essais = 0;
     for (let i = 0; i < cases; i += 1) {
       const bouton = el('button', { class: 'jeu-case', text: i === cible ? different : commun });
-      bouton.addEventListener('click', async () => {
+      bouton.addEventListener('click', () => {
+        if (fini) return;
         if (i === cible) {
           bouton.classList.add('trouve');
           vibrer(30);
-          await attendre(500);
-          resoudre({ reussi: true, detail: 'intrus repéré' });
+          terminer(true, 'intrus repéré');
           return;
         }
         essais += 1;
         bouton.classList.add('rate');
         vibrer(10);
-        if (essais >= 2) {
-          grille.querySelectorAll('button').forEach((b, k) => { if (k === cible) b.classList.add('trouve'); });
-          await attendre(700);
-          resoudre({ reussi: false, detail: 'l’intrus était bien caché' });
-        }
+        if (essais >= essaisMax) terminer(false, 'l’intrus était bien caché');
       });
       grille.appendChild(bouton);
     }
   });
 }
 
-export const JEUX = { memoire, attrape, intrus };
+// --- Tape vite : un nombre de coups dans le temps imparti ------------------
+
+async function tape(zone, { difficulte, narrer }) {
+  const objectif = 8 + difficulte * 3;
+  const secondes = 5;
+  const instrument = piocher(['🥁', '🔔', '🪘', '🎹']);
+
+  vider(zone);
+  const consigne = `Tape ${objectif} fois sur le tambour avant la fin !`;
+  zone.appendChild(el('p', { class: 'jeu-consigne', text: consigne }));
+  const bouton = el('button', { class: 'jeu-tambour', text: instrument, disabled: 'disabled' });
+  zone.appendChild(bouton);
+  const compteur = el('p', { class: 'jeu-jauge', text: `0 / ${objectif}` });
+  zone.appendChild(compteur);
+  const barre = el('div', { class: 'jeu-barre' }, [el('span', {})]);
+  zone.appendChild(barre);
+
+  narrer?.(consigne);
+  await attendre(2200);
+
+  return new Promise((resoudre) => {
+    let coups = 0;
+    let fini = false;
+    bouton.disabled = false;
+    bouton.focus?.();
+
+    const terminer = async () => {
+      if (fini) return;
+      fini = true;
+      clearInterval(minuteur);
+      bouton.disabled = true;
+      await attendre(400);
+      const reussi = coups >= objectif;
+      resoudre({
+        reussi,
+        detail: reussi ? `${coups} coups de tambour` : `${coups} coups seulement, il en fallait ${objectif}`,
+      });
+    };
+
+    bouton.addEventListener('click', () => {
+      if (fini) return;
+      coups += 1;
+      compteur.textContent = `${coups} / ${objectif}`;
+      bouton.classList.remove('frappe');
+      void bouton.offsetWidth; // relance l'animation
+      bouton.classList.add('frappe');
+      vibrer(8);
+      if (coups >= objectif) terminer();
+    });
+
+    barre.firstChild.style.transition = `width ${secondes}s linear`;
+    requestAnimationFrame(() => { barre.firstChild.style.width = '0%'; });
+    const debut = Date.now();
+    const minuteur = setInterval(() => {
+      if (Date.now() - debut >= secondes * 1000) terminer();
+    }, 100);
+  });
+}
+
+export const JEUX = { memoire, attrape, intrus, tape };
 
 export const NOMS_JEUX = {
   memoire: 'Jeu de mémoire',
   attrape: 'Attrape les amis',
   intrus: 'Trouve l’intrus',
+  tape: 'Tape vite !',
 };
 
 // Quelle épreuve pour ce choix ? Le réglage décide, le hasard varie.

@@ -280,7 +280,14 @@ body {
 .carte-choix.choix-2 { --couleur-choix: #e8862f; }
 .carte-choix.choix-3 { --couleur-choix: #3fae6a; }
 .carte-choix { border-left: 10px solid var(--couleur-choix, var(--creme-fonce)); }
+.carte-choix { position: relative; overflow: hidden; }
 .carte-choix .validation { font-size: 1.6rem; opacity: 0; transition: opacity 0.15s ease; }
+.carte-choix .jauge-validation {
+  position: absolute; left: 0; bottom: 0; height: 8px; width: 0;
+  background: var(--couleur-choix, var(--violet)); border-radius: 0 6px 6px 0;
+}
+.carte-choix.compte .jauge-validation { animation: remplir 3s linear forwards; }
+@keyframes remplir { from { width: 0; } to { width: 100%; } }
 
 /* Le choix énoncé à voix haute s'allume, celui que l'enfant a touché attend sa confirmation. */
 .carte-choix.enonce { background: #fff6da; transform: scale(1.02); }
@@ -415,6 +422,19 @@ body {
 .jeu-couleur-2 { border-color: #e8862f; }
 .jeu-couleur-3 { border-color: #3fae6a; }
 .jeu-couleur-4 { border-color: #b06fd6; }
+.jeu-barre {
+  width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
+  background: var(--creme-fonce);
+}
+.jeu-barre span { display: block; height: 100%; width: 100%; background: var(--rose); }
+.jeu-tambour {
+  font-size: 5rem; line-height: 1; padding: 18px 26px; border-radius: 30px;
+  border: 4px solid var(--creme-fonce); background: #fff; cursor: pointer;
+}
+.jeu-tambour:disabled { opacity: 0.5; }
+.jeu-tambour.frappe { animation: frappe 0.12s ease; }
+@keyframes frappe { 50% { transform: scale(0.88) rotate(-4deg); } }
+
 .jeu-terrain {
   position: relative; width: 100%; height: 240px;
   background: #eef7ff; border-radius: 20px; border: 3px solid var(--creme-fonce); overflow: hidden;
@@ -459,7 +479,20 @@ body {
   }
   body { background: var(--creme); }
   .btn, .btn-rond, .carte-theme, .carte, .carte-choix, .objet-sac, .champ-gros, .carte-carnet, .ligne select, .aventure summary, .jeu-case { background: #2c2444; color: var(--encre); }
-  .jeu-terrain { background: #2a2340; }
+  .jeu-barre {
+  width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
+  background: var(--creme-fonce);
+}
+.jeu-barre span { display: block; height: 100%; width: 100%; background: var(--rose); }
+.jeu-tambour {
+  font-size: 5rem; line-height: 1; padding: 18px 26px; border-radius: 30px;
+  border: 4px solid var(--creme-fonce); background: #fff; cursor: pointer;
+}
+.jeu-tambour:disabled { opacity: 0.5; }
+.jeu-tambour.frappe { animation: frappe 0.12s ease; }
+@keyframes frappe { 50% { transform: scale(0.88) rotate(-4deg); } }
+
+.jeu-terrain { background: #2a2340; }
   .jeu-case.allume { background: var(--or); }
   .jeu-case.trouve { background: #2e5a3e; }
   .jeu-case.rate { background: #5a2e2e; }

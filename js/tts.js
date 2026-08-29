@@ -177,19 +177,20 @@ export class Conteur {
     try { this.synth?.cancel(); } catch { /* ignoré */ }
   }
 
-  // Lecture d'un seul mot (l'enfant tape sur un mot pour l'entendre).
-  direMot(mot) {
-    if (!this.disponible || !mot) return;
-    try {
-      this.synth.cancel();
-      const u = new SpeechSynthesisUtterance(mot);
-      u.lang = 'fr-FR';
-      if (this.voixChoisie) u.voice = this.voixChoisie;
-      u.rate = Math.min(this.vitesse, 0.8);
-      this.enCours = false;
-      this.file = [];
-      this.synth.speak(u);
-    } catch { /* ignoré */ }
+  // Lecture d'un fragment isolé (un mot touché, un choix énoncé).
+  direMot(mot, onFin) {
+    if (!this.disponible || !mot) { onFin?.(); return; }
+    this.stop();
+    const u = new SpeechSynthesisUtterance(mot);
+    u.lang = 'fr-FR';
+    if (this.voixChoisie) u.voice = this.voixChoisie;
+    u.rate = Math.min(this.vitesse, 0.85);
+    u.onend = () => onFin?.();
+    u.onerror = () => onFin?.();
+    // Même précaution qu'ailleurs : parler juste après cancel() coupe le début.
+    setTimeout(() => {
+      try { this.synth.speak(u); } catch { onFin?.(); }
+    }, 200);
   }
 }
 

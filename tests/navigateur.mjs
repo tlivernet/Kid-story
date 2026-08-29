@@ -41,7 +41,12 @@ verifier(!(await page.$eval('#choix', (n) => n.classList.contains('masque'))), '
 
 const premier = await page.$('#choix .carte-choix');
 await premier.click();
-verifier(await premier.evaluate((n) => n.classList.contains('choisi')), 'le premier appui sélectionne sans valider');
+verifier(await premier.evaluate((n) => n.classList.contains('choisi')), 'un appui sélectionne la tuile');
+await page.waitForFunction(() => document.querySelector('#choix .carte-choix.compte') !== null, { timeout: 6000 });
+verifier(true, 'la jauge de validation démarre après la relecture');
+await page.waitForSelector('#chargement:not([hidden])', { timeout: 8000 });
+verifier(true, 'le choix se valide tout seul après trois secondes');
+await page.waitForSelector('#choix .carte-choix', { timeout: 20000 });
 
 await page.click('#btn-resume');
 await page.waitForTimeout(300);
@@ -95,6 +100,21 @@ while ((await resultatJeu()) === undefined && Date.now() < limite) {
 }
 const scoreAttrape = await resultatJeu();
 verifier(scoreAttrape?.reussi === true, `attrape les amis : toutes les cibles touchées gagne (${scoreAttrape?.detail ?? 'aucun résultat'})`);
+
+await lancerJeu('tape', 3);
+await page.waitForSelector('#epreuve-zone .jeu-tambour:not([disabled])', { timeout: 10000 });
+const objectifTape = await page.$eval('#epreuve-zone .jeu-jauge', (n) => Number(n.textContent.split('/')[1]));
+for (let i = 0; i < objectifTape; i += 1) {
+  await page.click('#epreuve-zone .jeu-tambour', { timeout: 2000 }).catch(() => {});
+}
+await page.waitForTimeout(900);
+const scoreTape = await resultatJeu();
+verifier(scoreTape?.reussi === true, `tape vite : ${objectifTape} coups suffisent (${scoreTape?.detail ?? 'aucun résultat'})`);
+
+await lancerJeu('intrus', 5);
+await page.waitForSelector('#epreuve-zone .jeu-case');
+const nbCases = (await page.$$('#epreuve-zone .jeu-case')).length;
+verifier(nbCases === 16, `trouve l’intrus devient difficile : ${nbCases} cases au niveau 5`);
 
 verifier(erreursJs.length === 0, `aucune erreur JavaScript${erreursJs.length ? ` (${erreursJs.join(' | ')})` : ''}`);
 await navigateur.close();

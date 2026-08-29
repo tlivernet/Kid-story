@@ -315,11 +315,12 @@ export class Narrateur {
   }
 
   // Lecture d'un fragment isolé : un mot touché, un choix, un message.
-  direMot(texte) {
-    if (!texte) return;
-    if (!this.actifGoogle) { conteur.direMot(texte); return; }
+  // onFin permet d'enchaîner (reprendre l'histoire après avoir dit un mot).
+  direMot(texte, onFin) {
+    if (!texte) { onFin?.(); return; }
+    if (!this.actifGoogle) { conteur.direMot(texte, onFin); return; }
     this.stop();
-    this.rappels = {};
+    this.rappels = { onFin };
     this.termine = true;
     this.file.push({ texte, index: 0, audio: this.google.synthetiser(texte).catch((e) => e) });
     this._jouerSuivant();
