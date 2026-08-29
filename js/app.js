@@ -127,9 +127,13 @@ function appliquerReglages() {
 function majAccueil() {
   const sauvegarde = partie.charger();
   const bouton = $('#btn-continuer');
-  if (sauvegarde && !sauvegarde.termine && sauvegarde.chapitre > 0) {
+  if (sauvegarde && sauvegarde.chapitre > 0) {
+    // Même une aventure marquée « terminée » reste accessible : sinon une fin
+    // annoncée par erreur la rendrait définitivement injoignable.
     bouton.hidden = false;
-    $('#btn-continuer .btn-label').textContent = `Continuer : ${sauvegarde.titre || sauvegarde.theme}`;
+    $('#btn-continuer .btn-label').textContent = sauvegarde.termine
+      ? `Reprendre : ${sauvegarde.titre || sauvegarde.theme}`
+      : `Continuer : ${sauvegarde.titre || sauvegarde.theme}`;
   } else {
     bouton.hidden = true;
   }
@@ -406,12 +410,18 @@ function rendreChoix(chapitre, masquer = false) {
   vider(zone);
   zone.classList.toggle('masque', masquer);
   if (ui.etat.termine) {
-    const bouton = el('button', { class: 'carte-choix' }, [
+    const fin = el('button', { class: 'carte-choix' }, [
       el('span', { class: 'emoji', text: '🏆' }),
       el('span', { class: 'libelle', text: 'Voir la fin de l’histoire' }),
     ]);
-    bouton.addEventListener('click', montrerFin);
-    zone.appendChild(bouton);
+    fin.addEventListener('click', montrerFin);
+    zone.appendChild(fin);
+    const suite = el('button', { class: 'carte-choix' }, [
+      el('span', { class: 'emoji', text: '▶️' }),
+      el('span', { class: 'libelle', text: 'Continuer quand même l’aventure' }),
+    ]);
+    suite.addEventListener('click', reprendreApresFin);
+    zone.appendChild(suite);
     return;
   }
   for (const choix of chapitre.choix || []) {
@@ -757,6 +767,22 @@ async function demanderChapitre(action) {
   $('#chargement').hidden = true;
   ui.enCours = false;
 
+  const anomalie = anomalieChapitre(chapitre, etat);
+  if (anomalie) {
+    noterErreur('chapitre', anomalie);
+    if (!action?.correction) {
+      // Une seule relance automatique, avec une consigne explicite.
+      toast('La Plume s’est emmêlée, elle recommence…');
+      demanderChapitre({ ...(action || {}), correction: CORRECTIONS[anomalie] });
+      return;
+    }
+    afficherErreur(
+      { message: 'La Plume Magique n’a pas réussi à écrire la suite.', aide: anomalie },
+      { ...(action || {}), correction: null },
+    );
+    return;
+  }
+
   const bilan = appliquerChapitre(etat, chapitre);
   ajouterEchange(etat, message, (chapitre.texte || []).join(' '));
   partie.enregistrer(etat);
@@ -785,6 +811,24 @@ async function demanderChapitre(action) {
   }
 }
 
+// Un chapitre sans une seule phrase, ou qui prétend finir l'histoire au bout de
+// deux pages, est une anomalie : on ne l'applique pas, on redemande.
+function anomalieChapitre(chapitre, etat) {
+  const phrases = (chapitre.texte || []).filter((p) => String(p).trim());
+  if (!phrases.length) return 'chapitre sans texte';
+  const sansSuite = !(chapitre.choix || []).length && !chapitre.adversaire_coeurs;
+  const tropTot = etat.chapitre + 1 < Math.max(3, Math.round(etat.longueur * 0.5));
+  if ((chapitre.fin_titre || sansSuite) && tropTot) return 'fin annoncée beaucoup trop tôt';
+  if (sansSuite && !chapitre.fin_titre) return 'chapitre sans choix ni fin';
+  return null;
+}
+
+const CORRECTIONS = {
+  'chapitre sans texte': 'ton chapitre précédent était vide. Écris vraiment le texte du chapitre.',
+  'fin annoncée beaucoup trop tôt': 'ne termine surtout pas l’histoire maintenant : elle commence à peine. Continue l’aventure et propose 2 ou 3 choix.',
+  'chapitre sans choix ni fin': 'tu n’as proposé aucun choix. Termine le chapitre par 2 ou 3 choix.',
+};
+
 function afficherErreur(erreur, action) {
   const boite = $('#erreur');
   vider(boite);
@@ -805,6 +849,23 @@ function afficherErreur(erreur, action) {
 }
 
 // --- Fin, sac, carnet -------------------------------------------------------
+
+// Une fin arrivée trop tôt (ou dont on n'a pas envie) ne doit pas enterrer
+// l'aventure : on rouvre l'histoire là où elle s'était arrêtée.
+function reprendreApresFin() {
+  const etat = ui.etat;
+  if (!etat) return;
+  etat.termine = false;
+  etat.finTitre = '';
+  etat.finMessage = '';
+  etat.longueur = Math.max(etat.longueur, etat.chapitre + 4);
+  partie.enregistrer(etat);
+  montrer('jeu');
+  demanderChapitre({
+    resume: 'Il veut que l’histoire continue.',
+    correction: 'l’aventure n’est pas finie : relance-la avec une nouvelle péripétie et 2 ou 3 choix.',
+  });
+}
 
 function montrerFin() {
   const etat = ui.etat;
@@ -1125,6 +1186,7 @@ function brancher() {
   });
 
   $('#btn-rejouer').addEventListener('click', () => { partie.effacer(); majAccueil(); montrer('theme'); });
+  $('#btn-fin-suite').addEventListener('click', reprendreApresFin);
   $('#btn-fin-carnet').addEventListener('click', ouvrirCarnet);
 
   // Réglages

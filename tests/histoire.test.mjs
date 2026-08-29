@@ -105,11 +105,28 @@ test('les lieux visités alimentent la carte, sans doublon', () => {
   assert.deepEqual(etat.lieux.map((l) => l.nom), ['la clairière aux champignons', 'le pont de pierre']);
 });
 
-test('un chapitre sans choix termine l’aventure', () => {
+test('une fin annoncée trop tôt est ignorée : l’aventure continue', () => {
+  const etat = base(); // longueur 8
+  const bilan = appliquerChapitre(etat, chapitre({ choix: [], fin_titre: 'Bravo', fin_message: 'Fini !' }));
+  assert.equal(bilan.fini, false, 'pas de fin au premier chapitre');
+  assert.equal(etat.termine, false);
+});
+
+test('un chapitre sans choix ni texte ne termine pas non plus l’aventure', () => {
   const etat = base();
+  etat.chapitre = 1;
+  const bilan = appliquerChapitre(etat, chapitre({ texte: [], choix: [] }));
+  assert.equal(bilan.fini, false);
+  assert.equal(etat.termine, false);
+});
+
+test('une fin arrivée assez loin est acceptée', () => {
+  const etat = base(); // longueur 8, moitié = 4
+  etat.chapitre = 5;
   const bilan = appliquerChapitre(etat, chapitre({ choix: [], fin_titre: 'Bravo', fin_message: 'Fini !' }));
   assert.equal(bilan.fini, true);
   assert.equal(etat.termine, true);
+  assert.equal(etat.finTitre, 'Bravo');
 });
 
 test('l’arc passe par toutes les étapes et finit sur le dénouement', () => {

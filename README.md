@@ -87,6 +87,16 @@ on feuillette en arrière dans un livre-jeu.
 - Un **défilement du doigt** n'est plus pris pour un appui sur un mot.
 - Si la voix se bloque, un chien de garde révèle les choix — et les énonce quand même si la voix fonctionne.
 
+### Quand le modèle rend un chapitre inutilisable
+Un chapitre sans une seule phrase, sans aucun choix, ou qui prétend conclure l'histoire au bout de deux pages
+n'est pas appliqué : il est **relancé automatiquement** avec une consigne explicite, et l'incident est tracé.
+Une fin n'est acceptée qu'à partir de la moitié de la longueur prévue. Un chapitre coupé par la limite de
+jetons (`stop_reason: max_tokens`) est signalé au lieu d'être relu de travers.
+
+Et surtout : une aventure marquée « terminée » **reste ouvrable** depuis l'accueil, avec un bouton
+*Continuer quand même* sur l'écran de fin et dans les choix — une fin annoncée par erreur ne peut plus
+enterrer définitivement une histoire en cours.
+
 ### Quand quelque chose se passe mal
 - Une requête qui reste **muette plus de 30 secondes** est abandonnée et l'erreur est affichée, au lieu de
   laisser tourner l'animation d'écriture indéfiniment.
@@ -191,10 +201,11 @@ npm start              # sert le site sur http://localhost:8080
 npm test               # 18 tests : client API, état de l'aventure, arc narratif, épreuves
 npm run icons          # régénère les icônes PNG de la PWA
 
-# Test de bout en bout dans un vrai navigateur (parcours + les trois mini-jeux) :
+# Tests de bout en bout dans un vrai navigateur :
 npm i -D playwright && npx playwright install chromium
 npx http-server -p 8123 -c-1 &
-npm run test:navigateur
+npm run test:navigateur   # parcours complet, mini-jeux, combat, carte des lieux
+npm run test:api          # pannes du modèle rejouées avec une API simulée
 ```
 
 Aucune dépendance à installer : tout est en JavaScript natif (modules ES), sans build.

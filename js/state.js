@@ -162,9 +162,12 @@ export function appliquerChapitre(etat, chapitre) {
     },
   });
 
-  // Une rencontre costaude remplace les choix : ce n'est pas une fin d'histoire.
-  const fini = Boolean(chapitre.fin_titre)
-    || (!(chapitre.choix || []).length && !etat.adversaire);
+  // Une fin doit se mériter : une rencontre costaude remplace les choix sans
+  // terminer l'histoire, et un chapitre sans choix arrivé trop tôt est une
+  // anomalie, pas un dénouement.
+  const assezLoin = etat.chapitre >= Math.max(3, Math.round(etat.longueur * 0.5));
+  const fini = assezLoin
+    && (Boolean(chapitre.fin_titre) || (!(chapitre.choix || []).length && !etat.adversaire));
   if (fini) {
     etat.termine = true;
     etat.finTitre = chapitre.fin_titre || 'Bravo !';

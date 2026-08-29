@@ -266,6 +266,7 @@ export function premierMessage(etat, idee) {
     coffre(etat),
     consigneLongueur(etat),
     'Écris le chapitre 1, puis donne 2 ou 3 choix.',
+    idee && '',
   ].filter(Boolean).join('\n');
 }
 
@@ -318,5 +319,6 @@ export function messageSuivant(etat, action) {
   }
   const [nom, consigne] = etape(etat.chapitre, etat.longueur);
   lignes.push('', `ÉTAPE « ${nom} » — ${consigne}`, coffre(etat), consigneLongueur(etat), 'Écris le chapitre suivant.');
+  if (action?.correction) lignes.push('', `ATTENTION : ${action.correction}`);
   return lignes.join('\n');
 }

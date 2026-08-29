@@ -112,7 +112,7 @@ export function phrasesCompletes(tampon) {
 function corpsRequete({ modele, systeme, messages, schema, fallback }) {
   const corps = {
     model: modele,
-    max_tokens: 4000,
+    max_tokens: 8000,
     stream: true,
     system: [{ type: 'text', text: systeme, cache_control: { type: 'ephemeral' } }],
     messages,
@@ -256,6 +256,14 @@ async function lireFlux(reponse, { onPhrase, onTitre }, veille = null) {
         }
       }
     }
+  }
+
+  if (stopReason === 'max_tokens') {
+    // Réponse tronquée : même si le JSON se laisse relire, le chapitre est bancal.
+    throw new ErreurApi('Le chapitre a été coupé avant la fin.', {
+      code: 'tronque',
+      aide: 'La Plume a écrit trop long. Réessaie, ça repart en général.',
+    });
   }
 
   if (stopReason === 'refusal') {

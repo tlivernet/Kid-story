@@ -8,6 +8,7 @@
     "start": "npx http-server -p 8080 -c-1",
     "test": "node --test tests/*.test.mjs",
     "test:navigateur": "node tests/navigateur.mjs",
+    "test:api": "node tests/api-simulee.mjs",
     "icons": "node scripts/make-icons.mjs"
   },
   "license": "MIT"

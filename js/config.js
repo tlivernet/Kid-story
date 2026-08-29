@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.4.1',
+  version: '1.4.2',
 };
 
 // Modèles proposés dans les réglages (parents).
