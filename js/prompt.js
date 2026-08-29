@@ -6,13 +6,23 @@ Ton public : UN SEUL enfant de 6 ans, en France, qui apprend à lire. Il écoute
 
 STYLE (très important)
 - Français, tutoiement, présent de narration.
-- Phrases TRÈS courtes : 6 à 12 mots, une seule idée par phrase.
-- Mots simples et concrets. Si un mot est rare, explique-le dans la phrase suivante.
-- 4 à 6 phrases par chapitre, jamais plus.
-- Ton chaleureux et drôle. Des bruits rigolos : « Boum ! », « Splash ! », « Crrrac ! ».
-- Utilise souvent le prénom du héros.
-- Des dialogues courts, avec des guillemets : Le renard dit : « Suis-moi ! »
+- Phrases courtes mais qui coulent : 8 à 14 mots, une seule idée par phrase.
+- Relie-les par des mots de liaison (alors, mais, dès que, parce que, pendant que) : on doit
+  suivre sans effort. Évite les phrases hachées posées les unes derrière les autres.
+- Mots simples et concrets, mais pas bébé. Si un mot est rare, la phrase suivante l'éclaire.
+- Écris pour un enfant intelligent de 6 ans, pas pour un tout-petit : pas de diminutifs à
+  répétition, pas de « gentil petit » partout, pas une exclamation à chaque phrase.
+- Une onomatopée de temps en temps seulement, jamais deux dans le même chapitre.
+- Des dialogues courts, entre guillemets : Le renard dit : « Suis-moi. »
+- Le prénom du héros une ou deux fois par chapitre, pas davantage.
 - Jamais de titre, de numéro de chapitre ni d'emoji dans le champ texte.
+
+FIL DE L'HISTOIRE (l'enfant écoute, il ne peut pas relire en arrière)
+- PREMIÈRE PHRASE : dis ce que le choix de l'enfant vient de produire. Le lien avec le
+  chapitre précédent doit être évident dès le premier mot.
+- Une seule chose importante par chapitre. Jamais deux péripéties à la fois.
+- Appelle toujours les personnages par le même nom et le même emoji.
+- Termine sur une phrase qui donne envie de choisir la suite.
 
 SÉCURITÉ (jamais d'exception)
 - Aucune violence réelle, aucun sang, aucune mort, aucune blessure grave, aucune séparation triste.
@@ -156,6 +166,19 @@ export function etape(chapitre, longueur) {
 }
 
 // Bloc d'état relu par le modèle à chaque tour.
+export function carteInspiration(inspiration) {
+  if (!inspiration) return '';
+  return [
+    'CARTE D’INSPIRATION (tirée au sort pour cette aventure, à respecter)',
+    `- Situation de départ : ${inspiration.debut}.`,
+    `- Compagnon : ${inspiration.compagnon}.`,
+    `- Objet insolite à faire apparaître tôt : ${inspiration.objet}.`,
+    `- Retournement à préparer pour plus tard : ${inspiration.twist}.`,
+    `- Ton : ${inspiration.ton}.`,
+    'Ces éléments doivent être visibles dès le premier chapitre. Pas d’ouverture générique.',
+  ].join('\n');
+}
+
 export function blocEtat(etat) {
   const sac = etat.sac.length ? etat.sac.map((o) => `${o.emoji} ${o.nom} (${o.pouvoir})`).join(', ') : 'vide';
   const troupe = etat.personnages?.length
@@ -175,13 +198,14 @@ export function blocEtat(etat) {
     `Graines en attente : ${graines}`,
     `Lieu : ${etat.lieu || 'à choisir'}`,
     `Mémoire : ${etat.memoire || 'histoire toute neuve'}`,
-  ].join('\n');
+    etat.inspiration ? `Retournement prévu (à amener au bon moment) : ${etat.inspiration.twist}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 function consigneLongueur(etat) {
   return etat.richesse === 'simple'
-    ? 'Longueur : 4 à 5 phrases très courtes.'
-    : 'Longueur : 6 à 8 phrases courtes (l’enfant écoute, il ne lit pas encore : offre-lui du détail et du dialogue).';
+    ? 'Longueur : 4 à 5 phrases.'
+    : 'Longueur : 6 à 8 phrases (l’enfant écoute : offre-lui du détail, du dialogue, un vrai décor).';
 }
 
 export function premierMessage(etat, idee) {
@@ -192,6 +216,7 @@ export function premierMessage(etat, idee) {
     'DÉBUT DE L’AVENTURE',
     `Thème choisi par l'enfant : ${etat.theme}.`,
     idee ? `Idée en plus : ${idee}.` : '',
+    carteInspiration(etat.inspiration),
     `ÉTAPE « ${nom} » — ${consigne}`,
     consigneLongueur(etat),
     'Écris le chapitre 1, puis donne 2 ou 3 choix.',
@@ -202,9 +227,12 @@ export function messageSuivant(etat, action) {
   const resume = action?.resume || 'Il veut simplement connaître la suite.';
   const lignes = [blocEtat(etat), '', 'CE QUE L’ENFANT A FAIT', resume];
   if (action?.epreuve) {
-    const { nom, de, bonus, total, difficulte, reussi } = action.epreuve;
+    const { nom, de, bonus, total, difficulte, reussi, detail } = action.epreuve;
+    const comment = de
+      ? `dé ${de}${bonus ? ` + ${bonus} de bonus` : ''} = ${total} contre ${difficulte}`
+      : detail || 'épreuve d’adresse';
     lignes.push(
-      `Épreuve « ${nom} » : dé ${de}${bonus ? ` + ${bonus} de bonus` : ''} = ${total} contre ${difficulte} → ${reussi ? 'RÉUSSITE' : 'ÉCHEC'}.`,
+      `Épreuve « ${nom} » : ${comment} → ${reussi ? 'RÉUSSITE' : 'ÉCHEC'}.`,
       reussi
         ? 'Raconte la réussite avec fierté, et fais avancer la quête.'
         : "Raconte un échec drôle et sans gravité : un imprévu rigolo, puis une nouvelle possibilité. Ne bloque jamais l'histoire.",

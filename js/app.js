@@ -1,12 +1,13 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
-import { APP, THEMES, AVATARS, MODELES } from './config.js';
-import { $, el, vider, decouperMots, vibrer, attendre } from './util.js';
+import { APP, THEMES, AVATARS, MODELES, INSPIRATIONS } from './config.js';
+import { $, el, vider, decouperMots, vibrer, attendre, piocher } from './util.js';
 import { reglages as storeReglages, partie, journal, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
 import { dessinerScene } from './scene.js';
 import { narrateur } from './voix.js';
 import { lancer, animer, bonusDe, faceDe } from './dice.js';
+import { typeEpreuve, jouer, NOMS_JEUX } from './minijeux.js';
 import { nouvelEtat, appliquerChapitre, ajouterEchange, messagesPour } from './state.js';
 import { chapitreDemo } from './demo.js';
 
@@ -109,6 +110,20 @@ function construireAvatars() {
 
 // --- Démarrage d'une aventure ----------------------------------------------
 
+// Deux aventures sur le même thème ne doivent pas se ressembler : on tire une
+// carte d'inspiration, en évitant les débuts déjà vus récemment.
+function tirerInspiration() {
+  const vus = journal.charger().map((a) => a.inspiration?.debut).filter(Boolean).slice(0, 6);
+  const debuts = INSPIRATIONS.debuts.filter((d) => !vus.includes(d));
+  return {
+    debut: piocher(debuts.length ? debuts : INSPIRATIONS.debuts),
+    compagnon: piocher(INSPIRATIONS.compagnons),
+    objet: piocher(INSPIRATIONS.objets),
+    twist: piocher(INSPIRATIONS.twists),
+    ton: piocher(INSPIRATIONS.tons),
+  };
+}
+
 function demarrer() {
   const prenom = $('#champ-prenom').value.trim() || 'Héros';
   const idee = $('#champ-idee').value.trim();
@@ -122,6 +137,7 @@ function demarrer() {
     themeId: theme.id === 'idee' ? THEMES[Math.floor(Math.random() * THEMES.length)].id : theme.id,
     longueur: Number(ui.reglages.longueur) || 12,
     richesse: ui.reglages.richesse,
+    inspiration: tirerInspiration(),
     idee,
   });
   ui.demo = false;
@@ -178,6 +194,8 @@ function ajouterPhrase(texte, index) {
 
 const rappelsLecture = {
   onPhrase: (index) => {
+    ui.lectureDemarree = true;
+    ui.dernierSignalVoix = Date.now();
     document.querySelectorAll('.phrase').forEach((p) => {
       const active = Number(p.dataset.index) === index;
       p.classList.toggle('lue', active);
@@ -185,6 +203,7 @@ const rappelsLecture = {
     });
   },
   onMot: (index, debut) => {
+    ui.dernierSignalVoix = Date.now();
     if (!ui.reglages.motParMot) return;
     const phrase = $(`.phrase[data-index="${index}"]`);
     if (!phrase) return;
@@ -197,7 +216,7 @@ const rappelsLecture = {
   onFin: () => {
     document.querySelectorAll('.phrase').forEach((p) => p.classList.remove('lue'));
     document.querySelectorAll('.mot.actif').forEach((m) => m.classList.remove('actif'));
-    lireLesChoix();
+    revelerChoix();
   },
   onErreur: (message) => {
     if (ui.voixSignalee) return;
@@ -205,6 +224,28 @@ const rappelsLecture = {
     toast(`Voix Google indisponible : ${message}`);
   },
 };
+
+// Filet de sécurité : si la voix ne démarre jamais (aucune voix installée) ou
+// se bloque en route, les choix apparaissent quand même.
+function surveillerLaVoix() {
+  clearInterval(ui.chienDeGarde);
+  ui.dernierSignalVoix = Date.now();
+  ui.chienDeGarde = setInterval(() => {
+    if (!$('#choix').classList.contains('masque')) { clearInterval(ui.chienDeGarde); return; }
+    if (narrateur.enPause) { ui.dernierSignalVoix = Date.now(); return; }
+    const silence = Date.now() - ui.dernierSignalVoix;
+    if (silence > (ui.lectureDemarree ? 9000 : 3000)) revelerChoix(false);
+  }, 1000);
+}
+
+// Le texte garde toute la place pendant la lecture ; les choix arrivent après.
+function revelerChoix(lire = true) {
+  clearInterval(ui.chienDeGarde);
+  const zone = $('#choix');
+  if (!zone.classList.contains('masque')) return;
+  zone.classList.remove('masque');
+  if (lire) lireLesChoix();
+}
 
 // L'enfant ne lit pas encore : les choix lui sont énoncés, un par un, carte allumée.
 function lireLesChoix() {
@@ -235,7 +276,7 @@ function rendreChapitre(chapitre, anime = true) {
     $('#titre-histoire').textContent = ui.etat.titre;
     $('#titre-histoire').hidden = false;
   }
-  rendreChoix(chapitre);
+  rendreChoix(chapitre, false);
   majJauges();
   if (anime && ui.lecture) {
     narrateur.lire(chapitre.texte || [], rappelsLecture);
@@ -254,9 +295,10 @@ function majJauges() {
 
 // --- Choix ------------------------------------------------------------------
 
-function rendreChoix(chapitre) {
+function rendreChoix(chapitre, masquer = false) {
   const zone = $('#choix');
   vider(zone);
+  zone.classList.toggle('masque', masquer);
   if (ui.etat.termine) {
     const bouton = el('button', { class: 'carte-choix' }, [
       el('span', { class: 'emoji', text: '🏆' }),
@@ -318,33 +360,80 @@ async function choisir(choix, possede, bouton) {
   demanderChapitre(action);
 }
 
-function faireEpreuve(choix) {
-  return new Promise((resolve) => {
-    const overlay = $('#overlay-de');
-    const bouton = $('#btn-lancer-de');
-    const resultatEl = $('#de-resultat');
-    $('#de-titre').textContent = `Épreuve : ${choix.epreuve_nom || 'à toi de jouer'} !`;
-    resultatEl.textContent = '';
-    resultatEl.className = 'de-resultat';
-    $('#de').innerHTML = faceDe(6);
-    bouton.hidden = false;
-    overlay.hidden = false;
+function ouvrirEpreuve(titre) {
+  const overlay = $('#overlay-epreuve');
+  $('#epreuve-titre').textContent = titre;
+  $('#epreuve-resultat').textContent = '';
+  $('#epreuve-resultat').className = 'epreuve-resultat';
+  vider($('#epreuve-objectif'));
+  vider($('#epreuve-zone'));
+  $('#btn-lancer-de').hidden = true;
+  overlay.hidden = false;
+  return overlay;
+}
 
-    bouton.onclick = async () => {
-      bouton.hidden = true;
-      const bonus = bonusDe(ui.etat);
-      const resultat = lancer(choix.epreuve_difficulte, bonus);
-      await animer($('#de'), resultat, animationsReduites);
-      const detail = `${resultat.de}${bonus ? ` + ${bonus}` : ''} contre ${resultat.difficulte}`;
-      resultatEl.textContent = resultat.reussi ? `Réussi ! ${detail}` : `Presque ! ${detail}`;
-      resultatEl.classList.add(resultat.reussi ? 'gagne' : 'rate');
-      if (ui.lecture) narrateur.direMot(resultat.reussi ? 'Bravo, tu as réussi !' : 'Presque ! Ce n’est pas grave.');
-      vibrer(resultat.reussi ? 40 : 12);
-      await attendre(animationsReduites ? 700 : 1600);
-      overlay.hidden = true;
-      resolve(resultat);
+function annoncer(texte) {
+  if (ui.lecture) narrateur.direMot(texte);
+}
+
+async function conclureEpreuve(reussi, message) {
+  const resultat = $('#epreuve-resultat');
+  resultat.textContent = message;
+  resultat.classList.add(reussi ? 'gagne' : 'rate');
+  annoncer(reussi ? `Bravo ! ${message}` : `Presque ! ${message}`);
+  vibrer(reussi ? 40 : 12);
+  await attendre(animationsReduites ? 900 : 2200);
+  $('#overlay-epreuve').hidden = true;
+}
+
+// Le dé : on montre noir sur blanc ce qu'il faut faire, et on le dit à voix haute.
+function epreuveDe(choix) {
+  return new Promise((resoudre) => {
+    ouvrirEpreuve(`Épreuve : ${choix.epreuve_nom || 'à toi de jouer'}`);
+    const bonus = bonusDe(ui.etat);
+    const seuil = choix.epreuve_difficulte;
+    const objectif = $('#epreuve-objectif');
+    objectif.appendChild(el('p', { class: 'epreuve-consigne', text: `Il faut faire ${seuil} ou plus.` }));
+    const rangee = el('div', { class: 'faces-gagnantes' });
+    for (let face = 1; face <= 6; face += 1) {
+      rangee.appendChild(el('span', {
+        class: `face ${face + bonus >= seuil ? 'gagnante' : 'perdante'}`,
+        html: faceDe(face),
+      }));
+    }
+    objectif.appendChild(rangee);
+    if (bonus) objectif.appendChild(el('p', { class: 'epreuve-bonus', text: `+${bonus} parce qu’un ami t’accompagne 🤝` }));
+    const de = el('div', { class: 'de', html: faceDe(6) });
+    $('#epreuve-zone').appendChild(de);
+    $('#btn-lancer-de').hidden = false;
+
+    annoncer(`Il faut faire ${seuil} ou plus. Lance le dé !`);
+
+    $('#btn-lancer-de').onclick = async () => {
+      $('#btn-lancer-de').hidden = true;
+      const resultat = lancer(seuil, bonus);
+      await animer(de, resultat, animationsReduites);
+      const detail = `${resultat.de}${bonus ? ` + ${bonus} = ${resultat.total}` : ''} contre ${seuil}`;
+      await conclureEpreuve(resultat.reussi, resultat.reussi ? `Réussi ! ${detail}` : `Raté de peu ! ${detail}`);
+      resoudre({ ...resultat, nom: choix.epreuve_nom || 'épreuve' });
     };
   });
+}
+
+async function epreuveJeu(choix, jeu) {
+  ouvrirEpreuve(NOMS_JEUX[jeu]);
+  const resultat = await jouer(jeu, $('#epreuve-zone'), {
+    difficulte: choix.epreuve_difficulte,
+    narrer: (texte) => annoncer(texte),
+  });
+  await conclureEpreuve(resultat.reussi, resultat.reussi ? `Gagné : ${resultat.detail}` : `Raté : ${resultat.detail}`);
+  return { ...resultat, nom: choix.epreuve_nom || NOMS_JEUX[jeu], jeu };
+}
+
+function faireEpreuve(choix) {
+  const type = typeEpreuve(ui.reglages.epreuves);
+  narrateur.stop();
+  return type === 'de' ? epreuveDe(choix) : epreuveJeu(choix, type);
 }
 
 // --- Demande d'un chapitre --------------------------------------------------
@@ -363,6 +452,7 @@ async function demanderChapitre(action) {
     : 'La Plume Magique écrit ton histoire…';
 
   const message = etat.chapitre === 0 ? premierMessage(etat, etat.idee) : messageSuivant(etat, action);
+  ui.lectureDemarree = false;
   if (ui.lecture) narrateur.ouvrir(rappelsLecture);
 
   const surPhrase = (phrase, index) => {
@@ -430,7 +520,9 @@ async function demanderChapitre(action) {
     $('#titre-histoire').hidden = false;
   }
   majJauges();
-  rendreChoix(chapitre);
+  const litLeTexte = ui.lecture && narrateur.disponible && !etat.termine;
+  rendreChoix(chapitre, litLeTexte);
+  if (litLeTexte) surveillerLaVoix();
 
   for (const objet of bilan.nouveaux) {
     toast(`${objet.emoji} ${objet.nom} rejoint ton sac !`);
@@ -461,7 +553,7 @@ function montrerFin() {
   if (!journal.charger().some((a) => a.id === etat.id)) {
     journal.ajouter({
       id: etat.id, titre: etat.titre, theme: etat.theme, etoiles: etat.etoiles,
-      termine: true, chapitres: etat.chapitres,
+      termine: true, chapitres: etat.chapitres, inspiration: etat.inspiration,
     });
   }
   $('#fin-titre').textContent = etat.finTitre || 'Bravo !';
@@ -469,6 +561,42 @@ function montrerFin() {
   $('#fin-score').textContent = `⭐ ${etat.etoiles} étoiles · 📖 ${etat.chapitre} chapitres`;
   montrer('fin');
   if (ui.lecture) narrateur.lire([etat.finTitre || 'Bravo !', etat.finMessage || ''].filter(Boolean), {});
+}
+
+// « Où en est mon histoire ? » — reconstitué localement, sans appel à l'API.
+function lignesResume() {
+  const etat = ui.etat;
+  if (!etat) return [];
+  const lignes = [
+    ['📖', `${etat.heros.prenom}, tu es au chapitre ${etat.chapitre} sur ${etat.longueur}.`],
+  ];
+  if (etat.quete) lignes.push(['🎯', `Ta mission : ${etat.quete}.`]);
+  if (etat.compagnon) lignes.push(['🤝', `Avec toi : ${etat.compagnon}.`]);
+  if (etat.personnages?.length) {
+    lignes.push(['👥', `Tu as rencontré ${etat.personnages.map((p) => p.nom).join(', ')}.`]);
+  }
+  if (etat.sac.length) lignes.push(['🎒', `Dans ton sac : ${etat.sac.map((o) => o.nom).join(', ')}.`]);
+  if (etat.memoire) lignes.push(['🕰️', `Ce qui s’est passé : ${etat.memoire}`]);
+  const dernier = etat.chapitres[etat.chapitres.length - 1];
+  if (dernier?.texte?.length) lignes.push(['↩️', `Et juste avant : ${dernier.texte[dernier.texte.length - 1]}`]);
+  return lignes;
+}
+
+const phrasesResume = () => lignesResume().map(([, texte]) => texte);
+
+function ouvrirResume() {
+  if (!ui.etat) { toast('Commence une aventure d’abord !'); return; }
+  const zone = $('#contenu-resume');
+  vider(zone);
+  for (const [emoji, texte] of lignesResume()) {
+    zone.appendChild(el('p', { class: 'resume-ligne' }, [
+      el('span', { class: 'resume-emoji', text: emoji }),
+      el('span', { text: texte }),
+    ]));
+  }
+  $('#modale-resume').hidden = false;
+  narrateur.debloquer();
+  if (ui.lecture) narrateur.lire(phrasesResume(), {});
 }
 
 function ouvrirSac() {
@@ -544,6 +672,7 @@ function construireReglages() {
   $('#champ-richesse').value = ui.reglages.richesse;
   $('#champ-lire-choix').checked = ui.reglages.lireChoix;
   $('#champ-confirmer').checked = ui.reglages.confirmerChoix;
+  $('#champ-epreuves').value = ui.reglages.epreuves;
   $('#champ-fournisseur').value = ui.reglages.fournisseurVoix;
   $('#champ-cle-google').value = ui.reglages.cleGoogle;
   majBlocsVoix();
@@ -653,6 +782,19 @@ function brancher() {
     appliquerMaj();
   });
   $('#btn-sac').addEventListener('click', ouvrirSac);
+  $('#btn-resume').addEventListener('click', ouvrirResume);
+  $('#btn-fermer-resume').addEventListener('click', () => { narrateur.stop(); $('#modale-resume').hidden = true; });
+  $('#btn-ecouter-resume').addEventListener('click', () => {
+    narrateur.debloquer();
+    narrateur.lire(phrasesResume(), {});
+  });
+  $('#modale-resume').addEventListener('click', (e) => {
+    if (e.target.id === 'modale-resume') { narrateur.stop(); $('#modale-resume').hidden = true; }
+  });
+  $('#btn-passer').addEventListener('click', () => {
+    narrateur.stop();
+    revelerChoix();
+  });
   $('#btn-fermer-sac').addEventListener('click', () => { $('#modale-sac').hidden = true; });
   $('#modale-sac').addEventListener('click', (e) => { if (e.target.id === 'modale-sac') $('#modale-sac').hidden = true; });
 
@@ -716,6 +858,7 @@ function brancher() {
   $('#champ-richesse').addEventListener('change', (e) => enregistrerReglage('richesse', e.target.value));
   $('#champ-lire-choix').addEventListener('change', (e) => enregistrerReglage('lireChoix', e.target.checked));
   $('#champ-confirmer').addEventListener('change', (e) => enregistrerReglage('confirmerChoix', e.target.checked));
+  $('#champ-epreuves').addEventListener('change', (e) => enregistrerReglage('epreuves', e.target.value));
   $('#champ-fournisseur').addEventListener('change', (e) => {
     enregistrerReglage('fournisseurVoix', e.target.value);
     ui.voixSignalee = false;

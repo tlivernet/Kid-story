@@ -64,6 +64,7 @@ export class Conteur {
     this.stop();
     this.rappels = rappels;
     this.termine = false;
+    this.chauffer();
     phrases.forEach((texte, index) => this.file.push({ texte, index }));
     this.termine = true;
     this._demarrer();
@@ -74,6 +75,18 @@ export class Conteur {
     this.stop();
     this.rappels = rappels;
     this.termine = false;
+    this.chauffer();
+  }
+
+  // Une inspiration muette avant de parler : certains moteurs tronquent sinon
+  // le début de leur toute première phrase.
+  chauffer() {
+    if (!this.disponible) return;
+    try {
+      const souffle = new SpeechSynthesisUtterance(' ');
+      souffle.volume = 0;
+      this.synth.speak(souffle);
+    } catch { /* sans importance */ }
   }
 
   enfiler(texte, index) {
@@ -88,6 +101,13 @@ export class Conteur {
 
   _demarrer() {
     if (!this.disponible || this.enCours) return;
+    // Chrome avale le premier mot si speak() suit cancel() de trop près.
+    const depuisAnnulation = Date.now() - (this.tempsAnnulation || 0);
+    if (depuisAnnulation < 200) {
+      this.enCours = true;
+      setTimeout(() => { this.enCours = false; this._demarrer(); }, 200 - depuisAnnulation);
+      return;
+    }
     const suivant = this.file.shift();
     if (!suivant) {
       if (this.termine) this.rappels.onFin?.();
@@ -119,7 +139,9 @@ export class Conteur {
 
     try {
       this.synth.speak(u);
-      this._pomper();
+      // La relance anti-coupure de Chrome n'est utile que sur les longs passages,
+      // et sur les courts elle hache le son : on ne l'arme qu'au-delà de ~15 secondes.
+      if (suivant.texte.length > 220) this._pomper();
     } catch {
       this.enCours = false;
     }
@@ -151,6 +173,7 @@ export class Conteur {
     this.file = [];
     this.enCours = false;
     this.utterance = null;
+    if (this.synth?.speaking || this.synth?.pending) this.tempsAnnulation = Date.now();
     try { this.synth?.cancel(); } catch { /* ignoré */ }
   }
 

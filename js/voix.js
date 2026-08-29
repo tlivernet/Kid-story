@@ -31,8 +31,11 @@ class VoixGoogle {
     const clef = this.clef(texte);
     if (this.cache.has(clef)) return this.cache.get(clef);
 
+    const ssml = `<speak><break time="250ms"/>${texte
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')}</speak>`;
     const corps = {
-      input: { text: texte },
+      input: { ssml },
       voice: { languageCode: this.voix.slice(0, 5) || 'fr-FR', name: this.voix },
       audioConfig: { audioEncoding: 'MP3', speakingRate: this.vitesse },
     };
@@ -167,6 +170,8 @@ export class Narrateur {
 
     this.debloquer();
     this.audio.src = url;
+    await this._pret();
+    if (!this.enLecture) return;
     this.rappels.onPhrase?.(entree.index);
     this._suivreMots(entree);
 
@@ -183,6 +188,21 @@ export class Narrateur {
       this._arreterSuivi();
       this.enLecture = false;
     }
+  }
+
+  // On ne lance la lecture qu'une fois assez de son chargé, sinon le début saute.
+  _pret() {
+    const audio = this.audio;
+    if (!audio || audio.readyState >= 3) return Promise.resolve();
+    return new Promise((resoudre) => {
+      const fini = () => {
+        audio.removeEventListener('canplaythrough', fini);
+        clearTimeout(minuteur);
+        resoudre();
+      };
+      const minuteur = setTimeout(fini, 1500);
+      audio.addEventListener('canplaythrough', fini);
+    });
   }
 
   // Surlignage du mot : estimé à partir de la durée de l'extrait.

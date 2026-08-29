@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.1.0',
+  version: '1.2.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -43,6 +43,52 @@ export const MOMENTS = ['jour', 'soir', 'nuit'];
 // Avatars proposés au héros.
 export const AVATARS = ['🦸', '🦸‍♀️', '🧑‍🚀', '🧚', '🧙‍♀️', '🐻', '🦊', '🐱', '🐼', '🦉', '🐰', '🦖'];
 
+// Cartes d'inspiration : tirées au sort au début de chaque aventure pour que
+// deux parties sur le même thème ne se ressemblent pas.
+export const INSPIRATIONS = {
+  debuts: [
+    'quelque chose a disparu pendant la nuit, et personne ne sait quoi',
+    'une lettre arrive, portée par le vent, avec un seul mot dessus',
+    'un bruit régulier vient de sous le plancher depuis trois jours',
+    'une porte est apparue là où il n’y en avait jamais eu',
+    'tous les animaux du coin marchent dans la même direction',
+    'un inconnu minuscule demande de l’aide, debout sur une chaussure',
+    'la carte du village a changé toute seule pendant la sieste',
+    'une odeur de gâteau vient d’un endroit où personne ne cuisine',
+    'le héros se réveille avec un objet dans la main qu’il n’avait pas hier',
+    'quelqu’un a laissé des empreintes qui montent au lieu de descendre',
+    'une chanson que personne ne connaît sort d’un vieux coffre',
+    'les couleurs du ciel se sont inversées ce matin',
+  ],
+  compagnons: [
+    'un vieux corbeau bavard qui se vante beaucoup',
+    'une luciole peureuse mais très maligne',
+    'un chien qui comprend tout mais ne répond que par des grognements',
+    'une souris ingénieure qui bricole avec des brindilles',
+    'un poisson dans un bocal porté à bout de bras',
+    'un ballon qui parle et qui a peur des épines',
+    'une petite tortue pressée, toujours en retard',
+    'un chat qui prétend connaître le chemin et se trompe',
+  ],
+  objets: [
+    'une boussole qui indique ce qu’on a perdu',
+    'un caillou tiède qui devient brûlant près du danger',
+    'un sifflet qui appelle un animal différent à chaque fois',
+    'un bout de ficelle qui se noue tout seul',
+    'une loupe qui montre les choses cachées',
+    'un morceau de miroir qui répond aux questions par oui ou non',
+  ],
+  twists: [
+    'le personnage effrayant a surtout très peur du noir',
+    'la carte est fausse, mais l’erreur mène ailleurs de mieux',
+    'l’objet cherché n’était pas perdu, il s’était caché exprès',
+    'celui qui semblait embêtant essayait en fait d’aider',
+    'ce que le héros cherche le cherchait aussi',
+    'le raccourci est plus long, mais bien plus intéressant',
+  ],
+  tons: ['malicieux et vif', 'mystérieux et doux', 'joyeux et bavard', 'calme et rêveur'],
+};
+
 export const REGLAGES_DEFAUT = {
   cle: '',
   modele: 'claude-opus-5',
@@ -57,6 +103,7 @@ export const REGLAGES_DEFAUT = {
   fallback: true,           // secours automatique côté serveur
   confirmerChoix: true,     // l'enfant écoute le choix puis confirme (il ne lit pas encore)
   lireChoix: true,          // les choix sont lus à voix haute automatiquement
+  epreuves: 'melange',      // 'de', 'minijeux' ou 'melange'
   fournisseurVoix: 'navigateur', // 'navigateur' ou 'google'
   cleGoogle: '',
   voixGoogle: 'fr-FR-Wavenet-C',

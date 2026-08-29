@@ -3,7 +3,7 @@ import { REGLAGES_DEFAUT } from './config.js';
 
 export function nouvelEtat({
   heros, theme, themeId, longueur = REGLAGES_DEFAUT.longueur, idee = '',
-  richesse = REGLAGES_DEFAUT.richesse,
+  richesse = REGLAGES_DEFAUT.richesse, inspiration = null,
 }) {
   return {
     id: `av-${Date.now()}`,
@@ -20,6 +20,7 @@ export function nouvelEtat({
     personnages: [],
     promesses: [],
     richesse,
+    inspiration,
     quete: '',
     memoire: '',
     lieu: '',

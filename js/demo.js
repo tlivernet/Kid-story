@@ -97,6 +97,7 @@ export function chapitreDemo(etat, action) {
       texte: [
         `${h} ouvre un grand livre poussiéreux.`,
         'Zoup ! Le voilà dans une autre histoire.',
+        etat.inspiration ? `Ici, ${etat.inspiration.debut}.` : 'Ici, tout reste à découvrir.',
         `${compagnon.nom} arrive en courant.`,
         `« Vite ! On doit retrouver ${but} », dit-il.`,
         'L’aventure commence maintenant.',

@@ -81,6 +81,7 @@
         <span class="coeurs" id="coeurs" aria-label="courage"></span>
         <span class="etoiles" id="etoiles">⭐ 0</span>
       </div>
+      <button class="btn-rond" id="btn-resume" aria-label="Résumé de l’histoire">📜</button>
       <button class="btn-rond" id="btn-sac" aria-label="Sac de quête">🎒<span class="pastille" id="pastille-sac" hidden>0</span></button>
       <button class="btn-rond" id="btn-son" aria-label="Lecture à voix haute">🔊</button>
     </header>
@@ -102,6 +103,7 @@
     <footer class="barre-lecture">
       <button class="btn-rond" id="btn-relire" aria-label="Relire">🔁</button>
       <button class="btn-rond" id="btn-pause" aria-label="Pause">⏸️</button>
+      <button class="btn-rond" id="btn-passer" aria-label="Voir les choix tout de suite">⏭️</button>
       <span class="astuce">Touche un mot pour l’entendre 👆</span>
     </footer>
   </section>
@@ -182,6 +184,13 @@
         <label class="ligne interrupteur">Toucher deux fois pour valider un choix
           <input id="champ-confirmer" type="checkbox">
         </label>
+        <label class="ligne">Épreuves
+          <select id="champ-epreuves">
+            <option value="melange">Dé et mini-jeux</option>
+            <option value="de">Dé seulement</option>
+            <option value="minijeux">Mini-jeux seulement</option>
+          </select>
+        </label>
         <p class="aide">Premier appui : le choix est lu et s’allume. Deuxième appui : l’aventure continue.</p>
       </section>
 
@@ -255,13 +264,26 @@
   </div>
 </div>
 
-<!-- DÉ -->
-<div class="overlay" id="overlay-de" hidden>
-  <div class="de-boite">
-    <p class="de-titre" id="de-titre">Épreuve !</p>
-    <div class="de" id="de"></div>
-    <p class="de-resultat" id="de-resultat"></p>
+<!-- ÉPREUVE : dé ou mini-jeu -->
+<div class="overlay" id="overlay-epreuve" hidden>
+  <div class="epreuve-boite">
+    <p class="epreuve-titre" id="epreuve-titre">Épreuve !</p>
+    <div id="epreuve-objectif"></div>
+    <div class="epreuve-zone" id="epreuve-zone"></div>
+    <p class="epreuve-resultat" id="epreuve-resultat"></p>
     <button class="btn btn-geant btn-primaire" id="btn-lancer-de"><span class="btn-emoji">🎲</span><span class="btn-label">Lancer le dé</span></button>
+  </div>
+</div>
+
+<!-- RÉSUMÉ DE L'HISTOIRE -->
+<div class="modale" id="modale-resume" hidden>
+  <div class="modale-boite">
+    <h2>📜 Où en est mon histoire ?</h2>
+    <div id="contenu-resume" class="resume"></div>
+    <div class="ligne-boutons">
+      <button class="btn" id="btn-ecouter-resume">🔊 Écouter</button>
+      <button class="btn btn-primaire" id="btn-fermer-resume">Fermer</button>
+    </div>
   </div>
 </div>
 

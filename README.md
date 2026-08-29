@@ -16,7 +16,9 @@ et s'installe sur le téléphone ou la tablette comme une vraie application.
 | Histoire | API Claude (`/v1/messages`) appelée **directement depuis le navigateur**, en streaming, avec **sorties structurées** (`output_config.format`) : chaque chapitre est un JSON validé (texte, décor, objets, choix, dé, fin). |
 | Cohérence | Le modèle tient un carnet de mémoire (3 à 5 faits) réécrit à chaque chapitre, et reçoit l'état du jeu complet (sac, quête, compagnon, cœurs) à chaque tour. L'historique envoyé reste court : c'est rapide et peu coûteux. |
 | Lecture à voix haute | Deux voix au choix : celle du navigateur (gratuite, hors ligne) ou **Google Cloud Text-to-Speech** (bien plus jolie). Phrase en cours surlignée, mot en cours surligné, et **l'enfant peut toucher n'importe quel mot pour l'entendre**. |
-| Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji** ; un premier appui le relit, un second valide. |
+| Enfant qui ne lit pas | **Les choix sont lus à voix haute** l'un après l'autre, la carte correspondante s'allume pendant sa lecture. Chaque choix a un **numéro, une couleur et un gros emoji** ; un premier appui le relit, un second valide. Ils n'apparaissent qu'**après la lecture du chapitre**, pour ne pas voler la place au texte (bouton ⏭️ pour les afficher tout de suite). |
+| Épreuves | Un **dé** qui montre noir sur blanc ce qu'il faut obtenir (les faces gagnantes sont entourées de vert, l'objectif est dit à voix haute), ou trois **mini-jeux** jouables sans savoir lire : jeu de mémoire, attrape les amis, trouve l'intrus. Réglable : dé seul, mini-jeux seuls, ou mélange. |
+| Résumé | Un bouton 📜 rappelle à tout moment où en est l'histoire : chapitre, mission, compagnons, sac, ce qui s'est passé — lu à voix haute, sans appel à l'API. |
 | Richesse du récit | Arc en neuf étapes (ouverture → rencontre → complication → coup dur → idée maligne → dénouement), **graines narratives** plantées puis payées, troupe de personnages avec leurs manies, un détail sensoriel par chapitre. |
 | Illustrations | Claude ne génère pas d'images. L'application **dessine elle-même** la scène en SVG (28 décors, jour/soir/nuit) à partir du lieu renvoyé par le modèle, avec les personnages en emojis animés. C'est instantané, joli et ça marche hors ligne. |
 | Jeu | Sac de quête (6 objets max), cœurs de courage, étoiles, compagnons, choix qui exigent un objet, épreuves au dé à 6 faces (+1 si un compagnon accompagne le héros). |
@@ -31,8 +33,20 @@ L'application n'envoie pas seulement « écris la suite ». À chaque tour, le m
   reconnaît une graine même si elle est reformulée.
 
 C'est ce qui distingue une suite de saynètes d'une vraie histoire. Le réglage « Richesse du récit » passe de
-4-5 phrases très simples à 6-8 phrases avec dialogues et détails — un enfant qui écoute (au lieu de lire)
+4-5 phrases simples à 6-8 phrases avec dialogues et détails — un enfant qui écoute (au lieu de lire)
 suit sans peine des chapitres plus fournis.
+
+Deux règles de style comptent autant que le reste : la **première phrase de chaque chapitre dit ce que le choix
+de l'enfant vient de produire** (on ne peut pas relire en arrière quand on écoute), et le texte enchaîne ses
+phrases avec des mots de liaison au lieu de les hacher — c'est plus facile à suivre, et moins bébé.
+
+### Deux parties sur le même thème ne se ressemblent pas
+Au démarrage, l'application tire une **carte d'inspiration** : une situation de départ, un compagnon, un objet
+insolite, un retournement à préparer et un ton, parmi plus de 13 000 combinaisons. Les débuts déjà utilisés
+dans les six dernières aventures sont écartés du tirage. Le retournement est rappelé au modèle à chaque tour
+pour qu'il l'amène au bon moment. Sans cela, le même thème produit systématiquement la même ouverture : les
+paramètres d'échantillonnage (`temperature`) n'existent plus sur les modèles récents, la variété doit donc
+venir du prompt.
 
 ### Sécurité de l'histoire
 Le prompt système interdit la violence, la mort, la peur, les séparations tristes : les « méchants » sont maladroits
@@ -120,9 +134,14 @@ L'application s'ouvre alors en plein écran, sans barre d'adresse.
 ## Développement
 
 ```bash
-npm start          # sert le site sur http://localhost:8080
-npm test           # tests du client API (flux SSE, erreurs, replis)
-npm run icons      # régénère les icônes PNG de la PWA
+npm start              # sert le site sur http://localhost:8080
+npm test               # 18 tests : client API, état de l'aventure, arc narratif, épreuves
+npm run icons          # régénère les icônes PNG de la PWA
+
+# Test de bout en bout dans un vrai navigateur (parcours + les trois mini-jeux) :
+npm i -D playwright && npx playwright install chromium
+npx http-server -p 8123 -c-1 &
+npm run test:navigateur
 ```
 
 Aucune dépendance à installer : tout est en JavaScript natif (modules ES), sans build.
@@ -136,6 +155,7 @@ js/scene.js           moteur d'illustration SVG (décors, météo, personnages)
 js/tts.js             voix du navigateur, surlignage, contournements iOS/Chrome
 js/voix.js            narrateur unifié : navigateur ou Google Cloud, avec repli automatique
 js/state.js           état de l'aventure, sac, mémoire, historique
+js/minijeux.js        épreuves jouables sans savoir lire (mémoire, attrape, intrus)
 js/demo.js            générateur d'histoires hors ligne
 js/app.js             enchaînement des écrans et boucle de jeu
 sw.js                 mise en cache hors ligne

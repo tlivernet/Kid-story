@@ -88,3 +88,36 @@ test('l’état envoyé au modèle contient la troupe et les graines', () => {
   assert.match(bloc, /Troupe : 🦊 Nino — renifle tout/);
   assert.match(bloc, /Graines en attente : « la porte grince »/);
 });
+
+test('le réglage des épreuves est respecté', async () => {
+  const { typeEpreuve, JEUX } = await import('../js/minijeux.js');
+  const jeux = Object.keys(JEUX);
+  for (let i = 0; i < 30; i += 1) {
+    assert.equal(typeEpreuve('de'), 'de');
+    assert.ok(jeux.includes(typeEpreuve('minijeux')));
+    assert.ok(['de', ...jeux].includes(typeEpreuve('melange')));
+  }
+});
+
+test('la carte d’inspiration change d’une partie à l’autre', async () => {
+  const { INSPIRATIONS } = await import('../js/config.js');
+  const combinaisons = INSPIRATIONS.debuts.length * INSPIRATIONS.compagnons.length
+    * INSPIRATIONS.objets.length * INSPIRATIONS.twists.length * INSPIRATIONS.tons.length;
+  assert.ok(combinaisons > 10000, `seulement ${combinaisons} combinaisons possibles`);
+});
+
+test('le message envoyé au modèle décrit aussi bien le dé qu’un mini-jeu', async () => {
+  const { messageSuivant } = await import('../js/prompt.js');
+  const etat = base();
+  etat.chapitre = 3;
+  const avecDe = messageSuivant(etat, {
+    resume: 'Il a choisi : « Grimper »',
+    epreuve: { nom: 'grimper', de: 4, bonus: 1, total: 5, difficulte: 3, reussi: true },
+  });
+  assert.match(avecDe, /dé 4 \+ 1 de bonus = 5 contre 3 → RÉUSSITE/);
+  const avecJeu = messageSuivant(etat, {
+    resume: 'Il a choisi : « Se souvenir »',
+    epreuve: { nom: 'Jeu de mémoire', detail: 'la suite entière retrouvée', reussi: true },
+  });
+  assert.match(avecJeu, /la suite entière retrouvée → RÉUSSITE/);
+});
