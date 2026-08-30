@@ -1,5 +1,5 @@
 // Instructions et schéma JSON envoyés à Claude.
-import { LIEUX, MOMENTS, TRESORS, TRESORS_REELS } from './config.js';
+import { LIEUX, MOMENTS, TRESORS, TRESORS_REELS, universDuTheme } from './config.js';
 import { piocher, memeIdee } from './util.js';
 
 export const SYSTEME = `Tu es « la Plume Magique », conteuse d'histoires interactives, à la manière des livres dont on est le héros.
@@ -58,6 +58,15 @@ GRAINES ET FLORAISONS (très important pour la cohérence)
 - Plante une graine quand c'est naturel (champ promesse_plantee), et fais FLEURIR une graine déjà plantée
   (champ promesse_payee) dès que l'occasion se présente. C'est ce qui donne l'impression d'une vraie histoire.
 - La liste des graines en attente t'est donnée dans l'état du jeu. N'en laisse aucune sans réponse à la fin.
+
+RESTER DANS LE MONDE CHOISI — l'enfant a choisi ce monde, il veut y jouer
+- Le bloc MONDE te donne les lieux permis, les gens qu'on y croise et ce qui va de travers chez eux.
+  Chaque chapitre se passe DANS ce monde : ses lieux, ses personnages, ses soucis à lui.
+- L'obstacle d'un chapitre appartient au monde. Dans un match de foot, c'est un ballon crevé, un
+  joueur blessé, la pluie, un but contesté — jamais une poule à ramener au poulailler, même si
+  le but reste « reprendre le match ». Ce détour-là fait sortir l'enfant de son histoire.
+- Un détour est permis, mais il reste dans le monde : on va au vestiaire, pas à la ferme.
+- Les personnages sont ceux de ce monde. N'invente pas un compagnon d'un autre univers.
 
 RYTHME DES PHRASES — c'est ce qui sépare une histoire d'une liste
 - Ne fais JAMAIS trois phrases de suite de longueur voisine : lu à voix haute, cela sonne comme un
@@ -221,6 +230,20 @@ export const SCHEMA = {
   additionalProperties: false,
 };
 
+// Le schéma est resserré sur le monde du thème : le modèle ne PEUT PAS choisir
+// un lieu qui n'en fait pas partie. Une consigne se contourne, pas une énumération.
+export function schemaPour(etat) {
+  const monde = universDuTheme(etat?.themeId);
+  if (!monde?.lieux?.length) return SCHEMA;
+  return {
+    ...SCHEMA,
+    properties: {
+      ...SCHEMA.properties,
+      lieu: { ...SCHEMA.properties.lieu, enum: monde.lieux },
+    },
+  };
+}
+
 // Arc narratif : à chaque chapitre correspond une étape, façon plan en trois actes.
 const ETAPES = [
   ['Ouverture', 'Présente le héros, le lieu et la troupe. Lance la quête en une phrase claire. Plante une graine.'],
@@ -311,6 +334,20 @@ export function carteInspiration(inspiration) {
   ].join('\n');
 }
 
+// Le monde du thème, rappelé à chaque tour : c'est lui qui empêche l'histoire
+// de s'échapper vers un autre décor au fil des chapitres.
+export function blocMonde(etat) {
+  const monde = universDuTheme(etat.themeId);
+  if (!monde) return '';
+  return [
+    `MONDE DE L’HISTOIRE : ${etat.theme}`,
+    `Lieux permis (et aucun autre) : ${monde.lieux.join(', ')}.`,
+    `On y croise : ${monde.gens}.`,
+    `Ce qui va de travers, chez eux : ${monde.soucis}.`,
+    'Tout chapitre se passe ici. Un détour reste dans ce monde.',
+  ].join('\n');
+}
+
 export function blocEtat(etat) {
   const sac = etat.sac.length ? etat.sac.map((o) => `${o.emoji} ${o.nom} (${o.pouvoir})`).join(', ') : 'vide';
   const troupe = etat.personnages?.length
@@ -329,6 +366,7 @@ export function blocEtat(etat) {
     `Troupe : ${troupe}`,
     `Graines en attente : ${graines}`,
     `Lieu : ${etat.lieu || 'à choisir'}`,
+    blocMonde(etat),
     `Mémoire : ${etat.memoire || 'histoire toute neuve'}`,
     etat.inspiration ? `Retournement prévu : ${etat.inspiration.twist}. Il ne se révèle qu'UNE SEULE fois, au bon moment ; une fois révélé, note-le dans la mémoire et n'y reviens plus.` : '',
   ].filter(Boolean).join('\n');
@@ -400,6 +438,15 @@ export function messageSuivant(etat, action) {
     lignes.push(
       'Le héros n’a plus de courage : raconte un coup de pouce chaleureux (un ami arrive, un abri, une soupe chaude).',
       'Quelque chose est perdu dans l’aventure, mais personne n’est blessé, et le héros repart requinqué.',
+    );
+  }
+  // Idée reprise des « story skills » : une vérification déterministe, calculée
+  // sur l'état réel, plutôt qu'un rappel de style. Une troupe qui grossit sans
+  // fin, c'est une histoire qui part ailleurs à chaque chapitre.
+  if ((etat.personnages?.length || 0) >= 3) {
+    lignes.push(
+      `Ta troupe compte déjà ${etat.personnages.length} personnages : réutilise-les au lieu d’en inventer.`
+      + ' N’en ajoute un que s’il appartient au monde de l’histoire et qu’il change vraiment quelque chose.',
     );
   }
   if (etat.coeurs <= 1 && !action?.secours) {

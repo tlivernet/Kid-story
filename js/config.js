@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.17.0',
+  version: '1.18.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -52,6 +52,142 @@ export const LIEUX = [
 ];
 
 export const MOMENTS = ['jour', 'soir', 'nuit'];
+
+// Le monde de chaque thème : où l'on peut aller, qui l'on croise, ce qui va de
+// travers. Sans cela l'histoire s'échappe — un match de foot finissait par une
+// poule à ramener au poulailler. Les lieux servent aussi à restreindre le
+// schéma envoyé au modèle : il ne peut littéralement pas en choisir un autre.
+export const UNIVERS = {
+  pirates: {
+    lieux: ['plage', 'ocean', 'bateau', 'ile', 'grotte'],
+    gens: 'un capitaine, un mousse, un perroquet, un vieux marin, une rivale à voile rouge',
+    soucis: 'une carte déchirée, une voile trouée, une tempête, un coffre trop lourd, un passage qui n’est libre qu’à marée basse',
+  },
+  dragons: {
+    lieux: ['montagne', 'chateau', 'grotte', 'ruines', 'volcan'],
+    gens: 'un dragonneau, un vieux dragon fatigué, un gardien de nid, une bergère',
+    soucis: 'un œuf qui refroidit, une écaille cassée, une grotte bouchée, un feu qui ne veut pas prendre',
+  },
+  espace: {
+    lieux: ['espace', 'ciel'],
+    gens: 'un robot de bord, une astronaute, un extraterrestre timide',
+    soucis: 'un réservoir vide, une antenne cassée, un sas coincé, une pluie de météorites',
+  },
+  dinosaures: {
+    lieux: ['jungle', 'foret', 'montagne', 'grotte'],
+    gens: 'un bébé tricératops, une maman diplodocus, un ptérodactyle curieux',
+    soucis: 'un œuf tombé du nid, un pont de lianes cassé, une vallée inondée, une empreinte à suivre',
+  },
+  jungle: {
+    lieux: ['jungle', 'riviere', 'grotte'],
+    gens: 'un singe farceur, un perroquet, une panthère paresseuse, un guide',
+    soucis: 'une liane rompue, une rivière trop forte, un fruit hors de portée, un sentier effacé',
+  },
+  sirenes: {
+    lieux: ['ocean', 'plage', 'ile'],
+    gens: 'une sirène, un dauphin, un crabe grognon, un banc de poissons',
+    soucis: 'un courant contraire, une perle perdue, un corail abîmé, un filet emmêlé',
+  },
+  chevaliers: {
+    lieux: ['chateau', 'village', 'foret', 'ruines'],
+    gens: 'un écuyer, une reine, un forgeron, un chevalier rival, un cheval',
+    soucis: 'un pont-levis bloqué, une armure trop lourde, un tournoi à gagner, une couronne égarée',
+  },
+  sorciers: {
+    lieux: ['foret', 'chateau', 'cabane', 'ruines'],
+    gens: 'un vieux sorcier distrait, une chouette, une apprentie, un chat noir',
+    soucis: 'une potion ratée, une baguette perdue, un sort qui s’emballe, un grimoire qui refuse de s’ouvrir',
+  },
+  detective: {
+    lieux: ['ville', 'village', 'maison', 'marche'],
+    gens: 'un témoin bavard, une commerçante, un voisin, un chat suspect',
+    soucis: 'un objet disparu, une trace bizarre, deux versions qui se contredisent, une porte fermée à clé',
+  },
+  ferme: {
+    lieux: ['ferme', 'prairie', 'village'],
+    gens: 'un fermier, une vétérinaire, un voisin, des poules, une chèvre',
+    soucis: 'une clôture ouverte, un tracteur en panne, un animal échappé, une récolte à rentrer avant la pluie',
+  },
+  neige: {
+    lieux: ['banquise', 'montagne', 'cabane'],
+    gens: 'un pingouin timide, un ours blanc, une exploratrice',
+    soucis: 'un traîneau cassé, une tempête de neige, un trou dans la glace, une piste effacée',
+  },
+  robots: {
+    lieux: ['ville', 'maison', 'souterrain'],
+    gens: 'un robot rouillé, une inventrice, un drone bavard',
+    soucis: 'une pile vide, un boulon manquant, un programme qui bégaie, une porte automatique bloquée',
+  },
+  animaux: {
+    lieux: ['foret', 'prairie', 'riviere'],
+    gens: 'un renard malin, un hérisson prudent, une chouette, un écureuil',
+    soucis: 'un terrier inondé, une réserve de noisettes vidée, un ami disparu, l’hiver qui approche',
+  },
+  ecole: {
+    lieux: ['ecole', 'chateau'],
+    gens: 'un maître farfelu, une camarade, un balai bavard, un tableau qui parle',
+    soucis: 'une craie qui écrit toute seule, un cartable envolé, une leçon oubliée, une récré annulée',
+  },
+  pompiers: {
+    lieux: ['ville', 'village', 'maison'],
+    gens: 'un capitaine des pompiers, une collègue, un habitant inquiet, un chat sur un toit',
+    soucis: 'une fumée suspecte, une échelle trop courte, une cave inondée, une route bloquée',
+  },
+  police: {
+    lieux: ['ville', 'village', 'marche'],
+    gens: 'un collègue, une passante, un commerçant, un enfant qui a perdu quelque chose',
+    soucis: 'un vélo disparu, un chien sans collier, un sac oublié, un témoin qui hésite',
+  },
+  veterinaire: {
+    lieux: ['village', 'ferme', 'maison'],
+    gens: 'une vétérinaire, un propriétaire inquiet, un chiot, une chèvre',
+    soucis: 'une patte qui boite, un animal qui se sauve, un remède à trouver, une cage à réparer',
+  },
+  boulangerie: {
+    lieux: ['marche', 'village', 'maison'],
+    gens: 'un boulanger, une cliente pressée, un livreur, un apprenti',
+    soucis: 'un four en panne, une pâte qui ne lève pas, une commande énorme, une livraison en retard',
+  },
+  chantier: {
+    lieux: ['ville', 'village'],
+    gens: 'un chef de chantier, une grutière, un maçon, un voisin curieux',
+    soucis: 'une planche manquante, la pluie qui arrive, une brouette introuvable, un mur de travers',
+  },
+  train: {
+    lieux: ['ville', 'village'],
+    gens: 'un chef de gare, une voyageuse, un contrôleur, un conducteur',
+    soucis: 'une valise oubliée, un quai changé, un train en retard, un aiguillage bloqué',
+  },
+  foot: {
+    lieux: ['prairie', 'village', 'ville'],
+    gens: 'des coéquipiers, un gardien, un arbitre, un entraîneur, des supporters',
+    soucis: 'un ballon crevé, un maillot perdu, un joueur blessé, la pluie, un but contesté, une finale à jouer',
+  },
+  camping: {
+    lieux: ['foret', 'montagne', 'lac', 'cabane'],
+    gens: 'un animateur, d’autres campeurs, une randonneuse',
+    soucis: 'une tente envolée, un sentier mal balisé, une lampe sans piles, un orage qui monte',
+  },
+  peche: {
+    lieux: ['lac', 'riviere', 'bateau'],
+    gens: 'un pêcheur, un grand-père, une passeuse, un héron',
+    soucis: 'une barque détachée, une ligne emmêlée, un ponton cassé, un poisson trop gros',
+  },
+  marche: {
+    lieux: ['marche', 'village'],
+    gens: 'des marchands, une cliente, un livreur, un musicien de rue',
+    soucis: 'une caisse renversée, une balance faussée, un étal à monter, la pluie',
+  },
+  'ecole-vraie': {
+    lieux: ['ecole', 'ville'],
+    gens: 'la maîtresse, des camarades, le gardien, un parent',
+    soucis: 'une kermesse à préparer, un doudou perdu, une sortie à organiser, un dessin déchiré',
+  },
+};
+
+export function universDuTheme(themeId) {
+  return UNIVERS[themeId] || null;
+}
 
 // Avatars proposés au héros, groupés : un enfant qui joue les pompiers ne se
 // reconnaît pas dans une fée.

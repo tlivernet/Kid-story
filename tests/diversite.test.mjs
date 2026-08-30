@@ -230,3 +230,60 @@ test('deux épreuves ne se suivent pas', async () => {
   assert.equal(momentDEpreuve({ chapitre: 4, derniereEpreuve: 3 }), false);
   assert.equal(momentDEpreuve({ chapitre: 5, derniereEpreuve: 3 }), true);
 });
+
+// Vu en jeu : un « match de foot » finissait par une poule à ramener au
+// poulailler. La quête restait bonne, mais les scènes quittaient le terrain.
+test('chaque thème a un monde, et le schéma interdit d’en sortir', async () => {
+  const { THEMES, UNIVERS, LIEUX } = await import('../js/config.js');
+  const { schemaPour, blocMonde } = await import('../js/prompt.js');
+
+  for (const theme of THEMES) {
+    const monde = UNIVERS[theme.id];
+    assert.ok(monde, `le thème ${theme.id} n’a pas de monde`);
+    assert.ok(monde.lieux.length >= 2, `${theme.id} : au moins deux lieux, pour laisser respirer`);
+    for (const lieu of monde.lieux) assert.ok(LIEUX.includes(lieu), `${theme.id} : lieu inconnu « ${lieu} »`);
+    assert.ok(monde.lieux.includes(theme.lieu), `${theme.id} : le lieu de départ sort de son propre monde`);
+    assert.ok(monde.gens && monde.soucis, `${theme.id} : monde incomplet`);
+  }
+
+  // Le foot ne peut littéralement pas se dérouler à la ferme.
+  const foot = schemaPour({ themeId: 'foot' });
+  assert.deepEqual(foot.properties.lieu.enum, ['prairie', 'village', 'ville']);
+  assert.ok(!foot.properties.lieu.enum.includes('ferme'));
+
+  // Un thème inconnu (l'idée libre de l'enfant) garde tous les lieux.
+  assert.equal(schemaPour({ themeId: 'inconnu' }).properties.lieu.enum.length, LIEUX.length);
+  assert.equal(schemaPour(undefined).properties.lieu.enum.length, LIEUX.length);
+});
+
+test('le monde du thème est rappelé à chaque tour', async () => {
+  const { messageSuivant, blocMonde } = await import('../js/prompt.js');
+  const etat = {
+    heros: { prenom: 'Alban', avatar: '⚽' }, theme: 'Match de foot', themeId: 'foot',
+    chapitre: 4, longueur: 12, coeurs: 3, etoiles: 1, sac: [],
+    personnages: [], promesses: [], objetsEvites: [], quete: 'reprendre le match',
+    memoire: 'x', lieux: [], richesse: 'riche',
+  };
+  const message = messageSuivant(etat, { resume: 'r' });
+  assert.match(message, /MONDE DE L’HISTOIRE : Match de foot/);
+  assert.match(message, /Lieux permis \(et aucun autre\) : prairie, village, ville\./);
+  assert.match(message, /un ballon crevé/);
+  assert.equal(blocMonde({ themeId: 'inconnu' }), '', 'sans monde connu, pas de bloc vide inutile');
+});
+
+// Reprise des « story skills » : une vérification calculée sur l'état, pas un
+// simple rappel de style. Une troupe qui grossit à chaque chapitre, c'est une
+// histoire qui change de sujet.
+test('une troupe déjà fournie est rappelée au modèle, avec son compte', async () => {
+  const { messageSuivant } = await import('../js/prompt.js');
+  const base = {
+    heros: { prenom: 'Alban', avatar: '⚽' }, theme: 'Match de foot', themeId: 'foot',
+    chapitre: 4, longueur: 12, coeurs: 3, etoiles: 1, sac: [],
+    promesses: [], objetsEvites: [], quete: 'q', memoire: 'm', lieux: [], richesse: 'riche',
+  };
+  const troupe = (n) => Array.from({ length: n }, (_, i) => ({ nom: `Ami ${i}`, emoji: '🙂', manie: 'rit' }));
+  assert.doesNotMatch(messageSuivant({ ...base, personnages: troupe(2) }, { resume: 'r' }), /Ta troupe compte déjà/);
+  const message = messageSuivant({ ...base, personnages: troupe(4) }, { resume: 'r' });
+  assert.match(message, /Ta troupe compte déjà 4 personnages/);
+  assert.match(message, /réutilise-les/);
+});

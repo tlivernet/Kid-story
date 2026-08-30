@@ -5,7 +5,7 @@ import {
 } from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre, piocher, exigenceIncoherente } from './util.js';
 import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
-import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
+import { SYSTEME, schemaPour, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
 import { dessinerScene } from './scene.js';
 import { marquerPhrase, marquerMot, effacerTout } from './surlignage.js';
@@ -1086,7 +1086,9 @@ async function demanderChapitre(action) {
         modele: ui.reglages.modele,
         systeme: SYSTEME,
         messages: messagesPour(etat, message),
-        schema: SCHEMA,
+        // Le schéma restreint les lieux au monde du thème : le modèle ne peut
+        // pas emmener un match de foot à la ferme.
+        schema: schemaPour(etat),
         fallback: ui.reglages.fallback,
         signal: ui.requete.signal,
         onTitre: (titre) => {
