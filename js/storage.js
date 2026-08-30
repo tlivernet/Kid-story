@@ -50,7 +50,7 @@ export const journal = {
 // Mémoire longue, indépendante du carnet : le carnet n'enregistre qu'une
 // aventure terminée, or la plupart s'arrêtent en cours de route. Sans cela,
 // les objets et les débuts déjà vus revenaient sans arrêt.
-const SOUVENIRS_VIDES = { objets: [], debuts: [], compagnons: [], twists: [] };
+const SOUVENIRS_VIDES = { objets: [], debuts: [], compagnons: [], twists: [], soucis: {} };
 
 export const souvenirs = {
   charger() {
@@ -80,6 +80,21 @@ export const souvenirs = {
     if (inspiration.objet && !memoire.objets.includes(inspiration.objet)) memoire.objets.push(inspiration.objet);
     memoire.objets = memoire.objets.slice(-40);
     ecrire('souvenirs', memoire);
+  },
+  // Le souci qui lance une histoire est retenu PAR THÈME : rejouer « match de
+  // foot » ne doit pas ramener le même ballon crevé. Une liste figée s'épuise ;
+  // celle-ci ne sert qu'à écarter ce qu'on a déjà joué.
+  ajouterSouci(themeId, souci) {
+    if (!themeId || !souci) return;
+    const memoire = this.charger();
+    const liste = memoire.soucis[themeId] || [];
+    const propre = String(souci).trim();
+    if (propre && !liste.some((s) => s.toLowerCase() === propre.toLowerCase())) liste.push(propre);
+    memoire.soucis[themeId] = liste.slice(-10);
+    ecrire('souvenirs', memoire);
+  },
+  soucisDuTheme(themeId) {
+    return this.charger().soucis?.[themeId] || [];
   },
   effacer: () => localStorage.removeItem(PREFIXE + 'souvenirs'),
 };

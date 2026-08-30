@@ -5,6 +5,9 @@ import { memeIdee } from './util.js';
 export function nouvelEtat({
   heros, theme, themeId, longueur = REGLAGES_DEFAUT.longueur, idee = '',
   richesse = REGLAGES_DEFAUT.richesse, inspiration = null, realiste = false,
+  // Ces deux listes étaient reçues puis jetées : le premier chapitre d'une
+  // histoire repartait donc sans aucune mémoire de ce qui avait déjà servi.
+  objetsEvites = [], soucisEvites = [],
 }) {
   return {
     id: `av-${Date.now()}`,
@@ -22,7 +25,9 @@ export function nouvelEtat({
     promesses: [],
     lieux: [],
     adversaire: null,
-    objetsEvites: [],
+    objetsEvites,
+    soucisEvites,
+    souci: '',
     richesse,
     realiste,
     inspiration,
@@ -82,6 +87,8 @@ export function appliquerChapitre(etat, chapitre) {
   if (!Array.isArray(etat.chapitres)) etat.chapitres = [];
   if (!Array.isArray(etat.lieux)) etat.lieux = [];
   const nouveaux = [];
+  // Le souci n'est donné qu'au chapitre 1, et ne bouge plus ensuite.
+  if (!etat.souci && chapitre.souci) etat.souci = String(chapitre.souci).trim();
 
   for (const objet of chapitre.sac_ajouter || []) {
     if (!objet?.nom) continue;

@@ -96,6 +96,15 @@ TOUS LES CHEMINS NE SE VALENT PAS
 - Un choix prudent et un choix audacieux ne mènent pas au même endroit : les conséquences doivent se voir.
 - Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
 
+LE SOUCI DE L'HISTOIRE (chapitre 1 seulement)
+- Remplis « souci » avec l'ennui précis qui met cette aventure en route : une phrase courte,
+  concrète, qui appartient au monde du thème.
+- INVENTE-LE. Les exemples du bloc MONDE donnent le registre, pas la liste des possibles : deux
+  histoires du même thème ne doivent jamais partir du même ennui. Le message du tour te dit ce qui
+  a déjà été joué dans ce monde — écarte-le, et ne le reformule pas non plus autrement.
+- Il doit tenir douze chapitres : ni trop mince (un lacet défait), ni trop gros (sauver le pays).
+- Aux chapitres suivants, « souci » reste une chaîne vide.
+
 OUVERTURE (chapitre 1 seulement)
 - Remplis « intro » avec 4 à 6 phrases, dites avant l'histoire, sur un écran à part. Prends le temps
   de poser le décor, dans cet ordre :
@@ -185,6 +194,7 @@ export const SCHEMA = {
   properties: {
     titre: { type: 'string', description: "titre de l'aventure au chapitre 1, sinon chaîne vide" },
     intro: { type: 'string', description: "au chapitre 1 seulement : 2 à 4 phrases d'ouverture, sinon chaîne vide" },
+    souci: { type: 'string', description: "au chapitre 1 seulement : l'ennui qui lance l'histoire, sinon chaîne vide" },
     texte: { type: 'array', items: { type: 'string' }, description: 'phrases courtes, voir la consigne de longueur' },
     lieu: { type: 'string', enum: LIEUX },
     lieu_nom: { type: 'string', description: 'nom de l’endroit, 2 à 5 mots, ex. « la clairière aux champignons »' },
@@ -222,7 +232,7 @@ export const SCHEMA = {
     fin_message: { type: 'string' },
   },
   required: [
-    'titre', 'intro', 'texte', 'lieu', 'lieu_nom', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
+    'titre', 'intro', 'souci', 'texte', 'lieu', 'lieu_nom', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
     'compagnon', 'personnages', 'promesse_plantee', 'promesse_payee',
     'adversaire_nom', 'adversaire_emoji', 'adversaire_coeurs',
     'sac_ajouter', 'sac_retirer', 'coeurs_delta', 'etoiles_delta', 'choix', 'fin_titre', 'fin_message',
@@ -343,9 +353,11 @@ export function blocMonde(etat) {
     `MONDE DE L’HISTOIRE : ${etat.theme}`,
     `Lieux permis (et aucun autre) : ${monde.lieux.join(', ')}.`,
     `On y croise : ${monde.gens}.`,
-    `Ce qui va de travers, chez eux : ${monde.soucis}.`,
+    // Ces exemples donnent le registre du monde ; ils ne sont pas un menu.
+    `Le genre d’ennuis qu’on y rencontre, pour te donner le ton : ${monde.soucis}.`,
     'Tout chapitre se passe ici. Un détour reste dans ce monde.',
-  ].join('\n');
+    etat.souci ? `LE SOUCI DE CETTE HISTOIRE, celui qui la lance : ${etat.souci}. Il ne change pas.` : '',
+  ].filter(Boolean).join('\n');
 }
 
 export function blocEtat(etat) {
@@ -388,6 +400,12 @@ export function premierMessage(etat, idee) {
     'DÉBUT DE L’AVENTURE',
     `Thème choisi par l'enfant : ${etat.theme}.`,
     idee ? `Idée en plus : ${idee}.` : '',
+    // Ce que ce monde a déjà servi : c'est ce qui empêche de retomber sur le
+    // même ennui à la troisième partie du même thème.
+    etat.soucisEvites?.length
+      ? `DÉJÀ JOUÉ dans ce monde, à ne pas reprendre ni reformuler : ${etat.soucisEvites.map((x) => `« ${x} »`).join(' ; ')}.`
+      : '',
+    'Invente le SOUCI de cette histoire (champ « souci ») : neuf, précis, et de ce monde.',
     registre(etat),
     carteInspiration(etat.inspiration),
     `ÉTAPE « ${nom} » — ${consigne}`,

@@ -354,15 +354,18 @@ function demarrer() {
 
   const theme = ui.theme && ui.theme.id !== 'idee' ? ui.theme : { id: 'idee', nom: idee || 'une histoire surprise' };
   const realiste = Boolean(theme.realiste);
+  const themeId = theme.id === 'idee' ? piocher(THEMES).id : theme.id;
   ui.etat = nouvelEtat({
     heros,
     theme: theme.nom,
-    themeId: theme.id === 'idee' ? piocher(THEMES).id : theme.id,
+    themeId,
     longueur: Number(ui.reglages.longueur) || 12,
     richesse: ui.reglages.richesse,
     realiste,
     inspiration: tirerInspiration(realiste),
     objetsEvites: objetsDejaVus(),
+    // Les ennuis déjà servis dans ce monde : le modèle doit en trouver un autre.
+    soucisEvites: souvenirs.soucisDuTheme(themeId),
     idee,
   });
   souvenirs.ajouterInspiration(ui.etat.inspiration);
@@ -1156,6 +1159,8 @@ async function demanderChapitre(action) {
   ui.consigneStyle = consigneStyle(mesurerTexte(chapitre.texte), etat.richesse);
 
   const bilan = appliquerChapitre(etat, chapitre);
+  // Mémoire longue : ce souci ne relancera plus une histoire de ce monde.
+  if (chapitre.souci && etat.themeId) souvenirs.ajouterSouci(etat.themeId, chapitre.souci);
   if (action?.resume) etat.chapitres[etat.chapitres.length - 1].choixFait = action.resume;
   ajouterEchange(etat, message, (chapitre.texte || []).join(' '));
   partie.enregistrer(etat);

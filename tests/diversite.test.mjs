@@ -287,3 +287,77 @@ test('une troupe déjà fournie est rappelée au modèle, avec son compte', asyn
   assert.match(message, /Ta troupe compte déjà 4 personnages/);
   assert.match(message, /réutilise-les/);
 });
+
+// Une liste figée de soucis s'épuise : rejouer trois fois « match de foot »
+// ramenait le même ballon crevé. Le souci est désormais inventé par histoire,
+// et ceux déjà servis dans ce monde sont écartés.
+test('le souci d’une histoire est inventé, et ceux déjà joués sont écartés', async () => {
+  const { premierMessage, blocMonde } = await import('../js/prompt.js');
+  const base = {
+    heros: { prenom: 'Alban', avatar: '⚽' }, theme: 'Match de foot', themeId: 'foot',
+    chapitre: 0, longueur: 12, coeurs: 3, etoiles: 0, sac: [],
+    personnages: [], promesses: [], objetsEvites: [], quete: '', memoire: '', lieux: [],
+    richesse: 'riche',
+  };
+
+  const neuf = premierMessage(base, '');
+  assert.match(neuf, /Invente le SOUCI de cette histoire/);
+  assert.doesNotMatch(neuf, /DÉJÀ JOUÉ dans ce monde/, 'rien à écarter la première fois');
+
+  const rejoue = premierMessage({ ...base, soucisEvites: ['le ballon est crevé', 'le gardien est malade'] }, '');
+  assert.match(rejoue, /DÉJÀ JOUÉ dans ce monde/);
+  assert.match(rejoue, /« le ballon est crevé » ; « le gardien est malade »/);
+  assert.match(rejoue, /ne pas reprendre ni reformuler/);
+
+  // Les exemples du monde restent des exemples, pas un menu.
+  assert.match(blocMonde(base), /pour te donner le ton/);
+  assert.doesNotMatch(blocMonde(base), /LE SOUCI DE CETTE HISTOIRE/);
+  const enCours = blocMonde({ ...base, souci: 'les maillots ont disparu du vestiaire' });
+  assert.match(enCours, /LE SOUCI DE CETTE HISTOIRE, celui qui la lance : les maillots ont disparu/);
+  assert.match(enCours, /Il ne change pas\./);
+});
+
+test('le souci est retenu par thème, et ne se fixe qu’au premier chapitre', async () => {
+  const { appliquerChapitre } = await import('../js/state.js');
+  const vide = {
+    sac: [], promesses: [], personnages: [], chapitres: [], lieux: [],
+    coeurs: 3, etoiles: 0, chapitre: 0,
+  };
+  const etat = { ...vide };
+  appliquerChapitre(etat, { souci: 'les maillots ont disparu', texte: ['a'], choix: [] });
+  assert.equal(etat.souci, 'les maillots ont disparu');
+  appliquerChapitre(etat, { souci: 'autre chose', texte: ['b'], choix: [] });
+  assert.equal(etat.souci, 'les maillots ont disparu', 'le souci ne change pas en cours de route');
+
+  souvenirs.effacer();
+  souvenirs.ajouterSouci('foot', 'les maillots ont disparu');
+  souvenirs.ajouterSouci('foot', 'les maillots ont disparu');
+  souvenirs.ajouterSouci('foot', 'le car est en panne');
+  souvenirs.ajouterSouci('peche', 'la barque a filé');
+  assert.deepEqual(souvenirs.soucisDuTheme('foot'), ['les maillots ont disparu', 'le car est en panne']);
+  assert.deepEqual(souvenirs.soucisDuTheme('peche'), ['la barque a filé'], 'chaque monde a sa propre mémoire');
+  assert.deepEqual(souvenirs.soucisDuTheme('jamais-joue'), []);
+  for (let i = 0; i < 20; i += 1) souvenirs.ajouterSouci('foot', `ennui ${i}`);
+  assert.equal(souvenirs.soucisDuTheme('foot').length, 10, 'la mémoire ne gonfle pas sans fin');
+});
+
+// Les deux listes anti-répétition étaient passées à nouvelEtat… puis jetées.
+// Le premier chapitre d'une histoire repartait donc sans mémoire, alors que
+// c'est justement lui qui choisit le souci et le premier objet.
+test('les listes anti-répétition arrivent bien dans l’état neuf', async () => {
+  const { nouvelEtat } = await import('../js/state.js');
+  const { premierMessage } = await import('../js/prompt.js');
+  const etat = nouvelEtat({
+    heros: { prenom: 'Alban', avatar: '⚽' }, theme: 'Match de foot', themeId: 'foot',
+    objetsEvites: ['Sifflet doré', 'Chasuble jaune'],
+    soucisEvites: ['le ballon est crevé'],
+  });
+  assert.deepEqual(etat.objetsEvites, ['Sifflet doré', 'Chasuble jaune']);
+  assert.deepEqual(etat.soucisEvites, ['le ballon est crevé']);
+  assert.equal(etat.souci, '');
+
+  // Et le tout premier message en tient compte, coffre compris.
+  const message = premierMessage(etat, '');
+  assert.match(message, /Sifflet doré/, 'le coffre du chapitre 1 écarte les objets déjà vus');
+  assert.match(message, /« le ballon est crevé »/);
+});
