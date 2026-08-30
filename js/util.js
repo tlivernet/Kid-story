@@ -79,6 +79,42 @@ export function memeIdee(a, b) {
   return communs / Math.min(motsA.size, motsB.size) >= 0.5;
 }
 
+// --- Voix : repères de mots -------------------------------------------------
+
+const echapperXml = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// SSML avec une balise <mark> devant chaque mot. Google renvoie alors, pour
+// chaque marque, l'instant exact où elle est prononcée : le surlignage suit le
+// son au lieu de l'estimer à partir du nombre de lettres — d'où le décalage.
+// Les positions rendues sont celles du texte AFFICHÉ, pas du texte parlé.
+export function ssmlAvecReperes(texte) {
+  const morceaux = decouperMots(texte);
+  const mots = [];
+  let corps = '';
+  let offset = 0;
+  for (const morceau of morceaux) {
+    if (morceau.espace) { corps += ' '; offset += morceau.brut.length; continue; }
+    // La retouche se fait mot par mot : appliquée à la phrase entière, elle peut
+    // supprimer un guillemet isolé et décaler tous les repères.
+    const parle = texteParle(morceau.brut);
+    if (parle) {
+      corps += `<mark name="m${mots.length}"/>${echapperXml(parle)}`;
+      mots.push({ debut: offset, longueur: morceau.brut.length });
+    }
+    offset += morceau.brut.length;
+  }
+  return { ssml: `<speak>${corps}</speak>`, mots };
+}
+
+// Poids d'un mot dans l'estimation de repli (voix qui refusent le SSML).
+// Compter les lettres seules fait prendre du retard au surlignage : chaque mot
+// coûte un temps fixe en plus, et la ponctuation impose une pause.
+export function poidsMot(brut) {
+  const nu = String(brut);
+  const pause = /[.!?…]$/.test(nu) ? 4 : /[,;:]$/.test(nu) ? 2 : 0;
+  return 2.2 + nu.replace(/[^\p{L}\p{N}]/gu, '').length + pause;
+}
+
 // Un choix qui part CHERCHER un objet ne peut pas exiger cet objet : c'est une
 // impasse, et l'enfant ne comprend pas pourquoi la carte lui résiste.
 // « Utiliser la clé dorée » reste une exigence légitime : c'est le verbe qui

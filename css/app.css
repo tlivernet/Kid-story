@@ -687,18 +687,53 @@ body {
 .ouverture-attente { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--encre-doux); font-weight: 700; }
 .ouverture-attente p { margin: 0; }
 
-/* La page qui se tourne : elle balaie l'écran de jeu d'un chapitre à l'autre. */
+/* La page qui se tourne. Le dos du livre est à gauche : la feuille pivote
+   autour de ce bord, se soulève d'abord par le coin bas droit (le rotateZ), et
+   se cintre en chemin (le border-radius qui s'ouvre puis se referme). */
 .page-tournee {
   position: absolute; inset: 0; z-index: 45; pointer-events: none;
-  background: var(--creme);
-  box-shadow: -16px 0 30px rgba(47, 37, 69, 0.24);
-  transform-origin: left center;
-  animation: tournePage 0.72s ease-in-out forwards;
+  transform-origin: 0% 50%;
+  will-change: transform;
+  /* La feuille doit se distinguer du fond, sinon on ne voit qu'un fondu : elle
+     est plus claire au centre, ombrée près du dos, et son bord extérieur est
+     marqué. Les fines rayures suggèrent un texte sans le dessiner. */
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 26px,
+      rgba(47, 37, 69, 0.05) 26px 28px,
+      transparent 28px 54px
+    ),
+    radial-gradient(140% 110% at 100% 100%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 40%),
+    linear-gradient(100deg, #dcc79f 0%, #f3e6cc 6%, #fffaf0 26%, #fffaf0 74%, #f1e2c6 93%, #cbb287 100%);
+  box-shadow: -26px 10px 46px rgba(47, 37, 69, 0.38), inset 16px 0 26px rgba(47, 37, 69, 0.10);
+  animation: tournePage 1.15s cubic-bezier(0.36, 0.05, 0.25, 1) forwards;
 }
+/* L'opacité reste à 1 pendant tout le mouvement : la faire descendre en même
+   temps rendait la feuille transparente et le tournage passait pour un fondu.
+   Elle ne s'efface qu'à la toute fin, une fois retournée. */
 @keyframes tournePage {
-  0% { transform: perspective(1400px) rotateY(88deg); opacity: 0.15; }
-  45% { transform: perspective(1400px) rotateY(6deg); opacity: 1; }
-  100% { transform: perspective(1400px) rotateY(-94deg); opacity: 0.1; }
+  0% {
+    transform: perspective(1500px) rotateY(0deg) rotateZ(0deg) translateZ(0);
+    border-radius: 0; opacity: 0;
+  }
+  5% { opacity: 1; }
+  34% {
+    transform: perspective(1500px) rotateY(-48deg) rotateZ(-3deg) translateZ(28px);
+    border-radius: 0 32% 48% 0 / 0 9% 21% 0; opacity: 1;
+  }
+  60% {
+    transform: perspective(1500px) rotateY(-104deg) rotateZ(-4.5deg) translateZ(16px);
+    border-radius: 0 52% 64% 0 / 0 15% 27% 0; opacity: 1;
+  }
+  86% {
+    transform: perspective(1500px) rotateY(-152deg) rotateZ(-2deg) translateZ(6px);
+    border-radius: 0 26% 34% 0 / 0 8% 14% 0; opacity: 1;
+  }
+  100% {
+    transform: perspective(1500px) rotateY(-180deg) rotateZ(0deg) translateZ(0);
+    border-radius: 0; opacity: 0;
+  }
 }
 
 /* L'histoire apparaît en fondu quand l'ouverture s'efface. */

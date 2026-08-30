@@ -1,12 +1,25 @@
 // Narrateur unifié : voix du navigateur (gratuite) ou voix de synthèse Google Cloud
 // (bien plus jolie). Même interface dans les deux cas, bascule automatique en cas de panne.
 import { conteur } from './tts.js';
-import { decouperMots, texteParle } from './util.js';
+import { decouperMots, texteParle, ssmlAvecReperes, poidsMot } from './util.js';
 
 const URL_GOOGLE = 'https://texttospeech.googleapis.com/v1';
 const SILENCE = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIIEVCSiJrDCQBTcu3UrAIwUdkRgQbFAZC1CQEwTJ9mjRvBA4UOLD8nKVOWfh+UlK3z/177OXrfOdKl7pyn3Xf//WreyTRUoAWgBgkOAGbZHBgG1OF6zM82DWbZaUmMBptgQhGjsyYqc9ae9XFz280948NMBWInljyzsNRFLPWdnZGWrddDsjK1unuSrVN9jJsK8KuQtQCtMBjCEtImISdNKJOopIpBFpNSMbIHCSRpRR5iakjTiyzLhchUUBwCgyKiweBv/7UsQbg8isVNoMPT2AAAA0gAAABEVEfmqUlKPQAAdBS5Pn3z8//v//0S8f/oL2yZ3D8Rt8BEC/4CAAAAAAAAAAAAA=';
 
 // --- Fournisseur Google -----------------------------------------------------
+
+// Les « timepoints » de Google : { markName: 'm3', timeSeconds: 1.24 }. On les
+// remet dans l'ordre et on ne garde que ceux qui désignent un mot connu.
+export function reperesDeGoogle(timepoints, mots = []) {
+  if (!Array.isArray(timepoints) || !mots.length) return [];
+  return timepoints
+    .map((point) => ({
+      mot: Number(String(point?.markName || '').replace(/^m/, '')),
+      temps: Number(point?.timeSeconds),
+    }))
+    .filter((r) => Number.isInteger(r.mot) && r.mot >= 0 && r.mot < mots.length && Number.isFinite(r.temps))
+    .sort((a, b) => a.temps - b.temps);
+}
 
 // Les familles récentes (Chirp 3 HD, Journey…) refusent le SSML, le débit et la
 // hauteur : leur envoyer ces champs fait échouer la requête.
@@ -39,20 +52,29 @@ class VoixGoogle {
   corpsRequete(texte, avecOptions) {
     const voice = { languageCode: this.voix.slice(0, 5) || 'fr-FR', name: this.voix };
     const audioConfig = { audioEncoding: 'MP3' };
-    if (avecOptions) {
-      audioConfig.speakingRate = this.vitesse;
-      audioConfig.pitch = 1;
+    if (!avecOptions) {
+      // Ces voix refusent SSML et le débit : texte brut, surlignage estimé.
+      return { corps: { input: { text: texteParle(texte) }, voice, audioConfig }, mots: [] };
     }
-    // Texte brut plutôt que SSML : le balisage faisait détacher l'apostrophe
-    // française (« d'étoiles » lu « d » puis « étoiles »).
-    return { input: { text: texteParle(texte) }, voice, audioConfig };
+    audioConfig.speakingRate = this.vitesse;
+    audioConfig.pitch = 1;
+    // Une balise <mark> devant chaque mot : Google renvoie l'instant exact où il
+    // est prononcé, et le surlignage colle au son au lieu de l'estimer.
+    // Le balisage n'entoure jamais un mot, donc l'apostrophe française reste
+    // collée à sa lettre (« d’étoiles » n'est pas coupé).
+    const { ssml, mots } = ssmlAvecReperes(texte);
+    return {
+      corps: { input: { ssml }, voice, audioConfig, enableTimePointing: ['SSML_MARK'] },
+      mots,
+    };
   }
 
   async demander(texte, avecOptions) {
+    const { corps, mots } = this.corpsRequete(texte, avecOptions);
     const reponse = await fetch(`${URL_GOOGLE}/text:synthesize`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': this.cle },
-      body: JSON.stringify(this.corpsRequete(texte, avecOptions)),
+      body: JSON.stringify(corps),
     });
     if (!reponse.ok) {
       const detail = await reponse.json().catch(() => null);
@@ -60,9 +82,13 @@ class VoixGoogle {
       erreur.statut = reponse.status;
       throw erreur;
     }
-    const { audioContent } = await reponse.json();
+    const { audioContent, timepoints } = await reponse.json();
     const octets = Uint8Array.from(atob(audioContent), (c) => c.charCodeAt(0));
-    return URL.createObjectURL(new Blob([octets], { type: 'audio/mpeg' }));
+    return {
+      url: URL.createObjectURL(new Blob([octets], { type: 'audio/mpeg' })),
+      mots,
+      reperes: reperesDeGoogle(timepoints, mots),
+    };
   }
 
   // Renvoie (et met en cache) l'URL d'un extrait audio.
@@ -84,7 +110,7 @@ class VoixGoogle {
     this.cache.set(clef, promesse);
     if (this.cache.size > 60) {
       const [vieille] = this.cache.keys();
-      this.cache.get(vieille)?.then((url) => URL.revokeObjectURL(url)).catch(() => {});
+      this.cache.get(vieille)?.then((extrait) => URL.revokeObjectURL(extrait.url)).catch(() => {});
       this.cache.delete(vieille);
     }
     return promesse;
@@ -199,16 +225,16 @@ export class Narrateur {
     }
     this.enLecture = true;
     this.courant = entree;
-    const url = await entree.audio;
-    if (url instanceof Error) { this._secours(url, entree); return; }
+    const extrait = await entree.audio;
+    if (extrait instanceof Error) { this._secours(extrait, entree); return; }
     if (!this.enLecture) return; // arrêté entre-temps
 
     this.debloquer();
-    this.audio.src = url;
+    this.audio.src = extrait.url;
     await this._pret();
     if (!this.enLecture) return;
     this.rappels.onPhrase?.(entree.index);
-    this._suivreMots(entree);
+    this._suivreMots(entree, extrait);
 
     this.audio.onended = () => {
       this._arreterSuivi();
@@ -240,28 +266,51 @@ export class Narrateur {
     });
   }
 
-  // Surlignage du mot : estimé à partir de la durée de l'extrait.
-  _suivreMots(entree) {
+  // Surlignage du mot. Deux régimes : les repères exacts renvoyés par Google
+  // quand la voix accepte le SSML, sinon une estimation pondérée.
+  _suivreMots(entree, extrait) {
     this._arreterSuivi();
     if (!this.rappels.onMot) return;
+    if (extrait?.reperes?.length) { this._suivreReperes(entree, extrait); return; }
+    this._suivreEstimation(entree);
+  }
+
+  _suivreReperes(entree, extrait) {
+    const { reperes, mots } = extrait;
+    this.minuteur = setInterval(() => {
+      const t = this.audio?.currentTime;
+      if (!Number.isFinite(t)) return;
+      let courant = null;
+      for (const repere of reperes) {
+        if (repere.temps > t + 0.03) break;
+        courant = repere;
+      }
+      const mot = courant && mots[courant.mot];
+      if (mot) this.rappels.onMot(entree.index, mot.debut, mot.longueur);
+    }, 60);
+  }
+
+  _suivreEstimation(entree) {
     const morceaux = decouperMots(entree.texte);
     const positions = [];
     let offset = 0;
     for (const morceau of morceaux) {
-      if (!morceau.espace) positions.push({ debut: offset, longueur: morceau.brut.length });
+      if (!morceau.espace) {
+        positions.push({ debut: offset, longueur: morceau.brut.length, poids: poidsMot(morceau.brut) });
+      }
       offset += morceau.brut.length;
     }
-    const total = positions.reduce((somme, m) => somme + m.longueur, 0) || 1;
+    const total = positions.reduce((somme, m) => somme + m.poids, 0) || 1;
     this.minuteur = setInterval(() => {
       const duree = this.audio?.duration;
       if (!duree || !Number.isFinite(duree)) return;
       const avance = Math.min(1, this.audio.currentTime / duree) * total;
       let cumul = 0;
       for (const mot of positions) {
-        cumul += mot.longueur;
+        cumul += mot.poids;
         if (avance <= cumul) { this.rappels.onMot(entree.index, mot.debut, mot.longueur); return; }
       }
-    }, 90);
+    }, 70);
   }
 
   _arreterSuivi() {

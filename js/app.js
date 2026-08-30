@@ -1035,6 +1035,9 @@ async function demanderChapitre(action) {
   ui.enCours = true;
   ui.derniereAction = action;
   annulerValidation();
+  // La page se tourne ici, au moment où l'on quitte le chapitre précédent :
+  // elle arrivait après le chargement et le début de la lecture.
+  if (etat.chapitre > 0 && !ui.ouvertureAttendue) tournerLaPage();
   ui.phrasesAffichees = 0;
   vider($('#texte-histoire'));
   vider($('#choix'));
@@ -1182,9 +1185,8 @@ async function demanderChapitre(action) {
     } else {
       revelerChoix(false);
     }
-  } else {
-    tournerLaPage();
-    if (litLeTexte) surveillerLaVoix();
+  } else if (litLeTexte) {
+    surveillerLaVoix();
   }
 
   if (bilan.nouveaux.length) {
@@ -1257,15 +1259,17 @@ function garnirOuverture(intro) {
   }
 }
 
-// D'un chapitre à l'autre, une page se tourne : on est dans un livre.
+// D'un chapitre à l'autre, une page se tourne : on est dans un livre. Elle part
+// du coin bas droit, se cintre, et pivote autour du dos à gauche.
 function tournerLaPage() {
   if (animationsReduites) return;
   const page = $('#page-tournee');
+  clearTimeout(ui.minuteurPage);
   page.hidden = false;
   page.style.animation = 'none';
   void page.offsetWidth;
   page.style.animation = '';
-  setTimeout(() => { page.hidden = true; }, 760);
+  ui.minuteurPage = setTimeout(() => { page.hidden = true; }, 1200);
 }
 
 // Un chapitre sans une seule phrase, ou qui prétend finir l'histoire au bout de
