@@ -7,7 +7,17 @@
 // porte du texte, et on remonte les ancêtres pour trouver le fond réellement
 // peint.
 //   npx http-server -p 8123 -c-1 &   puis   node tests/contraste-navigateur.mjs
+//
+// Par défaut il ne joue que trois mini-jeux représentatifs : la passe complète
+// prend plusieurs minutes et n'a pas sa place à chaque livraison.
+//   COMPLET=1 node tests/contraste-navigateur.mjs   → les dix mini-jeux.
 const ADRESSE = process.env.ADRESSE || 'http://127.0.0.1:8123/index.html';
+const COMPLET = process.env.COMPLET === '1';
+// « lis et trouve » est le jeu où le défaut est apparu ; « touche le bon mot »
+// couvre les cartes de lecture, « intrus » les cases colorées et le chronomètre.
+const JEUX_RAPIDES = ['lireEtFaire', 'motJuste', 'intrus'];
+const JEUX_TOUS = ['intrus', 'memoire', 'tape', 'corde', 'compter', 'attrape', 'taupes',
+  'motJuste', 'motManquant', 'lireEtFaire'];
 
 let chromium;
 try {
@@ -127,6 +137,18 @@ for (const theme of ['light', 'dark']) {
   await page.waitForTimeout(500);
   await auditer(page, `thème ${theme} · écran de jeu`);
 
+  // Le carnet : une aventure en cours y figure dès le premier chapitre.
+  await page.evaluate(() => { document.querySelector('#btn-maison').click(); });
+  await page.waitForTimeout(300);
+  await page.click('#btn-carnet');
+  await page.waitForTimeout(400);
+  await auditer(page, `thème ${theme} · carnet`);
+  await page.evaluate(() => { document.querySelector('#ecran-carnet [data-retour]').click(); });
+  await page.waitForTimeout(300);
+  await page.click('#btn-continuer');
+  await page.waitForSelector('#choix .carte-choix', { timeout: 20000 });
+  await page.waitForTimeout(400);
+
   await page.click('#btn-outils');
   await page.waitForTimeout(200);
   await auditer(page, `thème ${theme} · menu d’outils`);
@@ -148,8 +170,7 @@ for (const theme of ['light', 'dark']) {
   }, { jeu, difficulte, texte });
 
   const phrases = ['Le renard court vite.', 'Un ballon jaune roule devant lui.'];
-  for (const jeu of ['intrus', 'memoire', 'tape', 'corde', 'compter', 'attrape', 'taupes',
-    'motJuste', 'motManquant', 'lireEtFaire']) {
+  for (const jeu of COMPLET ? JEUX_TOUS : JEUX_RAPIDES) {
     await lancerJeu(jeu, 3, phrases);
     await page.waitForTimeout(1600);
     await auditer(page, `thème ${theme} · mini-jeu ${jeu}`);
@@ -167,5 +188,7 @@ for (const theme of ['light', 'dark']) {
 }
 
 await navigateur.close();
-console.log(echecs.length ? `\n${echecs.length} problème(s) de contraste` : '\nAucun texte illisible');
+console.log(echecs.length
+  ? `\n${echecs.length} problème(s) de contraste`
+  : `\nAucun texte illisible${COMPLET ? ' (passe complète)' : ' (passe rapide — COMPLET=1 pour les dix mini-jeux)'}`);
 process.exit(echecs.length ? 1 : 0);

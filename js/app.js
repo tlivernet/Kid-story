@@ -452,6 +452,22 @@ function surveillerLaVoix() {
 }
 
 // Le texte garde toute la place pendant la lecture ; les choix arrivent après.
+// L'illustration se replie dès que les choix occupent le bas de l'écran, et le
+// texte revient à son début : c'est le moment où l'on veut le relire.
+function ajusterPlace() {
+  const zone = $('#choix');
+  const ouverts = !zone.classList.contains('masque') && zone.children.length > 0;
+  $('#ecran-jeu').classList.toggle('choix-ouverts', ouverts);
+}
+
+function textePlein(actif) {
+  const ecran = $('#ecran-jeu');
+  const veut = actif === undefined ? !ecran.classList.contains('texte-plein') : actif;
+  ecran.classList.toggle('texte-plein', veut);
+  $('#btn-texte').setAttribute('aria-pressed', String(veut));
+  $('#btn-texte').setAttribute('aria-label', veut ? 'Revenir aux choix' : 'Voir tout le texte');
+}
+
 function revelerChoix(lire = true) {
   clearInterval(ui.chienDeGarde);
   const zone = $('#choix');
@@ -467,6 +483,10 @@ function revelerChoix(lire = true) {
     return;
   }
   zone.classList.remove('masque');
+  ajusterPlace();
+  // On remonte au début du chapitre : pendant la lecture le texte a défilé
+  // jusqu'en bas, et c'est justement là qu'on veut pouvoir y revenir.
+  $('.zone-histoire').scrollTop = 0;
   if (lire) lireLesChoix();
 }
 
@@ -588,6 +608,7 @@ function rendreChoix(chapitre, masquer = false) {
   ui.choixEnonces = false;
   vider(zone);
   zone.classList.toggle('masque', masquer);
+  textePlein(false);
   if (ui.etat.termine) {
     const fin = el('button', { class: 'carte-choix' }, [
       el('span', { class: 'emoji', text: '🏆' }),
@@ -601,6 +622,7 @@ function rendreChoix(chapitre, masquer = false) {
     ]);
     suite.addEventListener('click', reprendreApresFin);
     zone.appendChild(suite);
+    ajusterPlace();
     return;
   }
   for (const choix of chapitre.choix || []) {
@@ -624,6 +646,7 @@ function rendreChoix(chapitre, masquer = false) {
     bouton.addEventListener('click', () => choisir(choix, possede, bouton));
     zone.appendChild(bouton);
   }
+  ajusterPlace();
 }
 
 // Ce qu'un choix demande doit se voir sans savoir lire : un dé pour une
@@ -1254,16 +1277,25 @@ function ouvrirSac() {
 }
 
 function carteChapitre(aventure, chapitre) {
-  const carte = el('article', { class: 'carte-carnet' });
+  const carte = el('li', { class: 'carte-carnet' });
   carte.appendChild(el('div', { class: 'vignette', html: dessinerScene(chapitre.decor, `${aventure.id}-${chapitre.n}`) }));
   const contenu = el('div', { class: 'contenu' }, [
     el('h3', { text: `Chapitre ${chapitre.n}` }),
     el('p', { text: chapitre.texte.join(' ') }),
   ]);
   if (chapitre.choixFait) {
-    contenu.appendChild(el('p', { class: 'choix-fait', text: `👉 ${chapitre.choixFait}` }));
+    contenu.appendChild(el('p', { class: 'choix-fait' }, [
+      el('span', { class: 'emoji', text: '👉' }),
+      el('span', { text: chapitre.choixFait }),
+    ]));
   }
-  contenu.addEventListener('click', () => { narrateur.debloquer(); narrateur.lire(chapitre.texte, {}); });
+  // Une vraie touche, plutôt qu'un bloc de texte cliquable dont rien ne le dit.
+  const ecouter = el('button', { class: 'btn-ecouter' }, [
+    el('span', { class: 'emoji', text: '🔊' }),
+    el('span', { text: 'Écouter ce chapitre' }),
+  ]);
+  ecouter.addEventListener('click', () => { narrateur.debloquer(); narrateur.lire(chapitre.texte, {}); });
+  contenu.appendChild(ecouter);
   carte.appendChild(contenu);
   return carte;
 }
@@ -1278,23 +1310,40 @@ function aventuresConnues() {
   return liste;
 }
 
+// Le carnet se lit comme un livre : une couverture par aventure, puis les
+// chapitres dans l'ordre où ils ont été vécus. Ils étaient affichés à l'envers.
 function ouvrirCarnet() {
   const zone = $('#carnet');
   vider(zone);
   const aventures = aventuresConnues();
   if (!aventures.length) {
-    zone.appendChild(el('p', { class: 'carnet-vide', text: 'Ton carnet est vide. Commence une aventure !' }));
+    zone.appendChild(el('p', { class: 'carnet-vide' }, [
+      el('span', { class: 'carnet-vide-emoji', text: '📖' }),
+      el('b', { text: 'Ton carnet est vide.' }),
+      el('span', { text: 'Chaque aventure terminée viendra se ranger ici.' }),
+    ]));
     montrer('carnet');
     return;
   }
   aventures.forEach((aventure, rang) => {
     const bloc = el('details', { class: 'aventure' });
     if (rang === 0) bloc.open = true;
-    const etat = aventure.termine ? '🏆 terminée' : '⏳ en cours';
-    bloc.appendChild(el('summary', {
-      text: `${aventure.titre || aventure.theme} — ⭐ ${aventure.etoiles} · ${etat}`,
-    }));
-    aventure.chapitres.slice().reverse().forEach((chapitre) => bloc.appendChild(carteChapitre(aventure, chapitre)));
+    const theme = THEMES.find((t) => t.nom === aventure.theme || t.id === aventure.themeId);
+    const nombre = aventure.chapitres?.length || 0;
+    bloc.appendChild(el('summary', {}, [
+      el('span', { class: 'couverture', text: theme?.emoji || '📖' }),
+      el('span', { class: 'resume-aventure' }, [
+        el('b', { text: aventure.titre || aventure.theme }),
+        el('small', { text: `⭐ ${aventure.etoiles} · ${nombre} chapitre${nombre > 1 ? 's' : ''}` }),
+      ]),
+      el('span', {
+        class: `etat-aventure ${aventure.termine ? 'finie' : 'encours'}`,
+        text: aventure.termine ? '🏆 terminée' : '⏳ en cours',
+      }),
+    ]));
+    const liste = el('ol', { class: 'chapitres' });
+    aventure.chapitres.forEach((chapitre) => liste.appendChild(carteChapitre(aventure, chapitre)));
+    bloc.appendChild(liste);
     zone.appendChild(bloc);
   });
   montrer('carnet');
@@ -1480,6 +1529,10 @@ function brancher() {
   $('#btn-passer').addEventListener('click', () => {
     narrateur.stop();
     revelerChoix();
+  });
+  $('#btn-texte').addEventListener('click', () => {
+    textePlein();
+    if ($('#ecran-jeu').classList.contains('texte-plein')) $('.zone-histoire').scrollTop = 0;
   });
   $('#btn-fermer-sac').addEventListener('click', () => { $('#modale-sac').hidden = true; });
   $('#modale-sac').addEventListener('click', (e) => { if (e.target.id === 'modale-sac') $('#modale-sac').hidden = true; });

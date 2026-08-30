@@ -34,7 +34,7 @@ jobs:
           done
           # L'audit de contraste mesure le rendu réel : c'est lui qui attrape un
           # fond clair resté clair en thème sombre, que les jetons ne voient pas.
-          node tests/contraste-navigateur.mjs
+          COMPLET=1 node tests/contraste-navigateur.mjs
           node tests/surlignage.mjs
           node tests/api-simulee.mjs
           node tests/navigateur.mjs

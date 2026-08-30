@@ -339,10 +339,14 @@ body {
   border: 4px solid #fff; border-radius: 26px; overflow: hidden;
   box-shadow: 0 14px 30px rgba(47, 37, 69, 0.20);
 }
+/* Quand les choix sont là, l'illustration s'efface à demi : sans cela le texte
+   n'a plus que 250 px sur un téléphone, pour 630 px de chapitre. */
+#ecran-jeu.choix-ouverts .scene { height: clamp(64px, 9vh, 96px); }
 .scene {
   position: relative;
   width: 100%;
   height: clamp(110px, 16vh, 170px);
+  transition: height 0.3s ease;
   background: #cfe9ff;
   overflow: hidden;
 }
@@ -388,6 +392,7 @@ body {
 
 .zone-histoire {
   flex: 1;
+  min-height: 26vh;   /* le texte garde toujours de quoi être lu */
   overflow-y: auto;
   padding: 16px 18px 14px;
   display: flex;
@@ -433,10 +438,21 @@ body {
 
 .choix {
   display: flex; flex-direction: column; gap: 12px;
-  flex: none;
+  flex: 0 1 auto;
+  max-height: 44vh; overflow-y: auto;
   padding: 4px 18px 10px;
   background: var(--creme);
 }
+
+/* Texte en grand : l'histoire prend tout l'écran, image et choix repliés. */
+#ecran-jeu.texte-plein .planche,
+#ecran-jeu.texte-plein .choix { display: none; }
+#ecran-jeu.texte-plein .titre-histoire { margin-top: 4px; }
+.btn-lecture .icone-fermer { display: none; }
+.btn-lecture[aria-pressed="true"] { background: var(--violet); border-color: var(--violet-clair); }
+.btn-lecture[aria-pressed="true"] svg { stroke: #fff; fill: #fff; }
+.btn-lecture[aria-pressed="true"] .icone-ouvrir { display: none; }
+.btn-lecture[aria-pressed="true"] .icone-fermer { display: block; }
 .carte-choix {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
   font: inherit; font-size: calc(1.15rem * var(--taille-texte)); font-weight: 700; text-align: left;
@@ -526,28 +542,65 @@ body {
 /* --- Carnet ---------------------------------------------------------------- */
 
 .carnet { padding: 8px 16px 30px; display: flex; flex-direction: column; gap: 16px; }
-.carnet-vide { color: var(--encre-doux); text-align: center; padding: 40px 10px; }
+.carnet-vide {
+  color: var(--encre-doux); text-align: center; padding: 46px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.carnet-vide b { font-size: 1.15rem; color: var(--encre); }
+.carnet-vide-emoji { font-size: 3.4rem; }
+
+/* Une couverture par aventure : ce qu'elle raconte, ce qu'elle a rapporté,
+   et où elle en est. */
 .aventure { border: none; }
 .aventure summary {
-  font-size: 1.15rem; font-weight: 800; color: var(--violet-texte);
+  display: flex; align-items: center; gap: 12px;
   padding: 12px 14px; background: #fff; border: 3px solid var(--creme-fonce);
   border-radius: var(--rayon); cursor: pointer; margin-bottom: 12px; list-style: none;
+  box-shadow: var(--ombre);
 }
 .aventure summary::-webkit-details-marker { display: none; }
-.aventure summary::before { content: '📚 '; }
-.aventure[open] summary::before { content: '📖 '; }
-.aventure .carte-carnet { margin-bottom: 12px; }
+.aventure .couverture {
+  width: 52px; height: 52px; flex: none; border-radius: 16px;
+  display: grid; place-items: center; font-size: 1.9rem; background: var(--creme);
+}
+.aventure .resume-aventure { flex: 1; min-width: 0; }
+.aventure .resume-aventure b { display: block; font-size: 1.1rem; font-weight: 800; line-height: 1.25; }
+.aventure .resume-aventure small { display: block; font-size: 0.88rem; font-weight: 700; color: var(--encre-doux); }
+.etat-aventure {
+  flex: none; font-size: 0.8rem; font-weight: 800; white-space: nowrap;
+  padding: 5px 10px; border-radius: 999px; border: 2px solid var(--creme-fonce);
+}
+.etat-aventure.finie { background: #e3f4ea; border-color: #3fae6a; color: #1e5c36; }
+.etat-aventure.encours { background: #fff2d6; border-color: #e8b84b; color: #6b4a00; }
 
+/* Les chapitres, dans l'ordre où ils ont été vécus. */
+.chapitres { list-style: none; margin: 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 12px; }
 .carte-carnet {
+  position: relative;
   background: #fff; border: 3px solid var(--creme-fonce); border-radius: var(--rayon);
   overflow: hidden; box-shadow: var(--ombre);
 }
-.carte-carnet .vignette { height: 150px; }
+.carte-carnet .vignette { height: 120px; }
 .carte-carnet .vignette svg { width: 100%; height: 100%; display: block; }
-.carte-carnet .contenu { padding: 12px 14px; }
-.carte-carnet h3 { margin: 0 0 6px; font-size: 1rem; color: var(--violet-texte); }
+.carte-carnet .contenu { padding: 12px 14px 14px; }
+.carte-carnet h3 {
+  margin: 0 0 6px; font-size: 0.8rem; font-weight: 900; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--violet-texte);
+}
 .carte-carnet p { margin: 0; font-size: 1.05rem; }
-.carte-carnet .choix-fait { margin-top: 8px; font-size: 0.95rem; font-weight: 700; color: var(--violet-texte); }
+.carte-carnet .choix-fait {
+  display: flex; gap: 8px; align-items: flex-start;
+  margin-top: 10px; padding-top: 10px; border-top: 2px solid var(--creme-fonce);
+  font-size: 0.95rem; font-weight: 700; color: var(--violet-texte);
+}
+.carte-carnet .btn-ecouter {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
+  font: inherit; font-size: 0.95rem; font-weight: 800; cursor: pointer;
+  padding: 8px 14px 8px 10px; border-radius: 999px;
+  border: 2px solid var(--creme-fonce); background: var(--creme); color: var(--encre);
+}
+.carte-carnet .btn-ecouter .emoji { font-size: 1.2rem; }
+.carte-carnet .btn-ecouter:active { transform: scale(0.96); }
 
 /* --- Réglages -------------------------------------------------------------- */
 
@@ -821,6 +874,7 @@ body {
   .btn-emoji { background: rgba(255, 255, 255, 0.09); }
   .carte-theme .haut { background: rgba(255, 255, 255, 0.07); }
   .accueil-bas .btn-discret { border-color: rgba(185, 174, 214, 0.3); }
+  .aventure .couverture, .carte-carnet .btn-ecouter { background: #221c33; color: var(--encre); }
   #choix .carte-choix .emoji { background: rgba(255, 255, 255, 0.09); }
   .rail-sac { background: var(--creme); border-top-color: var(--creme-fonce); }
   .rail-titre, .objet-rail { background: #2c2444; color: var(--encre); }

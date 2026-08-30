@@ -11,7 +11,8 @@
     "test:api": "node tests/api-simulee.mjs",
     "test:surlignage": "node tests/surlignage.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "test:contraste": "node tests/contraste-navigateur.mjs"
+    "test:contraste": "node tests/contraste-navigateur.mjs",
+    "test:contraste:complet": "COMPLET=1 node tests/contraste-navigateur.mjs"
   },
   "license": "MIT"
 }

@@ -59,8 +59,20 @@ GRAINES ET FLORAISONS (très important pour la cohérence)
   (champ promesse_payee) dès que l'occasion se présente. C'est ce qui donne l'impression d'une vraie histoire.
 - La liste des graines en attente t'est donnée dans l'état du jeu. N'en laisse aucune sans réponse à la fin.
 
-RYTHME
+RYTHME DES PHRASES — c'est ce qui sépare une histoire d'une liste
+- Ne fais JAMAIS trois phrases de suite de longueur voisine : lu à voix haute, cela sonne comme un
+  métronome, et c'est le défaut qui gâche le plus une histoire entendue.
+- Dans chaque chapitre, au moins deux phrases très courtes, de deux à cinq mots, posées là où l'on
+  retient son souffle : « Rien ne bouge. » « Il écoute. » « Zoup ! » « Trop tard. »
+- Au moins une phrase longue, jusqu'à seize mots, qui enchaîne deux idées et laisse filer la scène.
+- Une phrase peut être une exclamation, une question, un seul mot, ou une réplique. Varie aussi les
+  débuts : ne commence pas trois phrases de suite par le prénom du héros.
+
+RYTHME DE L'HISTOIRE
 - Suis la CONSIGNE D'ÉTAPE fournie à chaque tour : elle indique où en est l'histoire.
+- Le nombre de chapitres prévu est un repère, PAS un quota. Une aventure qui se termine deux chapitres
+  plus tôt parce que tout est résolu vaut mieux qu'un chapitre de remplissage ; et si une piste mérite
+  d'être suivie, tu peux dépasser un peu. Ne fais jamais durer pour atteindre un compte.
 - Environ un chapitre sur trois propose une ÉPREUVE (grimper, sauter, ruser, apprivoiser, chercher).
 - Offre un objet utile de temps en temps (six objets maximum dans le sac). Un objet doit servir plus tard.
 - Tiens à jour la liste des personnages rencontrés (nom, emoji, manie) : c'est ta troupe, réutilise-la.
@@ -307,8 +319,10 @@ export function blocEtat(etat) {
 
 function consigneLongueur(etat) {
   return etat.richesse === 'simple'
-    ? 'Longueur : 4 à 5 phrases de 8 à 12 mots chacune.'
-    : 'Longueur : 6 à 8 phrases de 8 à 12 mots chacune, jamais plus de 14 mots par phrase.';
+    ? 'Longueur : 4 à 6 phrases. Au moins une de deux à cinq mots ; jamais plus de 14 mots.'
+    : 'Longueur : 5 à 8 phrases, selon ce que le chapitre a vraiment à dire — pas de remplissage.'
+      + ' Au moins deux phrases de deux à cinq mots, au moins une de treize à seize.'
+      + ' Jamais trois phrases de suite de longueur voisine.';
 }
 
 export function premierMessage(etat, idee) {
@@ -374,9 +388,19 @@ export function messageSuivant(etat, action) {
   if (etat.coeurs <= 1 && !action?.secours) {
     lignes.push("Le héros est fatigué : offre-lui un moment doux qui lui redonne du courage (coeurs_delta = 1).");
   }
-  if (etat.chapitre + 1 >= etat.longueur) {
+  // Le compte de chapitres est une fenêtre, pas un couperet : forcer l'histoire
+  // à tenir exactement en douze chapitres produit du remplissage.
+  const finPossible = Math.max(4, Math.round(etat.longueur * 0.75));
+  const finObligatoire = Math.ceil(etat.longueur * 1.25);
+  if (etat.chapitre + 1 >= finObligatoire) {
     lignes.push('C’est le DERNIER chapitre : termine l’aventure par une fin heureuse, choix vide, fin_titre et fin_message remplis.');
-  } else if (etat.chapitre + 2 >= etat.longueur) {
+  } else if (etat.chapitre + 1 >= finPossible) {
+    lignes.push(
+      `L’aventure peut se terminer maintenant (chapitre ${etat.chapitre + 1}, ${etat.longueur} prévus).`,
+      'Si la quête est résolue et qu’aucune graine ne reste en attente, termine : choix vide, fin_titre et fin_message remplis.',
+      `Sinon continue, mais sans remplissage, et termine au plus tard au chapitre ${finObligatoire}.`,
+    );
+  } else if (etat.chapitre + 3 >= finPossible) {
     lignes.push('L’aventure se termine bientôt : commence le dénouement.');
   }
   if (action?.balade) {

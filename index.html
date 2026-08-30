@@ -148,7 +148,13 @@
       <button class="btn-lecture" id="btn-passer" aria-label="Voir les choix tout de suite">
         <svg viewBox="0 0 24 24" class="plein" aria-hidden="true"><path d="M5 5l9 7-9 7z"/><rect x="16.5" y="5" width="3" height="14" rx="1.5"/></svg>
       </button>
-      <span class="astuce">Touche un mot<br>pour l’entendre 👆</span>
+      <!-- Les choix mangent la place du texte : cette touche rend tout l'écran
+           à l'histoire, et la rend aux choix au second appui. -->
+      <button class="btn-lecture" id="btn-texte" aria-label="Voir tout le texte" aria-pressed="false">
+        <svg viewBox="0 0 24 24" class="icone-ouvrir" aria-hidden="true"><path d="M4 6h7v13H4zM13 6h7v13h-7z"/><path d="M4 6h16"/></svg>
+        <svg viewBox="0 0 24 24" class="plein icone-fermer" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>
+      </button>
+      <span class="astuce">Touche un mot<br>pour l’entendre</span>
     </footer>
   </section>
 
