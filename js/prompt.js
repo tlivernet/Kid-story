@@ -87,6 +87,13 @@ TOUS LES CHEMINS NE SE VALENT PAS
 - Un choix prudent et un choix audacieux ne mènent pas au même endroit : les conséquences doivent se voir.
 - Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
 
+OUVERTURE (chapitre 1 seulement)
+- Remplis « intro » avec 2 à 4 phrases très courtes, dites avant l'histoire, sur un écran à part :
+  où l'on est, qui accompagne le héros, et ce qu'il a dans son sac ou dans les mains au départ.
+- C'est une invitation, pas un résumé : on plante le décor et on donne envie. Ne raconte aucune action
+  du chapitre 1, ne pose aucune question, ne révèle pas la quête — elle se découvre en jouant.
+- Aux chapitres suivants, « intro » reste une chaîne vide.
+
 OBJETS (rares, et seulement quand le jeu l'autorise)
 - Un objet ne s'offre QUE si le message du tour contient un COFFRE À TRÉSORS. Sinon, sac_ajouter reste vide
   et l'histoire n'invente aucun objet magique : ni trouvé, ni offert, ni aperçu.
@@ -113,6 +120,9 @@ CHOIX
 - L'enfant NE SAIT PAS ENCORE LIRE : les choix sont lus à voix haute. Écris-les comme on les dit,
   avec un verbe d'action au début, et rends-les faciles à distinguer à l'oreille (pas deux choix qui se ressemblent).
 - Varie leur nature : agir, parler à quelqu'un, observer, utiliser un objet, prendre un risque.
+- Un choix qui part CHERCHER, TROUVER ou FABRIQUER un objet ne peut JAMAIS exiger cet objet :
+  « Trouver une lampe torche » avec objet_requis = « lampe torche » est une impasse absurde.
+  objet_requis nomme ce dont on a besoin POUR agir, jamais ce que l'action va chercher.
 - « objet_requis » : le nom exact d'un objet, que le héros le possède DÉJÀ OU NON.
   Manquer d'un objet est le sel de ce genre de livre : quand le message du tour demande UNE PORTE FERMÉE,
   un des choix exige un objet que le héros n'a pas encore, et le texte du chapitre dit clairement lequel
@@ -159,6 +169,7 @@ export const SCHEMA = {
   type: 'object',
   properties: {
     titre: { type: 'string', description: "titre de l'aventure au chapitre 1, sinon chaîne vide" },
+    intro: { type: 'string', description: "au chapitre 1 seulement : 2 à 4 phrases d'ouverture, sinon chaîne vide" },
     texte: { type: 'array', items: { type: 'string' }, description: 'phrases courtes, voir la consigne de longueur' },
     lieu: { type: 'string', enum: LIEUX },
     lieu_nom: { type: 'string', description: 'nom de l’endroit, 2 à 5 mots, ex. « la clairière aux champignons »' },
@@ -196,7 +207,7 @@ export const SCHEMA = {
     fin_message: { type: 'string' },
   },
   required: [
-    'titre', 'texte', 'lieu', 'lieu_nom', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
+    'titre', 'intro', 'texte', 'lieu', 'lieu_nom', 'moment', 'acteurs', 'objets_decor', 'quete', 'memoire',
     'compagnon', 'personnages', 'promesse_plantee', 'promesse_payee',
     'adversaire_nom', 'adversaire_emoji', 'adversaire_coeurs',
     'sac_ajouter', 'sac_retirer', 'coeurs_delta', 'etoiles_delta', 'choix', 'fin_titre', 'fin_message',

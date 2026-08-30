@@ -126,6 +126,9 @@ export function chapitreDemo(etat, action) {
     const but = piocher(theme.mots, r);
     return {
       titre: `${h} et ${theme.nom.toLowerCase()}`,
+      intro: `Bienvenue dans une histoire de ${theme.nom.toLowerCase()}. `
+        + `${h} n'est pas tout seul : ${compagnon.nom} l'accompagne partout. `
+        + 'Dans son sac, il n\u2019y a presque rien. Tout commence maintenant.',
       texte: etat.realiste ? [
         `${h} enfile ses chaussures, prêt pour la journée.`,
         `Aujourd'hui, ${etat.inspiration ? etat.inspiration.debut : 'une drôle de journée commence'}.`,
@@ -164,7 +167,7 @@ export function chapitreDemo(etat, action) {
 
   if (dernier) {
     return {
-      titre: '',
+      titre: '', intro: '',
       texte: [
         ...debutSelonAction(action, h),
         `Au bout du chemin, ${h} trouve enfin ${(etat.quete || 'son trésor').replace(/^retrouver /, '')}.`,
@@ -197,7 +200,7 @@ export function chapitreDemo(etat, action) {
   const donneObjet = r() > 0.6;
   const objet = piocher(OBJETS.filter((o) => !etat.sac.some((s) => s.nom === o.nom)), r) || null;
   return {
-    titre: '',
+    titre: '', intro: '',
     texte: adversaire
       ? [...debutSelonAction(action, h), ...scene.texte(h).slice(0, 2), `Soudain, ${adversaire.nom} te barre la route !`]
       : [...debutSelonAction(action, h), ...scene.texte(h)],

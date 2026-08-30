@@ -79,6 +79,17 @@ export function memeIdee(a, b) {
   return communs / Math.min(motsA.size, motsB.size) >= 0.5;
 }
 
+// Un choix qui part CHERCHER un objet ne peut pas exiger cet objet : c'est une
+// impasse, et l'enfant ne comprend pas pourquoi la carte lui résiste.
+// « Utiliser la clé dorée » reste une exigence légitime : c'est le verbe qui
+// tranche, pas la simple présence du nom de l'objet dans le texte.
+const VERBES_DE_QUETE = /\b(cherch|trouv|fabriqu|denich|ramass|recuper|construi|attrap|repech|fouill|rapport)/;
+export function exigenceIncoherente(texte, objet) {
+  if (!objet) return false;
+  const sansAccent = String(texte).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return VERBES_DE_QUETE.test(sansAccent) && memeIdee(texte, objet);
+}
+
 // Texte préparé pour la synthèse vocale. L'affichage, lui, garde la version
 // d'origine : ces retouches ne servent qu'à l'oreille.
 export function texteParle(texte) {

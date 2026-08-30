@@ -201,3 +201,17 @@ test('normaliserEtat ignore une sauvegarde vide', () => {
   assert.equal(normaliserEtat(null), null);
   assert.equal(normaliserEtat('abîmé'), null);
 });
+
+// Vu en jeu : un choix « Trouver une lampe torche » exigeait la lampe torche.
+// La porte se fermait sur ce que le choix allait justement chercher.
+test('un choix qui part chercher un objet ne peut pas exiger cet objet', async () => {
+  const { exigenceIncoherente } = await import('../js/util.js');
+  assert.equal(exigenceIncoherente('Trouver une lampe torche', 'Lampe torche'), true);
+  assert.equal(exigenceIncoherente('Chercher la clé dorée', 'Clé dorée'), true);
+  assert.equal(exigenceIncoherente('Fabriquer une corde solide', 'Corde solide'), true);
+  // Une exigence légitime nomme aussi l'objet : c'est le verbe qui tranche.
+  assert.equal(exigenceIncoherente('Ouvrir la porte avec la clé dorée', 'Clé dorée'), false);
+  assert.equal(exigenceIncoherente('Éclairer la cave', 'Lampe torche'), false);
+  assert.equal(exigenceIncoherente('Chercher le chat', 'Lampe torche'), false);
+  assert.equal(exigenceIncoherente('Partir tout de suite', ''), false);
+});

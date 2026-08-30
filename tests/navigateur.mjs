@@ -47,6 +47,14 @@ verifier(await page.isHidden('#bloc-teintes'), 'pas de teinte proposée pour un 
 await page.click('#grille-avatars .avatar[data-base="🧒"]');
 
 await page.click('#btn-demarrer');
+
+// L'histoire s'ouvre par une mise en place : où l'on est, qui accompagne le héros.
+await page.waitForSelector('#ouverture:not([hidden])', { timeout: 20000 });
+const intro = (await page.textContent('#ouverture-texte')).trim();
+verifier(intro.length > 20, `l’histoire s’ouvre par une mise en place (${intro.slice(0, 46)}…)`);
+await page.click('#btn-ouverture');
+await page.waitForFunction(() => document.querySelector('#ouverture').hidden, { timeout: 8000 });
+
 await page.waitForSelector('#choix .carte-choix:not([hidden])', { timeout: 15000 });
 verifier((await page.$$('.phrase')).length >= 3, 'le chapitre s’affiche phrase par phrase');
 verifier(!(await page.$eval('#choix', (n) => n.classList.contains('masque'))), 'les choix apparaissent après la lecture');
@@ -203,6 +211,31 @@ await page.waitForSelector('#epreuve-zone .jeu-case');
 const nbCases = (await page.$$('#epreuve-zone .jeu-case')).length;
 verifier(nbCases === 16, `trouve l’intrus devient difficile : ${nbCases} cases au niveau 5`);
 
+// Le nœud du tir à la corde doit se déplacer : avant, toute la rangée glissait
+// de quarante pixels et l'on ne voyait pas de quel côté allait la corde.
+await lancerJeu('corde', 2);
+await page.waitForSelector('#epreuve-zone .jeu-corde-noeud');
+await page.waitForTimeout(900);
+const avantCorde = await page.$eval('.jeu-corde-noeud', (n) => n.style.left);
+for (let i = 0; i < 10; i += 1) await page.click('#epreuve-zone .jeu-tambour').catch(() => {});
+await page.waitForTimeout(200);
+const apresCorde = await page.$eval('.jeu-corde-noeud', (n) => n.style.left);
+verifier(
+  parseFloat(apresCorde) > parseFloat(avantCorde),
+  `le nœud de la corde se déplace quand on tire (${avantCorde} → ${apresCorde})`,
+);
+await page.evaluate(() => { document.querySelector('#overlay-epreuve').hidden = true; });
+
+// Les propositions d'un jeu de lecture peuvent être entendues à la demande.
+await lancerJeu('motJuste', 3, ['Le renard court vite.', 'Un ballon jaune roule devant lui.']);
+await page.waitForSelector('#epreuve-zone .jeu-mot');
+const aides = await page.$$eval('#epreuve-zone .jeu-rappel', (n) => n.map((x) => x.textContent.trim()));
+verifier(
+  aides.some((t) => /les mots/i.test(t)),
+  `le jeu de lecture propose d'entendre les propositions (${aides.join(' / ') || 'aucune aide'})`,
+);
+await page.evaluate(() => { document.querySelector('#overlay-epreuve').hidden = true; });
+
 // --- Régressions d'enchaînement des mini-jeux ------------------------------
 // Le jeu ne doit pas démarrer avant que la consigne ait fini d'être dite : le
 // chronomètre de « trouve l'intrus » partait pendant la lecture, sur onze
@@ -275,6 +308,9 @@ await page.click('#btn-nouvelle');
 await page.click('.grille-themes .carte-theme >> nth=0');
 await page.fill('#champ-prenom', 'Lina');
 await page.click('#btn-demarrer');
+await page.waitForSelector('#ouverture:not([hidden])', { timeout: 20000 });
+await page.click('#btn-ouverture');
+await page.waitForFunction(() => document.querySelector('#ouverture').hidden, { timeout: 8000 });
 
 // Régression : tant qu'une épreuve est à l'écran, un second appui sur un choix
 // (ou le repli de la jauge de validation) ne doit pas en lancer une deuxième.

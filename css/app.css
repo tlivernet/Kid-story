@@ -436,11 +436,13 @@ body {
 .erreur h3 { margin: 0 0 6px; }
 .erreur .aide { font-size: 0.9rem; color: #a2564f; word-break: break-word; }
 
+/* Les choix ne défilent jamais : une carte à moitié repliée est une carte que
+   l'enfant ne voit pas. C'est le texte qui cède la place — il a sa touche
+   « voir tout le texte » pour la reprendre. */
 .choix {
-  display: flex; flex-direction: column; gap: 12px;
-  flex: 0 1 auto;
-  max-height: 44vh; overflow-y: auto;
-  padding: 4px 18px 10px;
+  display: flex; flex-direction: column; gap: 10px;
+  flex: none;
+  padding: 4px 16px 10px;
   background: var(--creme);
 }
 
@@ -457,7 +459,7 @@ body {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
   font: inherit; font-size: calc(1.15rem * var(--taille-texte)); font-weight: 700; text-align: left;
   background: #fff; border: 3px solid var(--creme-fonce); border-radius: var(--rayon);
-  padding: 14px 16px; cursor: pointer; box-shadow: var(--ombre);
+  padding: 10px 14px 12px; cursor: pointer; box-shadow: var(--ombre);
   animation: apparait 0.3s ease backwards;
 }
 .carte-choix:nth-child(2) { animation-delay: 0.08s; }
@@ -465,8 +467,8 @@ body {
 .carte-choix:active { transform: translateY(3px); }
 .carte-choix .emoji { font-size: 2.1rem; }
 #choix .carte-choix .emoji {
-  width: 46px; height: 46px; flex: none; border-radius: 15px;
-  display: grid; place-items: center; font-size: 1.75rem;
+  width: 40px; height: 40px; flex: none; border-radius: 13px;
+  display: grid; place-items: center; font-size: 1.55rem;
   background: var(--voile-choix, var(--creme-fonce));
 }
 .carte-choix .numero {
@@ -496,11 +498,11 @@ body {
 }
 .carte-choix.choisi .validation { opacity: 1; animation: flotte 1.6s ease-in-out infinite; }
 .carte-choix .carte-texte { flex: 1; min-width: 0; }
-.carte-choix .libelle { display: block; }
+.carte-choix .libelle { display: block; line-height: 1.2; }
 .carte-choix .badge {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 0.92rem; font-weight: 800; line-height: 1.2;
-  border-radius: 999px; padding: 5px 12px 5px 8px;
+  font-size: 0.88rem; font-weight: 800; line-height: 1.2;
+  border-radius: 999px; padding: 4px 11px 4px 7px;
   border: 2px solid var(--creme-fonce); background: var(--creme); color: var(--encre);
   flex: 0 0 auto; max-width: 100%;
 }
@@ -529,7 +531,10 @@ body {
   background: var(--creme-fonce);
   flex: none;
 }
+/* Quatre touches dans la barre : l'astuce, qui s'adresse au parent, se retire
+   quand il n'y a plus la place. */
 .astuce { font-size: 0.82rem; color: #6b5f3f; font-weight: 700; line-height: 1.35; }
+@media (max-width: 430px) { .astuce { display: none; } }
 
 /* --- Fin ------------------------------------------------------------------- */
 
@@ -623,6 +628,44 @@ body {
 .statut.ok { color: var(--vert); }
 .statut.ko { color: var(--rouge); }
 
+/* --- Ouverture d'une histoire ---------------------------------------------
+   Le monde se pose avant le premier chapitre, puis s'efface en fondu pour
+   laisser apparaître l'histoire elle-même. */
+.ouverture {
+  position: fixed; inset: 0; z-index: 70;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  background: var(--creme);
+  animation: apparait 0.5s ease;
+}
+.ouverture.part { animation: seFond 0.6s ease forwards; }
+@keyframes seFond { to { opacity: 0; transform: scale(1.04); } }
+.ouverture-scene { position: relative; flex: 1; min-height: 120px; overflow: hidden; }
+.ouverture-scene svg { width: 100%; height: 100%; display: block; }
+.ouverture-scene::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: linear-gradient(to bottom, transparent, var(--creme));
+}
+.ouverture-carte {
+  position: relative; z-index: 1; flex: none;
+  padding: 20px 20px calc(28px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  width: min(520px, 100%); margin: 0 auto;
+}
+.ouverture-sur {
+  margin: 0; text-align: center;
+  font-size: 0.8rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--violet-texte);
+}
+.ouverture-texte {
+  margin: 0; text-align: center;
+  font-size: calc(1.3rem * var(--taille-texte)); line-height: 1.75; max-width: 30ch;
+}
+.ouverture-texte .phrase { display: block; margin-bottom: 8px; border-left: none; padding: 0; }
+.ouverture-texte .phrase.lue { background: var(--or-voile); border-radius: 10px; }
+
+/* L'histoire apparaît en fondu quand l'ouverture s'efface. */
+.monde-apparait .planche, .monde-apparait .zone-histoire { animation: apparait 0.7s ease backwards; }
+
 /* --- Sac, dé, toast -------------------------------------------------------- */
 
 .modale, .overlay {
@@ -697,14 +740,29 @@ body {
 .jeu-tambour.frappe { animation: frappe 0.12s ease; }
 @keyframes frappe { 50% { transform: scale(0.88) rotate(-4deg); } }
 
-/* Tir à la corde */
+/* Tir à la corde : deux tireurs fixes, un nœud qui se déplace. */
 .jeu-corde {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+  display: flex; align-items: center; gap: 8px;
   font-size: 2.4rem; width: 100%;
-  transform: translateX(var(--tirage, 0px));
-  transition: transform 0.1s linear;
 }
-.jeu-corde-lien { letter-spacing: -2px; color: #b08a5a; }
+.jeu-corde-heros, .jeu-corde-rival { flex: none; line-height: 1; transition: transform 0.12s ease; }
+.jeu-corde.gagne .jeu-corde-heros { transform: translateX(-4px) rotate(-12deg); }
+.jeu-corde.perd .jeu-corde-rival { transform: translateX(4px) rotate(12deg); }
+.jeu-corde-piste { position: relative; flex: 1; min-width: 0; height: 44px; }
+.jeu-corde-lien {
+  position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px;
+  border-radius: 4px; background: repeating-linear-gradient(90deg, #b08a5a 0 10px, #916f43 10px 20px);
+}
+.jeu-corde-repere {
+  position: absolute; left: 50%; top: 2px; bottom: 2px; width: 4px; margin-left: -2px;
+  border-radius: 2px; background: var(--creme-fonce);
+}
+.jeu-corde-noeud {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); font-size: 2rem; line-height: 1;
+  transition: left 0.12s linear;
+  filter: drop-shadow(0 3px 4px rgba(47, 37, 69, 0.3));
+}
 
 /* Compte juste */
 .jeu-compte { display: flex; gap: 10px; justify-content: center; font-size: 2rem; color: var(--violet-texte); }
@@ -726,7 +784,13 @@ body {
   font-size: 1.7rem; font-weight: 800; margin: 0; padding: 12px 16px; border-radius: 16px;
   background: #fff6da; color: #2f2545; border: 3px dashed #e0c06a;
 }
+.jeu-aides { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .jeu-rappel { font-size: 0.95rem; padding: 8px 14px; }
+/* Le mot en train d'être dit s'allume, comme les choix de l'histoire. */
+.jeu-mot.enonce {
+  background: var(--or-voile); color: var(--encre);
+  box-shadow: 0 0 0 3px var(--or) inset;
+}
 
 /* Fanfare de fin d'épreuve : la victoire doit se voir, pas seulement se lire. */
 .epreuve-fanfare {
@@ -874,6 +938,7 @@ body {
   .btn-emoji { background: rgba(255, 255, 255, 0.09); }
   .carte-theme .haut { background: rgba(255, 255, 255, 0.07); }
   .accueil-bas .btn-discret { border-color: rgba(185, 174, 214, 0.3); }
+  .ouverture-scene::after { background: linear-gradient(to bottom, transparent, var(--creme)); }
   .aventure .couverture, .carte-carnet .btn-ecouter { background: #221c33; color: var(--encre); }
   #choix .carte-choix .emoji { background: rgba(255, 255, 255, 0.09); }
   .rail-sac { background: var(--creme); border-top-color: var(--creme-fonce); }

@@ -133,6 +133,11 @@ for (const theme of ['light', 'dark']) {
   await auditer(page, `thème ${theme} · héros`);
 
   await page.click('#btn-demarrer');
+  await page.waitForSelector('#ouverture:not([hidden])', { timeout: 20000 });
+  await page.waitForTimeout(300);
+  await auditer(page, `thème ${theme} · ouverture`);
+  await page.click('#btn-ouverture');
+  await page.waitForFunction(() => document.querySelector('#ouverture').hidden, { timeout: 8000 });
   await page.waitForSelector('#choix .carte-choix', { timeout: 20000 });
   await page.waitForTimeout(500);
   await auditer(page, `thème ${theme} · écran de jeu`);

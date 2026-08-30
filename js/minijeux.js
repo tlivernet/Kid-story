@@ -252,9 +252,17 @@ async function corde(zone, { difficulte, narrer }) {
   vider(zone);
   const consigne = 'Tire sur la corde ! Tape vite pour gagner du terrain.';
   zone.appendChild(el('p', { class: 'jeu-consigne', text: consigne }));
+  // Avant, toute la rangée glissait de quarante pixels : on ne voyait pas de
+  // quel côté allait la corde. Le nœud se déplace maintenant sur une piste,
+  // entre deux tireurs fixes, avec un repère au milieu.
+  const noeud = el('span', { class: 'jeu-corde-noeud', text: '🪢' });
   const piste = el('div', { class: 'jeu-corde' }, [
     el('span', { class: 'jeu-corde-heros', text: '🧒' }),
-    el('span', { class: 'jeu-corde-lien', text: '━━━━━━' }),
+    el('span', { class: 'jeu-corde-piste' }, [
+      el('span', { class: 'jeu-corde-lien' }),
+      el('span', { class: 'jeu-corde-repere' }),
+      noeud,
+    ]),
     el('span', { class: 'jeu-corde-rival', text: '🐻' }),
   ]);
   zone.appendChild(piste);
@@ -270,8 +278,12 @@ async function corde(zone, { difficulte, narrer }) {
     let fini = false;
     bouton.disabled = false;
     const placer = () => {
-      piste.style.setProperty('--tirage', `${Math.max(-40, Math.min(40, position / 2.5))}px`);
+      const borne = Math.max(-100, Math.min(100, position));
+      noeud.style.left = `${50 + borne / 2}%`;
+      piste.classList.toggle('gagne', borne > 20);
+      piste.classList.toggle('perd', borne < -20);
     };
+    placer();
 
     const terminer = async (gagne) => {
       if (fini) return;
@@ -313,9 +325,13 @@ async function corde(zone, { difficulte, narrer }) {
 
 async function taupes(zone, { difficulte, narrer }) {
   const objectif = 4 + difficulte;
-  const apparitions = objectif + 4 + difficulte;
   const duree = 1300 - difficulte * 130;
-  const partGuepes = 0.25 + difficulte * 0.05;
+  // Le tirage au sort pouvait ne faire apparaître que cinq amis pour un
+  // objectif de six : la partie était perdue d'avance. On construit donc la
+  // suite avec assez d'amis, puis on la mélange.
+  const amis = objectif + 2;
+  const guepes = Math.max(1, Math.round(amis * (0.25 + difficulte * 0.05) / (0.75 - difficulte * 0.05)));
+  const suite = melanger([...Array(amis).fill(false), ...Array(guepes).fill(true)]);
 
   vider(zone);
   const consigne = `Touche les animaux, mais surtout pas les guêpes ! Il en faut ${objectif}.`;
@@ -329,8 +345,8 @@ async function taupes(zone, { difficulte, narrer }) {
 
   let touches = 0;
   let piques = 0;
-  for (let i = 0; i < apparitions && piques < 2; i += 1) {
-    const guepe = Math.random() < partGuepes;
+  for (let i = 0; i < suite.length && piques < 2; i += 1) {
+    const guepe = suite[i];
     const cible = el('button', { class: `jeu-cible${guepe ? ' guepe' : ''}`, text: guepe ? '🐝' : piocher(AMIS) });
     cible.style.left = `${10 + Math.random() * 70}%`;
     cible.style.top = `${10 + Math.random() * 60}%`;
@@ -445,16 +461,38 @@ function melanger(liste) {
   return copie;
 }
 
-function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel }) {
+function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel, direDabord = false }) {
   vider(zone);
   zone.appendChild(el('p', { class: 'jeu-consigne', text: consigne }));
+  const grille = el('div', { class: 'jeu-mots' });
+
+  // L'enfant ne lit pas encore : il doit pouvoir entendre les propositions.
+  // Pour « touche le mot que tu entends », les dire d'emblée donnerait la
+  // réponse — elles ne sont donc lues qu'à la demande, et après une erreur.
+  let enTrainDeDire = false;
+  async function direLesPropositions() {
+    if (enTrainDeDire || !narrer) return;
+    enTrainDeDire = true;
+    for (const carte of grille.querySelectorAll('.jeu-mot')) {
+      carte.classList.add('enonce');
+      await narrer(carte.textContent);
+      carte.classList.remove('enonce');
+    }
+    enTrainDeDire = false;
+  }
+
+  const barre = el('div', { class: 'jeu-aides' });
   if (rappel) {
     const bouton = el('button', { class: 'btn jeu-rappel', text: '🔊 Réécouter' });
     bouton.addEventListener('click', () => narrer?.(rappel));
-    zone.appendChild(bouton);
+    barre.appendChild(bouton);
   }
-  const grille = el('div', { class: 'jeu-mots' });
+  const ecouter = el('button', { class: 'btn jeu-rappel', text: '👂 Les mots' });
+  ecouter.addEventListener('click', direLesPropositions);
+  barre.appendChild(ecouter);
+  zone.appendChild(barre);
   zone.appendChild(grille);
+  if (direDabord) setTimeout(direLesPropositions, 400);
 
   return new Promise((resoudre) => {
     let essais = 0;
@@ -474,6 +512,7 @@ function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel }
         essais += 1;
         carte.classList.add('rate');
         vibrer(10);
+        if (essais === 1) direLesPropositions();
         if (essais >= 2) {
           fini = true;
           grille.querySelectorAll('.jeu-mot').forEach((c) => {
@@ -494,7 +533,7 @@ async function motJuste(zone, { texte = [], narrer }) {
   const cible = vocabulaire.length ? piocher(vocabulaire) : piocher(MOTS_CP);
   const reserve = vocabulaire.length > 4 ? vocabulaire : MOTS_CP;
   const consigne = `Touche le mot : ${cible}`;
-  narrer?.(consigne);
+  await narrer?.(consigne);
   return questionLecture(zone, {
     consigne,
     propositions: [cible, ...leurres(cible, reserve)],
@@ -516,13 +555,14 @@ async function motManquant(zone, { texte = [], narrer }) {
   const trou = choisi.mot.toLowerCase();
   const aTrous = mots.map((mot, i) => (i === choisi.i ? '_____' : mot)).join(' ');
   const consigne = 'Quel mot manque dans la phrase ?';
-  narrer?.(`${consigne} ${aTrous.replace('_____', 'hum')}`);
+  await narrer?.(`${consigne} ${aTrous.replace('_____', 'hum')}`);
   return questionLecture(zone, {
     consigne: `${consigne}\n${aTrous}`,
     propositions: [trou, ...leurres(trou, motsDuTexte(texte).length > 4 ? motsDuTexte(texte) : MOTS_CP)],
     bonne: trou,
     narrer,
     rappel: aTrous.replace('_____', 'hum'),
+    direDabord: true,
   });
 }
 

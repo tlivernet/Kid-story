@@ -3,7 +3,7 @@ import {
   APP, THEMES, MODELES, INSPIRATIONS, INSPIRATIONS_REELLES, familleVoix,
   GROUPES_AVATARS, TEINTES, teinter, teintable,
 } from './config.js';
-import { $, el, vider, decouperMots, vibrer, attendre, piocher } from './util.js';
+import { $, el, vider, decouperMots, vibrer, attendre, piocher, exigenceIncoherente } from './util.js';
 import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
 import { SYSTEME, SCHEMA, premierMessage, messageSuivant } from './prompt.js';
 import { raconter, tester } from './api.js';
@@ -27,6 +27,7 @@ const ui = {
   demo: false,
   enCours: false,
   epreuveEnCours: false,   // une épreuve occupe l'écran : rien d'autre ne démarre
+  ouvertureAttendue: false, // le premier chapitre commence par une mise en place
   requete: null,
   ecran: 'accueil',
   phrasesAffichees: 0,
@@ -336,6 +337,7 @@ function demarrer() {
   });
   souvenirs.ajouterInspiration(ui.etat.inspiration);
   ui.demo = false;
+  ui.ouvertureAttendue = true;
   narrateur.debloquer();
   montrer('jeu');
   majJauges();
@@ -494,9 +496,11 @@ function revelerChoix(lire = true) {
 function lireLesChoix() {
   if (!ui.lecture || !ui.reglages.lireChoix) return;
   const cartes = document.querySelectorAll('#choix .carte-choix');
-  if (!cartes.length || ui.etat?.termine) return;
+  if (!cartes.length) return;
   ui.choixEnonces = true;
-  const phrases = ['Que fais-tu ?'];
+  // La fin d'une histoire propose elle aussi deux suites : elles étaient
+  // affichées mais jamais dites, donc invisibles pour un enfant qui ne lit pas.
+  const phrases = [ui.etat?.termine ? 'L’histoire est finie. Que veux-tu faire ?' : 'Que fais-tu ?'];
   const numeros = ['Un', 'Deux', 'Trois'];
   cartes.forEach((carte, i) => phrases.push(`${numeros[i] || i + 1} : ${carte.dataset.texte}.`));
   narrateur.lire(phrases, {
@@ -610,15 +614,15 @@ function rendreChoix(chapitre, masquer = false) {
   zone.classList.toggle('masque', masquer);
   textePlein(false);
   if (ui.etat.termine) {
-    const fin = el('button', { class: 'carte-choix' }, [
+    const fin = el('button', { class: 'carte-choix choix-3', 'data-texte': 'Voir la fin de l’histoire' }, [
       el('span', { class: 'emoji', text: '🏆' }),
-      el('span', { class: 'libelle', text: 'Voir la fin de l’histoire' }),
+      el('span', { class: 'carte-texte' }, [el('span', { class: 'libelle', text: 'Voir la fin de l’histoire' })]),
     ]);
     fin.addEventListener('click', montrerFin);
     zone.appendChild(fin);
-    const suite = el('button', { class: 'carte-choix' }, [
+    const suite = el('button', { class: 'carte-choix choix-1', 'data-texte': 'Continuer quand même l’aventure' }, [
       el('span', { class: 'emoji', text: '▶️' }),
-      el('span', { class: 'libelle', text: 'Continuer quand même l’aventure' }),
+      el('span', { class: 'carte-texte' }, [el('span', { class: 'libelle', text: 'Continuer quand même l’aventure' })]),
     ]);
     suite.addEventListener('click', reprendreApresFin);
     zone.appendChild(suite);
@@ -626,6 +630,12 @@ function rendreChoix(chapitre, masquer = false) {
     return;
   }
   for (const choix of chapitre.choix || []) {
+    // « Trouver une lampe torche » qui exige la lampe torche : la porte se ferme
+    // sur ce que le choix allait justement chercher. On lève l'exigence.
+    if (exigenceIncoherente(choix.texte, choix.objet_requis)) {
+      noterErreur(`Exigence incohérente levée : « ${choix.texte} » demandait ${choix.objet_requis}`);
+      choix.objet_requis = '';
+    }
     const possede = !choix.objet_requis
       || ui.etat.sac.some((o) => o.nom.toLowerCase() === String(choix.objet_requis).toLowerCase());
     const rang = zone.children.length;
@@ -1019,7 +1029,9 @@ async function demanderChapitre(action) {
   const surPhrase = (phrase, index) => {
     $('#chargement').hidden = true;
     ajouterPhrase(phrase, index);
-    if (ui.lecture) narrateur.enfiler(phrase, index);
+    // Pendant la mise en place, le chapitre s'écrit mais ne se dit pas encore :
+    // les deux voix se chevaucheraient.
+    if (ui.lecture && !ui.ouvertureAttendue) narrateur.enfiler(phrase, index);
   };
 
   let chapitre;
@@ -1111,9 +1123,25 @@ async function demanderChapitre(action) {
   majTitreHistoire(etat.titre);
   majJauges();
   ui.combatEnAttente = Boolean(etat.adversaire);
+  // Premier chapitre : la narration a été retenue pendant l'écriture pour ne
+  // pas se superposer à la mise en place. Qu'il y ait eu une ouverture ou non,
+  // c'est ici qu'elle démarre.
+  const premierTour = ui.ouvertureAttendue;
+  const ouverture = premierTour ? String(chapitre.intro || '').trim() : '';
+  ui.ouvertureAttendue = false;
   const litLeTexte = ui.lecture && narrateur.disponible && !etat.termine;
-  rendreChoix(chapitre, litLeTexte);
-  if (litLeTexte) surveillerLaVoix();
+  rendreChoix(chapitre, litLeTexte || Boolean(ouverture));
+  if (premierTour) {
+    if (ouverture) await montrerOuverture(etat, chapitre, ouverture);
+    if (litLeTexte) {
+      narrateur.lire(chapitre.texte || [], rappelsLecture);
+      surveillerLaVoix();
+    } else {
+      revelerChoix(false);
+    }
+  } else if (litLeTexte) {
+    surveillerLaVoix();
+  }
 
   if (bilan.nouveaux.length) {
     // Mémoire longue : cet objet ne sera plus proposé dans les prochaines parties.
@@ -1123,6 +1151,54 @@ async function demanderChapitre(action) {
   for (const objet of bilan.nouveaux) {
     toast(`${objet.emoji} ${objet.nom} rejoint ton sac !`);
   }
+}
+
+// Le monde se pose avant le premier chapitre : où l'on est, qui accompagne le
+// héros, ce qu'il emporte. Puis l'écran s'efface en fondu sur l'histoire.
+function montrerOuverture(etat, chapitre, intro) {
+  const phrases = String(intro).split(/(?<=[.!?…])\s+/).map((p) => p.trim()).filter(Boolean);
+  if (!phrases.length) return Promise.resolve();
+  const bloc = $('#ouverture');
+  $('#ouverture-scene').innerHTML = dessinerScene(
+    { lieu: chapitre.lieu, moment: chapitre.moment, acteurs: chapitre.acteurs, objets_decor: chapitre.objets_decor },
+    `${etat.id}-ouverture`,
+  );
+  $('#ouverture-sur').textContent = etat.titre || etat.theme || 'Une nouvelle aventure';
+  const zone = $('#ouverture-texte');
+  vider(zone);
+  phrases.forEach((phrase, i) => zone.appendChild(el('span', { class: 'phrase', 'data-rang': i, text: phrase })));
+  bloc.classList.remove('part');
+  bloc.hidden = false;
+
+  return new Promise((resoudre) => {
+    let fini = false;
+    const fermer = () => {
+      if (fini) return;
+      fini = true;
+      narrateur.stop();
+      bloc.classList.add('part');
+      setTimeout(() => {
+        bloc.hidden = true;
+        bloc.classList.remove('part');
+        const ecran = $('#ecran-jeu');
+        ecran.classList.remove('monde-apparait');
+        void ecran.offsetWidth;
+        ecran.classList.add('monde-apparait');
+        resoudre();
+      }, animationsReduites ? 60 : 600);
+    };
+    $('#btn-ouverture').onclick = fermer;
+    if (ui.lecture && narrateur.disponible) {
+      narrateur.lire(phrases, {
+        onPhrase: (index) => {
+          zone.querySelectorAll('.phrase').forEach((p, i) => p.classList.toggle('lue', i === index - 1));
+        },
+        onFin: () => setTimeout(fermer, animationsReduites ? 100 : 1100),
+      });
+    } else {
+      setTimeout(fermer, animationsReduites ? 200 : 4500);
+    }
+  });
 }
 
 // Un chapitre sans une seule phrase, ou qui prétend finir l'histoire au bout de
