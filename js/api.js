@@ -212,13 +212,14 @@ export async function raconter(options) {
   throw new ErreurApi('La demande a échoué.', { code: 'inconnue' });
 }
 
-async function lireFlux(reponse, { onPhrase, onTitre }, veille = null) {
+async function lireFlux(reponse, { onPhrase, onTitre, onIntro }, veille = null) {
   const lecteur = reponse.body.getReader();
   const decodeur = new TextDecoder();
   let reste = '';
   let tampon = '';
   let nbPhrases = 0;
   let titreVu = false;
+  let introVue = false;
   let stopReason = null;
 
   while (true) {
@@ -242,6 +243,12 @@ async function lireFlux(reponse, { onPhrase, onTitre }, veille = null) {
           if (!titreVu && onTitre) {
             const titre = valeurChaine(tampon, 'titre');
             if (titre) { titreVu = true; onTitre(titre); }
+          }
+          // L'ouverture arrive juste après le titre : elle s'affiche sans
+          // attendre que tout le chapitre soit écrit.
+          if (!introVue && onIntro) {
+            const intro = valeurChaine(tampon, 'intro');
+            if (intro) { introVue = true; onIntro(intro); }
           }
           if (onPhrase) {
             const phrases = phrasesCompletes(tampon);

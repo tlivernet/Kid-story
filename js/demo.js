@@ -126,9 +126,12 @@ export function chapitreDemo(etat, action) {
     const but = piocher(theme.mots, r);
     return {
       titre: `${h} et ${theme.nom.toLowerCase()}`,
-      intro: `Bienvenue dans une histoire de ${theme.nom.toLowerCase()}. `
-        + `${h} n'est pas tout seul : ${compagnon.nom} l'accompagne partout. `
-        + 'Dans son sac, il n\u2019y a presque rien. Tout commence maintenant.',
+      intro: `Ici, c'est le monde de ${theme.nom.toLowerCase()}. `
+        + 'Le vent sent le matin et la journée commence à peine. '
+        + `${h} connaît chaque recoin de cet endroit, et s'y sent chez lui. `
+        + `${compagnon.nom} l'accompagne partout, et pose toujours trop de questions. `
+        + 'Dans le sac : presque rien. '
+        + 'Et ce matin-là, tout a changé.',
       texte: etat.realiste ? [
         `${h} enfile ses chaussures, prêt pour la journée.`,
         `Aujourd'hui, ${etat.inspiration ? etat.inspiration.debut : 'une drôle de journée commence'}.`,

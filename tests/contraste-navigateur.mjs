@@ -131,6 +131,12 @@ for (const theme of ['light', 'dark']) {
   await page.click('#grille-avatars .avatar >> nth=0');
   await page.waitForTimeout(200);
   await auditer(page, `thème ${theme} · héros`);
+  // Le prénom retenu : cet encart ne s'affiche qu'à la deuxième histoire.
+  await page.evaluate(() => {
+    document.querySelector('#prenom-connu').textContent = 'Lina';
+    document.querySelector('#ligne-prenom').hidden = false;
+  });
+  await auditer(page, `thème ${theme} · héros (prénom retenu)`);
 
   await page.click('#btn-demarrer');
   await page.waitForSelector('#ouverture:not([hidden])', { timeout: 20000 });

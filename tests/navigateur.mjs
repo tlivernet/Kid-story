@@ -33,27 +33,67 @@ await page.goto(ADRESSE);
 // --- Parcours d'une aventure ------------------------------------------------
 await page.click('#btn-nouvelle');
 await page.click('.grille-themes .carte-theme >> nth=0');
+
+// Le clavier ne doit pas s'ouvrir tout seul : rien n'a le focus en arrivant.
+const focusArrivee = await page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName);
+verifier(focusArrivee !== 'champ-prenom', `le clavier ne s’ouvre pas tout seul (focus : ${focusArrivee})`);
+
 await page.fill('#champ-prenom', 'Lina');
 
 // Avatars : groupés, avec une rangée de teintes qui s'applique aux personnes.
 const groupes = await page.$$eval('#grille-avatars .titre-groupe', (n) => n.map((t) => t.textContent));
 verifier(groupes.length >= 3, `les avatars sont groupés (${groupes.join(' / ')})`);
-await page.click('#grille-avatars .avatar[data-base="🧑‍🚒"]');
+
+// Le monde choisi propose d'avance l'avatar qui lui va, déjà sélectionné.
+const propose = await page.evaluate(() => ({
+  suggere: document.querySelector('.avatar.suggere')?.dataset.base,
+  choisi: document.querySelector('.avatar.choisi')?.dataset.base,
+  largeur: Math.round(document.querySelector('.avatar:not(.suggere)').getBoundingClientRect().width),
+}));
+verifier(
+  propose.suggere && propose.suggere === propose.choisi,
+  `le thème propose son avatar, déjà choisi (${propose.suggere || 'aucun'})`,
+);
+verifier(propose.largeur >= 76, `les avatars sont assez grands pour être reconnus (${propose.largeur} px)`);
+
+await page.click('#grille-avatars .avatar[data-base="🧑‍🚒"] >> nth=0');
 await page.click('#rangee-teintes .teinte >> nth=3');
 const apercu = await page.textContent('#apercu-heros');
 verifier(apercu === '🧑🏽‍🚒', `la teinte s’applique à l’avatar (${apercu})`);
-await page.click('#grille-avatars .avatar[data-base="🦊"]');
+await page.click('#grille-avatars .avatar[data-base="🦊"] >> nth=0');
 verifier(await page.isHidden('#bloc-teintes'), 'pas de teinte proposée pour un animal');
 await page.click('#grille-avatars .avatar[data-base="🧒"]');
 
 await page.click('#btn-demarrer');
 
-// L'histoire s'ouvre par une mise en place : où l'on est, qui accompagne le héros.
+// L'histoire s'ouvre par une mise en place, et le chapitre ne doit surtout pas
+// s'afficher avant elle : c'était le cas, l'ouverture arrivait après coup.
 await page.waitForSelector('#ouverture:not([hidden])', { timeout: 20000 });
+const avantIntro = await page.evaluate(() => ({
+  attente: !document.querySelector('#ouverture-attente').hidden,
+  phrases: document.querySelectorAll('#texte-histoire .phrase').length,
+}));
+verifier(
+  avantIntro.attente && avantIntro.phrases === 0,
+  `l’ouverture précède le chapitre (${avantIntro.phrases} phrase(s) affichée(s) au lancement)`,
+);
+await page.waitForFunction(() => document.querySelector('#ouverture-attente').hidden, { timeout: 25000 });
 const intro = (await page.textContent('#ouverture-texte')).trim();
-verifier(intro.length > 20, `l’histoire s’ouvre par une mise en place (${intro.slice(0, 46)}…)`);
+const lignesIntro = await page.$$eval('#ouverture-texte .phrase', (n) => n.length);
+verifier(
+  intro.length > 20 && lignesIntro >= 4,
+  `la mise en place pose le décor (${lignesIntro} phrases : ${intro.slice(0, 40)}…)`,
+);
 await page.click('#btn-ouverture');
 await page.waitForFunction(() => document.querySelector('#ouverture').hidden, { timeout: 8000 });
+
+// D'un chapitre à l'autre, une page se tourne : on est dans un livre.
+await page.evaluate(() => {
+  window.__pages = 0;
+  new MutationObserver(() => {
+    if (!document.querySelector('#page-tournee').hidden) window.__pages += 1;
+  }).observe(document.querySelector('#page-tournee'), { attributes: true });
+});
 
 await page.waitForSelector('#choix .carte-choix:not([hidden])', { timeout: 15000 });
 verifier((await page.$$('.phrase')).length >= 3, 'le chapitre s’affiche phrase par phrase');
@@ -74,6 +114,8 @@ await page.waitForTimeout(300);
 verifier((await page.$$('#contenu-resume .resume-ligne')).length >= 3, 'le résumé de l’histoire est lisible');
 await page.click('#btn-fermer-resume');
 
+const pagesTournees = await page.evaluate(() => window.__pages || 0);
+
 // Régression : rouvrir l'application puis « Continuer » doit réafficher le chapitre.
 await page.click('#btn-maison');
 await page.reload();
@@ -86,6 +128,7 @@ const reprise = await page.evaluate(() => ({
 }));
 verifier(reprise.phrases > 0 && reprise.choix > 0,
   `« Continuer » réaffiche l’histoire (${reprise.phrases} phrases, ${reprise.choix} choix)`);
+verifier(pagesTournees >= 1, `une page se tourne d’un chapitre à l’autre (${pagesTournees})`);
 
 // --- Mini-jeux --------------------------------------------------------------
 async function lancerJeu(jeu, difficulte, texte = []) {
@@ -221,8 +264,8 @@ for (let i = 0; i < 10; i += 1) await page.click('#epreuve-zone .jeu-tambour').c
 await page.waitForTimeout(200);
 const apresCorde = await page.$eval('.jeu-corde-noeud', (n) => n.style.left);
 verifier(
-  parseFloat(apresCorde) > parseFloat(avantCorde),
-  `le nœud de la corde se déplace quand on tire (${avantCorde} → ${apresCorde})`,
+  parseFloat(apresCorde) < parseFloat(avantCorde),
+  `tirer ramène le nœud vers le héros, à gauche (${avantCorde} → ${apresCorde})`,
 );
 await page.evaluate(() => { document.querySelector('#overlay-epreuve').hidden = true; });
 
@@ -309,6 +352,7 @@ await page.click('.grille-themes .carte-theme >> nth=0');
 await page.fill('#champ-prenom', 'Lina');
 await page.click('#btn-demarrer');
 await page.waitForSelector('#ouverture:not([hidden])', { timeout: 20000 });
+await page.waitForFunction(() => document.querySelector('#ouverture-attente').hidden, { timeout: 25000 });
 await page.click('#btn-ouverture');
 await page.waitForFunction(() => document.querySelector('#ouverture').hidden, { timeout: 8000 });
 

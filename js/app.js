@@ -1,7 +1,7 @@
 // Le Livre Magique — orchestration des écrans et du jeu.
 import {
   APP, THEMES, MODELES, INSPIRATIONS, INSPIRATIONS_REELLES, familleVoix,
-  GROUPES_AVATARS, TEINTES, teinter, teintable,
+  GROUPES_AVATARS, TEINTES, teinter, teintable, avatarDuTheme,
 } from './config.js';
 import { $, el, vider, decouperMots, vibrer, attendre, piocher, exigenceIncoherente } from './util.js';
 import { reglages as storeReglages, partie, journal, souvenirs, heros as storeHeros } from './storage.js';
@@ -223,17 +223,32 @@ function construireThemes() {
       if (theme.id === 'surprise-reel') choisi = piocher(THEMES.filter((t) => t.realiste));
       ui.theme = choisi;
       $('#bloc-idee').hidden = theme.id !== 'idee';
+      // L'avatar qui va avec le monde est choisi d'avance : l'enfant n'a rien à
+      // faire s'il lui convient. Le clavier, lui, ne s'ouvre plus tout seul.
+      ui.avatarBase = avatarDuTheme(choisi);
+      ui.avatar = teinter(ui.avatarBase, ui.teinte);
       construireAvatars();
+      majLignePrenom();
       montrer('heros', `${choisi.nom} !`);
-      $('#champ-prenom').focus();
     });
     grille.appendChild(carte);
   }
 }
 
+// Le prénom retenu s'affiche au lieu de rouvrir le clavier à chaque histoire.
+function majLignePrenom(forcerSaisie = false) {
+  const prenom = $('#champ-prenom').value.trim();
+  const connu = Boolean(prenom) && !forcerSaisie;
+  $('#ligne-prenom').hidden = !connu;
+  $('#prenom-connu').textContent = prenom;
+  $('#label-prenom').hidden = connu;
+  $('#champ-prenom').hidden = connu;
+}
+
 function construireAvatars() {
   const grille = $('#grille-avatars');
   vider(grille);
+  const suggere = ui.theme ? avatarDuTheme(ui.theme) : null;
   // Les métiers passent devant quand l'histoire est ancrée dans le réel.
   const realiste = Boolean(ui.theme?.realiste);
   const groupes = [...GROUPES_AVATARS].sort((a, b) => {
@@ -241,20 +256,35 @@ function construireAvatars() {
     return rang(a) - rang(b);
   });
 
+  const poser = (avatar, enTete = false) => {
+    const bouton = el('button', {
+      class: `avatar${enTete ? ' suggere' : ''}`,
+      text: teinter(avatar.emoji, ui.teinte), title: avatar.nom, 'data-base': avatar.emoji,
+    });
+    bouton.addEventListener('click', () => {
+      ui.avatarBase = avatar.emoji;
+      ui.avatar = teinter(avatar.emoji, ui.teinte);
+      majAvatars();
+      vibrer();
+    });
+    grille.appendChild(bouton);
+  };
+
+  if (suggere) {
+    const avatar = groupes.flatMap((g) => g.avatars).find((a) => a.emoji === suggere);
+    if (avatar) {
+      grille.appendChild(el('h3', { class: 'titre-groupe' }, [
+        el('span', { class: 'pastille', text: '⭐' }),
+        el('span', { class: 'libelle', text: `Tout indiqué pour « ${ui.theme.nom} »` }),
+        el('span', { class: 'trait' }),
+      ]));
+      poser(avatar, true);
+    }
+  }
+
   for (const groupe of groupes) {
     grille.appendChild(el('h3', { class: 'titre-groupe', text: groupe.titre }));
-    for (const avatar of groupe.avatars) {
-      const bouton = el('button', {
-        class: 'avatar', text: teinter(avatar.emoji, ui.teinte), title: avatar.nom, 'data-base': avatar.emoji,
-      });
-      bouton.addEventListener('click', () => {
-        ui.avatarBase = avatar.emoji;
-        ui.avatar = teinter(avatar.emoji, ui.teinte);
-        majAvatars();
-        vibrer();
-      });
-      grille.appendChild(bouton);
-    }
+    for (const avatar of groupe.avatars) poser(avatar);
   }
   construireTeintes();
   majAvatars();
@@ -342,6 +372,7 @@ function demarrer() {
   montrer('jeu');
   majJauges();
   $('#titre-histoire').hidden = true;
+  ouvrirOuverture(ui.theme);
   $('#scene').innerHTML = dessinerScene({ lieu: 'ciel', moment: 'jour', acteurs: [heros.avatar], objets_decor: ['📖'] }, ui.etat.id);
   demanderChapitre(null);
 }
@@ -868,6 +899,7 @@ async function epreuveJeu(choix, jeu, dansCombat = false) {
     narrer: (texte) => annoncer(texte),
     // Les jeux de lecture travaillent sur le texte que l'enfant vient d'entendre.
     texte: (ui.phrasesCourantes || []).filter(Boolean),
+    direDabord: ui.reglages.direLesPropositions !== false,
   });
   await conclureEpreuve(
     resultat.reussi,
@@ -1039,6 +1071,7 @@ async function demanderChapitre(action) {
     if (modeDemo()) {
       chapitre = chapitreDemo(etat, action);
       await attendre(500);
+      if (ui.ouvertureAttendue && chapitre.intro) garnirOuverture(chapitre.intro);
       for (let i = 0; i < chapitre.texte.length; i += 1) {
         surPhrase(chapitre.texte[i], i);
         await attendre(animationsReduites ? 60 : 420);
@@ -1054,8 +1087,12 @@ async function demanderChapitre(action) {
         fallback: ui.reglages.fallback,
         signal: ui.requete.signal,
         onTitre: (titre) => {
-          if (etat.chapitre === 0 && titre) majTitreHistoire(titre);
+          if (etat.chapitre === 0 && titre) {
+            majTitreHistoire(titre);
+            $('#ouverture-sur').textContent = titre;
+          }
         },
+        onIntro: (intro) => { if (ui.ouvertureAttendue) garnirOuverture(intro); },
         onPhrase: surPhrase,
       });
       // Filet de sécurité : si le flux n'a pas tout donné, on complète.
@@ -1080,6 +1117,8 @@ async function demanderChapitre(action) {
       return;
     }
     $('#chargement').hidden = true;
+    fermerOuverture();
+    ui.ouvertureAttendue = false;
     afficherErreur(erreur, { ...(action || {}), essais: 0 });
     return;
   } finally {
@@ -1127,20 +1166,25 @@ async function demanderChapitre(action) {
   // pas se superposer à la mise en place. Qu'il y ait eu une ouverture ou non,
   // c'est ici qu'elle démarre.
   const premierTour = ui.ouvertureAttendue;
-  const ouverture = premierTour ? String(chapitre.intro || '').trim() : '';
   ui.ouvertureAttendue = false;
+  const ouvertureOuverte = premierTour && !$('#ouverture').hidden;
   const litLeTexte = ui.lecture && narrateur.disponible && !etat.termine;
-  rendreChoix(chapitre, litLeTexte || Boolean(ouverture));
+  rendreChoix(chapitre, litLeTexte || ouvertureOuverte);
   if (premierTour) {
-    if (ouverture) await montrerOuverture(etat, chapitre, ouverture);
+    if (ouvertureOuverte) {
+      // Le flux n'a pas donné d'ouverture : on referme sans rien dire.
+      if (!$('#ouverture-attente').hidden) garnirOuverture(chapitre.intro);
+      await ui.ouvertureFermee;
+    }
     if (litLeTexte) {
       narrateur.lire(chapitre.texte || [], rappelsLecture);
       surveillerLaVoix();
     } else {
       revelerChoix(false);
     }
-  } else if (litLeTexte) {
-    surveillerLaVoix();
+  } else {
+    tournerLaPage();
+    if (litLeTexte) surveillerLaVoix();
   }
 
   if (bilan.nouveaux.length) {
@@ -1155,50 +1199,73 @@ async function demanderChapitre(action) {
 
 // Le monde se pose avant le premier chapitre : où l'on est, qui accompagne le
 // héros, ce qu'il emporte. Puis l'écran s'efface en fondu sur l'histoire.
-function montrerOuverture(etat, chapitre, intro) {
-  const phrases = String(intro).split(/(?<=[.!?…])\s+/).map((p) => p.trim()).filter(Boolean);
-  if (!phrases.length) return Promise.resolve();
+// L'ouverture s'ouvre dès qu'on lance l'aventure, en attendant la Plume : le
+// chapitre ne doit jamais s'afficher avant la mise en place.
+function ouvrirOuverture(theme) {
   const bloc = $('#ouverture');
   $('#ouverture-scene').innerHTML = dessinerScene(
-    { lieu: chapitre.lieu, moment: chapitre.moment, acteurs: chapitre.acteurs, objets_decor: chapitre.objets_decor },
-    `${etat.id}-ouverture`,
+    { lieu: theme?.lieu || 'ciel', moment: 'jour', acteurs: [ui.avatar], objets_decor: ['📖'] },
+    `ouverture-${theme?.id || 'neuve'}`,
   );
-  $('#ouverture-sur').textContent = etat.titre || etat.theme || 'Une nouvelle aventure';
-  const zone = $('#ouverture-texte');
-  vider(zone);
-  phrases.forEach((phrase, i) => zone.appendChild(el('span', { class: 'phrase', 'data-rang': i, text: phrase })));
+  $('#ouverture-sur').textContent = theme?.nom || 'Une nouvelle aventure';
+  vider($('#ouverture-texte'));
+  $('#ouverture-attente').hidden = false;
+  $('#btn-ouverture').hidden = true;
   bloc.classList.remove('part');
   bloc.hidden = false;
+  ui.ouvertureFermee = new Promise((resoudre) => { ui.fermerOuverture = resoudre; });
+}
 
-  return new Promise((resoudre) => {
-    let fini = false;
-    const fermer = () => {
-      if (fini) return;
-      fini = true;
-      narrateur.stop();
-      bloc.classList.add('part');
-      setTimeout(() => {
-        bloc.hidden = true;
-        bloc.classList.remove('part');
-        const ecran = $('#ecran-jeu');
-        ecran.classList.remove('monde-apparait');
-        void ecran.offsetWidth;
-        ecran.classList.add('monde-apparait');
-        resoudre();
-      }, animationsReduites ? 60 : 600);
-    };
-    $('#btn-ouverture').onclick = fermer;
-    if (ui.lecture && narrateur.disponible) {
-      narrateur.lire(phrases, {
-        onPhrase: (index) => {
-          zone.querySelectorAll('.phrase').forEach((p, i) => p.classList.toggle('lue', i === index - 1));
-        },
-        onFin: () => setTimeout(fermer, animationsReduites ? 100 : 1100),
-      });
-    } else {
-      setTimeout(fermer, animationsReduites ? 200 : 4500);
-    }
-  });
+function fermerOuverture() {
+  const bloc = $('#ouverture');
+  if (bloc.hidden) return;
+  narrateur.stop();
+  bloc.classList.add('part');
+  setTimeout(() => {
+    bloc.hidden = true;
+    bloc.classList.remove('part');
+    const ecran = $('#ecran-jeu');
+    ecran.classList.remove('monde-apparait');
+    void ecran.offsetWidth;
+    ecran.classList.add('monde-apparait');
+    ui.fermerOuverture?.();
+    ui.fermerOuverture = null;
+  }, animationsReduites ? 60 : 600);
+}
+
+// Le texte de l'ouverture arrive en cours de flux : on le pose et on le dit.
+function garnirOuverture(intro) {
+  const bloc = $('#ouverture');
+  if (bloc.hidden) return;
+  const phrases = String(intro || '').split(/(?<=[.!?…])\s+/).map((p) => p.trim()).filter(Boolean);
+  if (!phrases.length) { fermerOuverture(); return; }
+  const zone = $('#ouverture-texte');
+  vider(zone);
+  phrases.forEach((phrase) => zone.appendChild(el('span', { class: 'phrase', text: phrase })));
+  $('#ouverture-attente').hidden = true;
+  $('#btn-ouverture').hidden = false;
+  $('#btn-ouverture').onclick = fermerOuverture;
+  if (ui.lecture && narrateur.disponible) {
+    narrateur.lire(phrases, {
+      onPhrase: (index) => {
+        zone.querySelectorAll('.phrase').forEach((p, i) => p.classList.toggle('lue', i === index - 1));
+      },
+      onFin: () => setTimeout(fermerOuverture, animationsReduites ? 100 : 1200),
+    });
+  } else {
+    setTimeout(fermerOuverture, animationsReduites ? 200 : 5000);
+  }
+}
+
+// D'un chapitre à l'autre, une page se tourne : on est dans un livre.
+function tournerLaPage() {
+  if (animationsReduites) return;
+  const page = $('#page-tournee');
+  page.hidden = false;
+  page.style.animation = 'none';
+  void page.offsetWidth;
+  page.style.animation = '';
+  setTimeout(() => { page.hidden = true; }, 760);
 }
 
 // Un chapitre sans une seule phrase, ou qui prétend finir l'histoire au bout de
@@ -1436,6 +1503,7 @@ function construireReglages() {
   $('#champ-richesse').value = ui.reglages.richesse;
   $('#champ-lire-choix').checked = ui.reglages.lireChoix;
   $('#champ-lire-interface').checked = ui.reglages.lireInterface;
+  $('#champ-dire-propositions').checked = ui.reglages.direLesPropositions !== false;
   $('#champ-confirmer').checked = ui.reglages.confirmerChoix;
   $('#champ-epreuves').value = ui.reglages.epreuves;
   $('#champ-jeux-lecture').checked = ui.reglages.jeuxLecture;
@@ -1572,7 +1640,11 @@ function brancher() {
   $('#btn-carnet').addEventListener('click', ouvrirCarnet);
   $('#btn-reglages').addEventListener('click', ouvrirReglages);
   $('#btn-demarrer').addEventListener('click', demarrer);
-  $('#champ-prenom').addEventListener('keydown', (e) => { if (e.key === 'Enter') demarrer(); });
+  $('#champ-prenom').addEventListener('keydown', (e) => { if (e.key === 'Enter') { majLignePrenom(); demarrer(); } });
+  $('#btn-changer-prenom').addEventListener('click', () => {
+    majLignePrenom(true);
+    $('#champ-prenom').focus();
+  });
 
   $('#btn-maison').addEventListener('click', () => {
     if (ui.requete) ui.requete.abort();
@@ -1675,6 +1747,7 @@ function brancher() {
   $('#champ-richesse').addEventListener('change', (e) => enregistrerReglage('richesse', e.target.value));
   $('#champ-lire-choix').addEventListener('change', (e) => enregistrerReglage('lireChoix', e.target.checked));
   $('#champ-lire-interface').addEventListener('change', (e) => enregistrerReglage('lireInterface', e.target.checked));
+  $('#champ-dire-propositions').addEventListener('change', (e) => enregistrerReglage('direLesPropositions', e.target.checked));
   $('#champ-confirmer').addEventListener('change', (e) => enregistrerReglage('confirmerChoix', e.target.checked));
   $('#champ-epreuves').addEventListener('change', (e) => enregistrerReglage('epreuves', e.target.value));
   $('#champ-jeux-lecture').addEventListener('change', (e) => enregistrerReglage('jeuxLecture', e.target.checked));
@@ -1760,6 +1833,7 @@ function init() {
   majBoutonSon();
   const heros = storeHeros.charger();
   $('#champ-prenom').value = heros.prenom || '';
+  majLignePrenom();
   appliquerReglages();
   construireThemes();
   construireAvatars();

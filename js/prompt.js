@@ -88,10 +88,16 @@ TOUS LES CHEMINS NE SE VALENT PAS
 - Le héros peut se tromper. C'est amusant, ça donne un détour, et l'histoire continue.
 
 OUVERTURE (chapitre 1 seulement)
-- Remplis « intro » avec 2 à 4 phrases très courtes, dites avant l'histoire, sur un écran à part :
-  où l'on est, qui accompagne le héros, et ce qu'il a dans son sac ou dans les mains au départ.
-- C'est une invitation, pas un résumé : on plante le décor et on donne envie. Ne raconte aucune action
-  du chapitre 1, ne pose aucune question, ne révèle pas la quête — elle se découvre en jouant.
+- Remplis « intro » avec 4 à 6 phrases, dites avant l'histoire, sur un écran à part. Prends le temps
+  de poser le décor, dans cet ordre :
+  1. L'ENDROIT, en une image qu'on voit : la lumière, un bruit, une odeur, la saison.
+  2. LE HÉROS à sa place dans ce monde : ce qu'il y fait d'habitude, ce qu'il aime.
+  3. LE COMPAGNON : son nom, son animal ou son métier, et une manie à lui.
+  4. CE QU'IL EMPORTE, ou le fait qu'il n'a rien du tout.
+  5. Une dernière phrase très courte qui ouvre la porte : « Et ce matin-là, tout a changé. »
+- Applique ici aussi le rythme : alterne court et long, au moins une phrase de deux à cinq mots.
+- C'est une invitation, pas un résumé. Ne raconte aucune action du chapitre 1, ne pose aucune
+  question, ne révèle pas la quête — elle se découvre en jouant.
 - Aux chapitres suivants, « intro » reste une chaîne vide.
 
 OBJETS (rares, et seulement quand le jeu l'autorise)

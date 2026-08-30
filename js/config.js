@@ -2,7 +2,7 @@
 
 export const APP = {
   nom: 'Le Livre Magique',
-  version: '1.15.0',
+  version: '1.16.0',
 };
 
 // Modèles proposés dans les réglages (parents).
@@ -95,6 +95,21 @@ export const GROUPES_AVATARS = [
 ];
 
 export const AVATARS = GROUPES_AVATARS.flatMap((g) => g.avatars.map((a) => a.emoji));
+
+// L'avatar qui va de soi pour chaque monde : il est proposé d'avance et mis en
+// tête, pour que l'enfant n'ait rien à chercher s'il n'en a pas envie.
+export const AVATAR_PAR_THEME = {
+  pirates: '🏴‍☠️', dragons: '🧙', espace: '🧑‍🚀', dinosaures: '🦸', jungle: '🕵️',
+  sirenes: '🧜‍♀️', chevaliers: '🦸', sorciers: '🧙‍♀️', detective: '🕵️', ferme: '🧑‍🌾',
+  neige: '⛑️', robots: '🤖', animaux: '🧒', ecole: '🧑‍🏫',
+  pompiers: '🧑‍🚒', police: '👮', veterinaire: '🧑‍⚕️', boulangerie: '🧑‍🍳',
+  chantier: '🧑‍🔧', train: '🧑‍✈️', foot: '🚴', camping: '🧒', peche: '🧒',
+  marche: '🧑‍🍳', 'ecole-vraie': '🧑‍🏫',
+};
+
+export function avatarDuTheme(theme) {
+  return AVATAR_PAR_THEME[theme?.id] || (theme?.realiste ? '🧒' : '🦸');
+}
 
 // Teintes de peau : un enfant doit pouvoir se reconnaître dans son héros.
 export const TEINTES = [
@@ -477,6 +492,7 @@ export const REGLAGES_DEFAUT = {
   confirmerChoix: true,     // l'enfant écoute le choix puis confirme (il ne lit pas encore)
   lireChoix: true,          // les choix sont lus à voix haute automatiquement
   lireInterface: true,      // les écrans et les cartes se présentent à voix haute
+  direLesPropositions: true, // les jeux de lecture disent les mots proposés
   epreuves: 'melange',      // 'de', 'minijeux' ou 'melange'
   jeuxLecture: true,        // ajoute les épreuves de lecture (niveau CP)
   douceur: 'normal',        // 'tendre' (aucun cœur perdu), 'normal', 'corse'

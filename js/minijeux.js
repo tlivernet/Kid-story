@@ -279,7 +279,9 @@ async function corde(zone, { difficulte, narrer }) {
     bouton.disabled = false;
     const placer = () => {
       const borne = Math.max(-100, Math.min(100, position));
-      noeud.style.left = `${50 + borne / 2}%`;
+      // On tire la corde VERS soi : le héros est à gauche, donc gagner ramène
+      // le nœud vers la gauche.
+      noeud.style.left = `${50 - borne / 2}%`;
       piste.classList.toggle('gagne', borne > 20);
       piste.classList.toggle('perd', borne < -20);
     };
@@ -466,9 +468,12 @@ function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel, 
   zone.appendChild(el('p', { class: 'jeu-consigne', text: consigne }));
   const grille = el('div', { class: 'jeu-mots' });
 
-  // L'enfant ne lit pas encore : il doit pouvoir entendre les propositions.
-  // Pour « touche le mot que tu entends », les dire d'emblée donnerait la
-  // réponse — elles ne sont donc lues qu'à la demande, et après une erreur.
+  // L'enfant ne lit pas encore : les propositions sont dites d'office, chacune
+  // allumée pendant qu'elle est prononcée. Pour « touche le mot que tu
+  // entends », cela transforme l'exercice — reconnaître le mot écrit devient
+  // le reconnaître à sa place dans la liste. C'est un choix assumé : sans
+  // cela, l'enfant restait bloqué devant trois mots muets. Le réglage
+  // « direLesPropositions » permet de revenir en arrière.
   let enTrainDeDire = false;
   async function direLesPropositions() {
     if (enTrainDeDire || !narrer) return;
@@ -528,7 +533,7 @@ function questionLecture(zone, { consigne, propositions, bonne, narrer, rappel, 
 }
 
 // Écoute le mot, touche le bon parmi trois.
-async function motJuste(zone, { texte = [], narrer }) {
+async function motJuste(zone, { texte = [], narrer, direDabord = true }) {
   const vocabulaire = motsDuTexte(texte);
   const cible = vocabulaire.length ? piocher(vocabulaire) : piocher(MOTS_CP);
   const reserve = vocabulaire.length > 4 ? vocabulaire : MOTS_CP;
@@ -540,11 +545,12 @@ async function motJuste(zone, { texte = [], narrer }) {
     bonne: cible,
     narrer,
     rappel: consigne,
+    direDabord,
   });
 }
 
 // Le mot qui manque dans une phrase du chapitre.
-async function motManquant(zone, { texte = [], narrer }) {
+async function motManquant(zone, { texte = [], narrer, direDabord = true }) {
   const phrases = texte.filter((p) => String(p).split(/\s+/).length >= 6);
   const phrase = phrases.length ? piocher(phrases) : 'Le chat dort sur le tapis du salon.';
   const mots = phrase.split(/\s+/);
@@ -562,12 +568,12 @@ async function motManquant(zone, { texte = [], narrer }) {
     bonne: trou,
     narrer,
     rappel: aTrous.replace('_____', 'hum'),
-    direDabord: true,
+    direDabord,
   });
 }
 
 // Lis la consigne (elle n'est pas dite) et touche la bonne image.
-async function lireEtFaire(zone, { difficulte, narrer }) {
+async function lireEtFaire(zone, { difficulte, narrer, direDabord = true }) {
   const nombre = difficulte >= 4 ? 4 : 3;
   const choisis = melanger(MOTS_IMAGES).slice(0, nombre);
   const cible = choisis[0];
@@ -578,6 +584,8 @@ async function lireEtFaire(zone, { difficulte, narrer }) {
   const aide = el('button', { class: 'btn jeu-rappel', text: '🔊 J’ai besoin d’aide' });
   aide.addEventListener('click', () => narrer?.(`Touche ${cible.mot}`));
   zone.appendChild(aide);
+  // Ici les propositions sont des images : c'est le mot à lire qui est dit.
+  if (direDabord) setTimeout(() => narrer?.(`Touche ${cible.mot}`), 500);
   const grille = el('div', { class: 'jeu-grille jeu-grille-4' });
   zone.appendChild(grille);
 
